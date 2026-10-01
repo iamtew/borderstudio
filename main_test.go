@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestDefaultDesign(t *testing.T) {
 	d := defaultDesign()
@@ -13,6 +16,9 @@ func TestDefaultDesign(t *testing.T) {
 	// Closed in the renderer (pathD adds Z / canvas closePath). Mask is nonzero fill.
 	if d.Width != 1920 || d.Height != 1080 {
 		t.Fatalf("default canvas %dx%d", d.Width, d.Height)
+	}
+	if len(d.Events) < 10 {
+		t.Fatalf("packed default events, got %d", len(d.Events))
 	}
 }
 
@@ -44,6 +50,18 @@ func TestStoreRoundtrip(t *testing.T) {
 	}
 	if got.Stroke != "#FF00FF" || len(got.Points) != len(d.Points) {
 		t.Fatalf("roundtrip %+v", got)
+	}
+	d.Motion = "rainbow"
+	d.Dash = true
+	if err := st.save(d); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Motion != "rainbow" || !got.Dash {
+		t.Fatalf("motion roundtrip %+v", got)
 	}
 	if err := st.save(defaultDesign()); err != nil {
 		t.Fatal(err)
@@ -95,5 +113,16 @@ func TestPalettesRoundtrip(t *testing.T) {
 	}
 	if again.Selected != "neon" || again.Custom[0].ID != "p1" {
 		t.Fatalf("reload %+v", again)
+	}
+}
+
+func TestDashJSONStillLoads(t *testing.T) {
+	raw := `{"width":10,"height":10,"points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}],"dash":true}`
+	var d design
+	if err := json.Unmarshal([]byte(raw), &d); err != nil {
+		t.Fatal(err)
+	}
+	if !d.Dash || d.Motion != "" {
+		t.Fatalf("dash compat %+v", d)
 	}
 }

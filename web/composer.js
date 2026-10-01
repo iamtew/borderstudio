@@ -61,7 +61,7 @@ function paint() {
   paintStrokeWell();
   document.getElementById("in-width").value = d.strokeWidth;
   document.getElementById("in-glow").value = d.glow;
-  document.getElementById("in-dash").checked = !!d.dash;
+  fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
   document.getElementById("in-mw").value = d.width;
   document.getElementById("in-mh").value = d.height;
   document.getElementById("mask-prev").src = maskCanvas(d).toDataURL("image/png");
@@ -86,6 +86,12 @@ function paintCtrl() {
     ? '<i class="fa-solid fa-check" aria-hidden="true"></i> Done'
     : '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
   grid.replaceChildren();
+  if (ctrlEdit) {
+    const head = document.createElement("div");
+    head.className = "event-head";
+    head.innerHTML = "<span>Button</span><span>Animation</span><span></span>";
+    grid.appendChild(head);
+  }
   (d.events || []).forEach((ev, i) => {
     if (!ctrlEdit) {
       const b = document.createElement("button");
@@ -99,18 +105,28 @@ function paintCtrl() {
     row.className = "event-row";
     const lab = document.createElement("input");
     lab.value = ev.label;
+    lab.placeholder = "Button name";
+    lab.setAttribute("aria-label", "Button name");
     lab.onfocus = pushHist;
     lab.onchange = () => { ev.label = lab.value; ev.id = slug(lab.value) || ev.id; scheduleSave(); };
     const anim = document.createElement("select");
-    ["pulse", "flash"].forEach(k => {
-      const o = document.createElement("option");
-      o.value = k; o.textContent = k; if (ev.anim === k) o.selected = true;
-      anim.appendChild(o);
-    });
+    anim.setAttribute("aria-label", "Animation");
+    fillEventAnimSelect(anim, ev.anim);
     anim.onfocus = pushHist;
-    anim.onchange = () => { ev.anim = anim.value; scheduleSave(); };
+    anim.onchange = () => {
+      const prev = EVENT_ANIMS.find(x => x.id === ev.anim);
+      const next = EVENT_ANIMS.find(x => x.id === anim.value) || EVENT_ANIMS[0];
+      if (!String(ev.label || "").trim() || (prev && ev.label === eventButtonName(prev))) {
+        ev.label = eventButtonName(next);
+        ev.id = uniqueEventId(slug(ev.label) || next.id, ev);
+        lab.value = ev.label;
+      }
+      ev.anim = anim.value;
+      scheduleSave();
+    };
     const del = document.createElement("button");
     del.type = "button";
+    del.setAttribute("aria-label", "Delete");
     del.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
     del.onclick = () => { pushHist(); d.events.splice(i, 1); paintCtrl(); scheduleSave(); };
     row.append(lab, anim, del);
@@ -548,7 +564,10 @@ strokeHex.oninput = () => {
 };
 lookInput(document.getElementById("in-width"), () => { d.strokeWidth = Number(document.getElementById("in-width").value) || 1; });
 lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.getElementById("in-glow").value) || 0; });
-lookInput(document.getElementById("in-dash"), () => { d.dash = document.getElementById("in-dash").checked; });
+lookInput(document.getElementById("in-motion"), () => {
+  d.motion = document.getElementById("in-motion").value;
+  d.dash = d.motion === "dash";
+});
 lookInput(document.getElementById("in-mw"), () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
 lookInput(document.getElementById("in-mh"), () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
 document.getElementById("in-kind").onchange = e => setKind(e.target.value);
@@ -560,12 +579,24 @@ function slug(s) {
   return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function eventButtonName(a) {
+  return a.group + "-" + a.label;
+}
+
+function uniqueEventId(base, skip) {
+  const ids = new Set((d.events || []).filter(e => e !== skip).map(e => e.id));
+  const id = base || "event";
+  if (!ids.has(id)) return id;
+  for (let n = 2; ; n++) if (!ids.has(id + "-" + n)) return id + "-" + n;
+}
+
 document.getElementById("btn-ctrl-edit").onclick = () => { ctrlEdit = !ctrlEdit; paintCtrl(); };
 document.getElementById("btn-ev-add").onclick = () => {
   pushHist();
-  const n = (d.events || []).length + 1;
   d.events = d.events || [];
-  d.events.push({ id: "event-" + n, label: "Event " + n, anim: "pulse" });
+  const used = new Set(d.events.map(e => e.anim));
+  const a = EVENT_ANIMS.find(x => !used.has(x.id)) || EVENT_ANIMS[0];
+  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id });
   paintCtrl();
   scheduleSave();
 };

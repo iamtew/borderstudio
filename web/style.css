@@ -19,18 +19,157 @@ body.overlay { background: #111; overflow: hidden; }
 body.overlay.obs { background: transparent; }
 body.overlay svg { width: 100vw; height: 100vh; display: block; }
 body.overlay .border-path { fill: none; }
+.border-path {
+  filter: drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.border-path.motion-dash { stroke-dasharray: 18 12; animation: bs-dash 1.2s linear infinite; }
+.border-path.motion-dash-rev { stroke-dasharray: 18 12; animation: bs-dash-rev 1.2s linear infinite; }
+.border-path.motion-dash-fast { stroke-dasharray: 18 12; animation: bs-dash 0.45s linear infinite; }
+.border-path.motion-dots { stroke-dasharray: 2 10; animation: bs-dash 0.9s linear infinite; }
+.border-path.motion-long-dash { stroke-dasharray: 40 16; animation: bs-dash 1.6s linear infinite; }
+.border-path.motion-flow { stroke-dasharray: 60 40; animation: bs-dash 2.4s linear infinite; }
+.border-path.motion-scan { stroke-dasharray: 48 220; animation: bs-dash 1.8s linear infinite; }
+.border-path.motion-breathe { animation: bs-breathe 1.8s ease-in-out infinite; }
+.border-path.motion-heartbeat { animation: bs-heartbeat-loop 1.2s ease-in-out infinite; }
+.border-path.motion-glow-pulse { animation: bs-glow-pulse 1.6s ease-in-out infinite; }
+.border-path.motion-neon { animation: bs-neon 2s steps(2, end) infinite; }
+.border-path.motion-hue { animation: bs-hue 4s linear infinite; }
+.border-path.motion-rainbow { animation: bs-rainbow 3s linear infinite; }
+.border-path.motion-shimmer { animation: bs-shimmer 1.4s ease-in-out infinite; }
 body.overlay.pulse .border-path { animation: bs-pulse 700ms ease; }
+body.overlay.pulse-soft .border-path { animation: bs-pulse-soft 900ms ease; }
+body.overlay.pulse-hard .border-path { animation: bs-pulse-hard 500ms ease; }
+body.overlay.pulse-double .border-path { animation: bs-pulse-double 900ms ease; }
+body.overlay.heartbeat .border-path { animation: bs-heartbeat 1000ms ease; }
 body.overlay.flash .border-path { animation: bs-flash 400ms ease; }
+body.overlay.flash-white .border-path { animation: bs-flash-white 400ms ease; }
+body.overlay.flash-hot .border-path { animation: bs-flash-hot 450ms ease; }
+body.overlay.flash-cold .border-path { animation: bs-flash-cold 450ms ease; }
+body.overlay.whiteout .border-path { animation: bs-whiteout 500ms ease; }
+body.overlay.alert .border-path { animation: bs-alert 700ms ease; }
+body.overlay.success .border-path { animation: bs-success 600ms ease; }
+body.overlay.warn .border-path { animation: bs-warn 600ms ease; }
+body.overlay.strobe .border-path { animation: bs-strobe 800ms steps(1, end); }
+body.overlay.blink .border-path { animation: bs-blink 600ms steps(1, end); }
+body.overlay.flicker .border-path { animation: bs-flicker 500ms steps(1, end); }
+body.overlay.shake .border-path { animation: bs-shake 500ms ease; }
+body.overlay.jolt .border-path { animation: bs-jolt 350ms ease; }
+body.overlay.swell .border-path { animation: bs-swell 700ms ease; }
+body.overlay.snap .border-path { animation: bs-snap 400ms ease; }
+body.overlay.wipe .border-path { stroke-dasharray: 2000 2000; animation: bs-wipe 800ms ease; }
+body.overlay.reverse-wipe .border-path { stroke-dasharray: 2000 2000; animation: bs-reverse-wipe 800ms ease; }
+body.overlay.rainbow-burst .border-path { animation: bs-rainbow-burst 900ms linear; }
+body.overlay.glitch .border-path { animation: bs-glitch 500ms steps(1, end); }
+body.overlay.spark .border-path { stroke-dasharray: 8 14; animation: bs-spark 600ms ease; }
+body.overlay.boom .border-path { animation: bs-boom 700ms ease; }
+@keyframes bs-dash { to { stroke-dashoffset: -80; } }
+@keyframes bs-dash-rev { to { stroke-dashoffset: 80; } }
+@keyframes bs-breathe {
+  50% { stroke-width: calc(var(--sw, 12px) * 1.45); }
+}
+@keyframes bs-heartbeat-loop {
+  0%, 100% { stroke-width: var(--sw, 12px); }
+  20% { stroke-width: calc(var(--sw, 12px) * 1.7); }
+  40% { stroke-width: var(--sw, 12px); }
+  55% { stroke-width: calc(var(--sw, 12px) * 1.4); }
+}
+@keyframes bs-glow-pulse {
+  50% { filter: drop-shadow(0 0 calc(var(--glow, 8px) + 16px) var(--stroke, currentColor)); }
+}
+@keyframes bs-neon {
+  50% { filter: drop-shadow(0 0 2px var(--stroke, currentColor)); opacity: 0.75; }
+}
+@keyframes bs-hue {
+  to { filter: hue-rotate(360deg) drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor)); }
+}
+@keyframes bs-rainbow {
+  0% { stroke: #ff3b3b; } 16% { stroke: #ff9f1c; } 33% { stroke: #e6f350; }
+  50% { stroke: #2ec4b6; } 66% { stroke: #3d8bfd; } 83% { stroke: #c77dff; } 100% { stroke: #ff3b3b; }
+}
+@keyframes bs-shimmer {
+  50% { opacity: 0.4; }
+}
 @keyframes bs-pulse {
   50% { stroke-width: calc(var(--sw, 12px) * 1.8); filter: drop-shadow(0 0 16px currentColor); }
 }
-@keyframes bs-flash {
-  50% { stroke: #fff; }
+@keyframes bs-pulse-soft {
+  50% { stroke-width: calc(var(--sw, 12px) * 1.35); filter: drop-shadow(0 0 10px currentColor); }
 }
-@keyframes bs-dash {
-  to { stroke-dashoffset: -80; }
+@keyframes bs-pulse-hard {
+  50% { stroke-width: calc(var(--sw, 12px) * 2.4); filter: drop-shadow(0 0 24px currentColor); }
 }
-.border-path.dash { stroke-dasharray: 18 12; animation: bs-dash 1.2s linear infinite; }
+@keyframes bs-pulse-double {
+  0%, 100% { stroke-width: var(--sw, 12px); }
+  25% { stroke-width: calc(var(--sw, 12px) * 1.8); }
+  50% { stroke-width: var(--sw, 12px); }
+  75% { stroke-width: calc(var(--sw, 12px) * 1.5); }
+}
+@keyframes bs-heartbeat {
+  0%, 100% { stroke-width: var(--sw, 12px); }
+  18% { stroke-width: calc(var(--sw, 12px) * 2); }
+  36% { stroke-width: var(--sw, 12px); }
+  52% { stroke-width: calc(var(--sw, 12px) * 1.55); }
+}
+@keyframes bs-flash { 50% { stroke: #fff; } }
+@keyframes bs-flash-white { 40%, 60% { stroke: #fff; filter: drop-shadow(0 0 20px #fff); } }
+@keyframes bs-flash-hot { 50% { stroke: #ff4d2e; filter: drop-shadow(0 0 18px #ff4d2e); } }
+@keyframes bs-flash-cold { 50% { stroke: #7ad7ff; filter: drop-shadow(0 0 18px #7ad7ff); } }
+@keyframes bs-whiteout {
+  40% { stroke: #fff; stroke-width: calc(var(--sw, 12px) * 2.2); filter: drop-shadow(0 0 28px #fff); }
+}
+@keyframes bs-alert { 50% { stroke: #ff2d2d; stroke-width: calc(var(--sw, 12px) * 1.7); } }
+@keyframes bs-success { 50% { stroke: #3dff7a; stroke-width: calc(var(--sw, 12px) * 1.5); } }
+@keyframes bs-warn { 50% { stroke: #ffbf2e; stroke-width: calc(var(--sw, 12px) * 1.5); } }
+@keyframes bs-strobe {
+  0%, 24%, 49%, 74%, 100% { opacity: 1; }
+  25%, 50%, 75% { opacity: 0.15; }
+}
+@keyframes bs-blink {
+  0%, 45%, 100% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+}
+@keyframes bs-flicker {
+  0%, 100% { opacity: 1; }
+  10%, 30%, 55% { opacity: 0.2; }
+  20%, 40%, 70% { opacity: 1; }
+}
+@keyframes bs-shake {
+  20% { transform: translate(-6px, 2px); }
+  40% { transform: translate(7px, -3px); }
+  60% { transform: translate(-5px, -2px); }
+  80% { transform: translate(4px, 3px); }
+}
+@keyframes bs-jolt {
+  30% { transform: translate(10px, -6px) rotate(1deg); }
+  60% { transform: translate(-8px, 4px); }
+}
+@keyframes bs-swell {
+  50% { stroke-width: calc(var(--sw, 12px) * 2.1); }
+}
+@keyframes bs-snap {
+  40% { stroke-width: calc(var(--sw, 12px) * 0.4); }
+  70% { stroke-width: calc(var(--sw, 12px) * 1.9); }
+}
+@keyframes bs-wipe { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
+@keyframes bs-reverse-wipe { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 2000; } }
+@keyframes bs-rainbow-burst {
+  0% { stroke: #ff3b3b; } 20% { stroke: #ff9f1c; } 40% { stroke: #e6f350; }
+  60% { stroke: #2ec4b6; } 80% { stroke: #c77dff; } 100% { stroke: var(--stroke, #e6f350); }
+}
+@keyframes bs-glitch {
+  10% { transform: translate(8px, -4px); stroke: #fff; }
+  30% { transform: translate(-10px, 3px); opacity: 0.4; }
+  50% { transform: translate(4px, 6px); stroke: #7ad7ff; }
+  70% { transform: translate(-6px, -5px); }
+}
+@keyframes bs-spark {
+  50% { stroke: #fff; filter: drop-shadow(0 0 16px #fff); stroke-dashoffset: -40; }
+}
+@keyframes bs-boom {
+  40% { stroke-width: calc(var(--sw, 12px) * 2.6); filter: drop-shadow(0 0 28px #fff); stroke: #fff; }
+}
 #down-banner {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0, 0, 0, 0.5);
@@ -150,11 +289,22 @@ body.ctrl-edit #btn-ctrl-edit { border-color: var(--accent); color: var(--accent
   min-width: 180px; min-height: 88px; font-size: 18px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
 }
-body.ctrl-edit #ctrl-grid { flex-direction: column; flex-wrap: nowrap; gap: 8px; max-width: 640px; }
-.event-row { display: flex; gap: 8px; margin: 0; align-items: center; }
-.event-row input { flex: 1; min-width: 0; }
-.event-row select { width: 7em; flex: none; }
-.event-row button { width: auto; margin: 0; padding: 8px; }
+body.ctrl-edit #ctrl-grid {
+  display: grid;
+  grid-template-columns: minmax(12em, 1fr) minmax(16em, 1.3fr) auto;
+  flex-wrap: nowrap;
+  gap: 10px 12px;
+  max-width: none;
+}
+.event-head, .event-row { display: contents; }
+.event-head span {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+body.admin .event-row input, body.admin .event-row select {
+  width: auto; min-width: 0; padding: 10px 12px; font-size: 15px;
+}
+.event-row button { width: auto; margin: 0; padding: 10px 12px; align-self: stretch; }
 .color-field { display: flex; gap: 6px; align-items: center; }
 .color-field input { flex: 1; min-width: 0; font-family: consolas, monospace; }
 .swatch { width: 40px !important; height: 32px; padding: 0 !important; margin: 0 !important; display: inline-block !important; vertical-align: middle; cursor: pointer; flex: none; }

@@ -14,14 +14,102 @@ function pathD(d) {
 
 function kindOf(d) { return d.kind || "polygon"; }
 
+const MOTION_KINDS = [
+  { id: "none", label: "None" },
+  { id: "dash", label: "Dash" },
+  { id: "dash-rev", label: "Dash reverse" },
+  { id: "dash-fast", label: "Dash fast" },
+  { id: "dots", label: "Dots" },
+  { id: "long-dash", label: "Long dash" },
+  { id: "flow", label: "Flow" },
+  { id: "scan", label: "Scan" },
+  { id: "breathe", label: "Breathe" },
+  { id: "heartbeat", label: "Heartbeat" },
+  { id: "glow-pulse", label: "Glow pulse" },
+  { id: "neon", label: "Neon" },
+  { id: "hue", label: "Hue" },
+  { id: "rainbow", label: "Rainbow" },
+  { id: "shimmer", label: "Shimmer" },
+];
+
+const EVENT_ANIMS = [
+  { id: "pulse", label: "Pulse", ms: 700, group: "Pulse" },
+  { id: "pulse-soft", label: "Pulse soft", ms: 900, group: "Pulse" },
+  { id: "pulse-hard", label: "Pulse hard", ms: 500, group: "Pulse" },
+  { id: "pulse-double", label: "Pulse double", ms: 900, group: "Pulse" },
+  { id: "heartbeat", label: "Heartbeat", ms: 1000, group: "Pulse" },
+  { id: "flash", label: "Flash", ms: 400, group: "Flash" },
+  { id: "flash-white", label: "Flash white", ms: 400, group: "Flash" },
+  { id: "flash-hot", label: "Flash hot", ms: 450, group: "Flash" },
+  { id: "flash-cold", label: "Flash cold", ms: 450, group: "Flash" },
+  { id: "whiteout", label: "Whiteout", ms: 500, group: "Flash" },
+  { id: "alert", label: "Alert", ms: 700, group: "Alert" },
+  { id: "success", label: "Success", ms: 600, group: "Alert" },
+  { id: "warn", label: "Warn", ms: 600, group: "Alert" },
+  { id: "strobe", label: "Strobe", ms: 800, group: "Alert" },
+  { id: "blink", label: "Blink", ms: 600, group: "Alert" },
+  { id: "flicker", label: "Flicker", ms: 500, group: "Alert" },
+  { id: "shake", label: "Shake", ms: 500, group: "Hit" },
+  { id: "jolt", label: "Jolt", ms: 350, group: "Hit" },
+  { id: "swell", label: "Swell", ms: 700, group: "Hit" },
+  { id: "snap", label: "Snap", ms: 400, group: "Hit" },
+  { id: "wipe", label: "Wipe", ms: 800, group: "Hit" },
+  { id: "reverse-wipe", label: "Reverse wipe", ms: 800, group: "Hit" },
+  { id: "rainbow-burst", label: "Rainbow burst", ms: 900, group: "Glitch" },
+  { id: "glitch", label: "Glitch", ms: 500, group: "Glitch" },
+  { id: "spark", label: "Spark", ms: 600, group: "Glitch" },
+  { id: "boom", label: "Boom", ms: 700, group: "Glitch" },
+];
+
+function motionOf(d) {
+  const id = d.motion || (d.dash ? "dash" : "none");
+  return MOTION_KINDS.some(m => m.id === id) ? id : "none";
+}
+
 function styleStroke(el, d) {
-  el.setAttribute("class", "border-path" + (d.dash ? " dash" : ""));
+  const motion = motionOf(d);
+  el.setAttribute("class", "border-path" + (motion !== "none" ? " motion-" + motion : ""));
   el.setAttribute("fill", "none");
   el.setAttribute("stroke", d.stroke || "#e6f350");
   el.setAttribute("stroke-width", String(d.strokeWidth || 12));
   el.setAttribute("stroke-linejoin", "round");
   el.style.setProperty("--sw", (d.strokeWidth || 12) + "px");
-  if (d.glow) el.style.filter = "drop-shadow(0 0 " + d.glow + "px " + (d.stroke || "#e6f350") + ")";
+  el.style.setProperty("--glow", (d.glow || 0) + "px");
+  el.style.setProperty("--stroke", d.stroke || "#e6f350");
+}
+
+function fillMotionSelect(sel, value) {
+  if (!sel.dataset.filled) {
+    MOTION_KINDS.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m.id;
+      o.textContent = m.label;
+      sel.appendChild(o);
+    });
+    sel.dataset.filled = "1";
+  }
+  sel.value = value;
+}
+
+function fillEventAnimSelect(sel, value) {
+  if (!sel.dataset.filled) {
+    const groups = new Map();
+    EVENT_ANIMS.forEach(a => {
+      let g = groups.get(a.group);
+      if (!g) {
+        g = document.createElement("optgroup");
+        g.label = a.group;
+        groups.set(a.group, g);
+        sel.appendChild(g);
+      }
+      const o = document.createElement("option");
+      o.value = a.id;
+      o.textContent = a.label;
+      g.appendChild(o);
+    });
+    sel.dataset.filled = "1";
+  }
+  sel.value = EVENT_ANIMS.some(a => a.id === value) ? value : "pulse";
 }
 
 function makeShape(ns, d) {
@@ -152,10 +240,12 @@ function maskCanvas(d) {
   return c;
 }
 
+let overlayAnimT;
 function fireOverlayAnim(kind) {
-  const k = kind === "flash" ? "flash" : "pulse";
-  document.body.classList.remove("pulse", "flash");
+  const hit = EVENT_ANIMS.find(a => a.id === kind) || EVENT_ANIMS[0];
+  document.body.classList.remove(...EVENT_ANIMS.map(a => a.id));
   void document.body.offsetWidth;
-  document.body.classList.add(k);
-  setTimeout(() => document.body.classList.remove(k), 800);
+  document.body.classList.add(hit.id);
+  clearTimeout(overlayAnimT);
+  overlayAnimT = setTimeout(() => document.body.classList.remove(hit.id), hit.ms);
 }

@@ -19,7 +19,7 @@ type point struct {
 type ctrlEvent struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
-	Anim  string `json:"anim"` // pulse | flash
+	Anim  string `json:"anim"` // named one-shot from overlay catalog
 }
 
 type design struct {
@@ -36,6 +36,7 @@ type design struct {
 	StrokeWidth float64     `json:"strokeWidth"`
 	Glow        float64     `json:"glow"`
 	Dash        bool        `json:"dash"`
+	Motion      string      `json:"motion,omitempty"`
 	Events      []ctrlEvent `json:"events"`
 }
 
@@ -220,6 +221,18 @@ func defaultDesign() design {
 		Events: []ctrlEvent{
 			{ID: "pulse", Label: "Pulse", Anim: "pulse"},
 			{ID: "flash", Label: "Flash", Anim: "flash"},
+			{ID: "double", Label: "Double pulse", Anim: "pulse-double"},
+			{ID: "heartbeat", Label: "Heartbeat", Anim: "heartbeat"},
+			{ID: "strobe", Label: "Strobe", Anim: "strobe"},
+			{ID: "alert", Label: "Alert", Anim: "alert"},
+			{ID: "success", Label: "Success", Anim: "success"},
+			{ID: "warn", Label: "Warn", Anim: "warn"},
+			{ID: "shake", Label: "Shake", Anim: "shake"},
+			{ID: "wipe", Label: "Wipe", Anim: "wipe"},
+			{ID: "rainbow", Label: "Rainbow", Anim: "rainbow-burst"},
+			{ID: "glitch", Label: "Glitch", Anim: "glitch"},
+			{ID: "spark", Label: "Spark", Anim: "spark"},
+			{ID: "boom", Label: "Boom", Anim: "boom"},
 		},
 	}
 }
