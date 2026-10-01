@@ -58,8 +58,7 @@ async function save() {
 function paint() {
   stage.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
   renderBorder(stage, d, { handles: true, sel });
-  document.getElementById("in-stroke").value = toColor(d.stroke);
-  document.getElementById("in-stroke-hex").value = d.stroke;
+  paintStrokeWell();
   document.getElementById("in-width").value = d.strokeWidth;
   document.getElementById("in-glow").value = d.glow;
   document.getElementById("in-dash").checked = !!d.dash;
@@ -119,9 +118,216 @@ function paintCtrl() {
   });
 }
 
-function toColor(hex) {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
-  return m ? "#" + m[1] : "#e6f350";
+let iroPick = null, iroOn = null;
+
+function closeIro() {
+  const pop = document.getElementById("iro-pop");
+  if (pop) pop.hidden = true;
+  iroOn = null;
+}
+
+function colorHex(c) {
+  return c.alpha < 1 ? c.hex8String : c.hexString;
+}
+
+function parseHex(v) {
+  v = String(v || "").trim();
+  if (v && v[0] !== "#") v = "#" + v;
+  return /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : "";
+}
+
+function paintColor(btn, hexInp, hex) {
+  btn.style.background = hex;
+  btn.dataset.color = hex;
+  if (hexInp && document.activeElement !== hexInp) hexInp.value = hex;
+  const popHex = document.getElementById("iro-hex");
+  if (popHex && document.activeElement !== popHex) popHex.value = hex;
+}
+
+function paintStrokeWell() {
+  paintColor(document.getElementById("in-stroke"), document.getElementById("in-stroke-hex"), d.stroke || "#e6f350");
+}
+
+function setStroke(hex) {
+  d.stroke = hex;
+  paint();
+  scheduleSave();
+}
+
+function openIro(btn, hexInp, on) {
+  const pop = document.getElementById("iro-pop");
+  const box = document.getElementById("iro-box");
+  const popHex = document.getElementById("iro-hex");
+  if (!pop || !box || typeof iro === "undefined") return;
+  if (!iroPick) {
+    iroPick = new iro.ColorPicker(box, {
+      width: 200,
+      color: btn.dataset.color || "#ffffff",
+      layout: [
+        { component: iro.ui.Box },
+        { component: iro.ui.Slider, options: { sliderType: "hue" } },
+        { component: iro.ui.Slider, options: { sliderType: "alpha" } },
+      ],
+    });
+    iroPick.on("color:change", (c) => { if (iroOn) iroOn(colorHex(c)); });
+    if (popHex) popHex.oninput = () => {
+      const h = parseHex(popHex.value);
+      if (!h || !iroPick) return;
+      try { iroPick.color.set(h); } catch (e) {}
+    };
+  }
+  iroOn = (hex) => {
+    paintColor(btn, hexInp, hex);
+    on(hex);
+  };
+  try { iroPick.color.set(btn.dataset.color || "#ffffff"); } catch (e) {}
+  if (popHex) popHex.value = btn.dataset.color || "#ffffff";
+  pop.hidden = false;
+  const r = btn.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, innerWidth - 240) + "px";
+  pop.style.top = Math.min(r.bottom + 6, innerHeight - 520) + "px";
+}
+
+const BUILTIN_PALETTES = [
+  { id: "basic", name: "Basic", colors: ["#000000", "#ffffff", "#4a4a4a", "#808080", "#c0c0c0", "#ff0000", "#ff8000", "#ffff00", "#00a000", "#0066ff", "#8000ff", "#ff00aa"] },
+  { id: "credits", name: "Credits", colors: ["#ffffff", "#f5f0e6", "#e8d5a3", "#ffd700", "#c9a227", "#8b7355", "#2c2c2c", "#111111"] },
+  { id: "pastel", name: "Pastel", colors: ["#ffd1dc", "#ffdab9", "#fff1c1", "#c1e1c1", "#c5e3e8", "#b5d3e7", "#e0bbe4", "#f4c2c2"] },
+  { id: "neon", name: "Neon", colors: ["#39ff14", "#ff073a", "#00ffff", "#ff00ff", "#ffff00", "#ff6ec7", "#7df9ff", "#ccff00"] },
+  { id: "sesh", name: "Sesh Sofa", colors: ["#9AAC62", "#6C754A", "#8600DF", "#E5F20D", "#F20D0D", "#00F53A", "#FF00FF", "#00FFFF", "#E0E0E0", "#666666"] },
+  { id: "studio", name: "Studio", colors: ["#e6f350", "#88f25d", "#4dff00", "#111111", "#282828", "#e6e6e6", "#00ffff", "#ff00ff"] },
+  { id: "night", name: "Night", colors: ["#0b1020", "#1a2744", "#3d5a80", "#7eb6ff", "#c9d6ff", "#a78bfa", "#f472b6", "#f8fafc"] },
+  { id: "warm", name: "Warm", colors: ["#1a0e08", "#4a1c0a", "#b45309", "#f59e0b", "#fbbf24", "#fb7185", "#ea580c", "#fff7ed"] },
+  { id: "ice", name: "Ice", colors: ["#082f49", "#0e7490", "#22d3ee", "#67e8f9", "#a5f3fc", "#e0f2fe", "#94a3b8", "#f8fafc"] },
+  { id: "hazard", name: "Hazard", colors: ["#111111", "#1c1c1c", "#facc15", "#eab308", "#f97316", "#ffffff", "#78716c", "#450a0a"] },
+  { id: "vhs", name: "VHS", colors: ["#1b1028", "#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96", "#c0c0c0", "#3d2b4f"] },
+];
+let palettes = { selected: "basic", custom: [] };
+let setPalId = "";
+
+function allPalettes() {
+  return BUILTIN_PALETTES.concat(palettes.custom || []);
+}
+
+function paletteById(id) {
+  return allPalettes().find((p) => p.id === id) || null;
+}
+
+function isCustomPal(id) {
+  return (palettes.custom || []).some((p) => p.id === id);
+}
+
+async function loadPalettes() {
+  try {
+    const res = await fetch("/api/palettes");
+    if (res.ok) {
+      palettes = await res.json();
+      palettes.custom = palettes.custom || [];
+      palettes.selected = palettes.selected || "basic";
+    }
+  } catch (e) {}
+  fillPaletteUI();
+}
+
+async function persistPalettes() {
+  try {
+    const res = await fetch("/api/palettes", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(palettes) });
+    if (res.ok) palettes = await res.json();
+  } catch (e) {}
+  fillPaletteUI();
+}
+
+function palSwatches(colors) {
+  const wrap = document.createElement("span");
+  wrap.className = "set-pal-swatches";
+  for (const hex of colors || []) {
+    const i = document.createElement("i");
+    i.style.background = hex;
+    wrap.append(i);
+  }
+  return wrap;
+}
+
+function fillSetPalForm() {
+  const nameEl = document.getElementById("set-pal-name");
+  const importEl = document.getElementById("set-pal-import");
+  const del = document.getElementById("set-pal-del");
+  const cur = paletteById(setPalId);
+  const custom = isCustomPal(setPalId);
+  nameEl.value = cur && custom ? cur.name : "";
+  importEl.value = cur && custom ? cur.colors.join("\n") : "";
+  del.hidden = !custom;
+}
+
+function fillSettingsPalettes() {
+  const list = document.getElementById("set-pal-list");
+  if (!list) return;
+  list.replaceChildren();
+  for (const p of allPalettes()) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.id = p.id;
+    if (p.id === setPalId) b.classList.add("sel");
+    if (!isCustomPal(p.id)) b.classList.add("builtin");
+    const name = document.createElement("span");
+    name.textContent = p.name + (isCustomPal(p.id) ? "" : " (built-in)");
+    b.append(name, palSwatches(p.colors));
+    b.onclick = () => {
+      setPalId = isCustomPal(p.id) ? p.id : "";
+      fillSettingsPalettes();
+      fillSetPalForm();
+    };
+    list.append(b);
+  }
+  fillSetPalForm();
+}
+
+function fillPaletteUI() {
+  const sel = document.getElementById("iro-pal-sel");
+  const chips = document.getElementById("iro-pal-chips");
+  if (!sel || !chips) return;
+  sel.replaceChildren();
+  for (const p of allPalettes()) {
+    const o = document.createElement("option");
+    o.value = p.id;
+    o.textContent = p.name;
+    sel.append(o);
+  }
+  const pick = paletteById(palettes.selected) ? palettes.selected : "basic";
+  sel.value = pick;
+  chips.replaceChildren();
+  const cur = paletteById(pick);
+  if (cur) {
+    for (const hex of cur.colors) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pal-chip";
+      b.style.background = hex;
+      b.title = hex;
+      b.onclick = (ev) => {
+        ev.stopPropagation();
+        if (iroOn) iroOn(hex);
+        if (iroPick) try { iroPick.color.set(hex); } catch (e) {}
+        const popHex = document.getElementById("iro-hex");
+        if (popHex) popHex.value = hex;
+      };
+      chips.append(b);
+    }
+  }
+  fillSettingsPalettes();
+}
+
+function settingsOpen() {
+  return !document.getElementById("settings-overlay").hidden;
+}
+
+function closeSettings() {
+  document.getElementById("settings-overlay").hidden = true;
+}
+
+function openSettings() {
+  setPalId = "";
+  fillSettingsPalettes();
+  document.getElementById("settings-overlay").hidden = false;
 }
 
 function svgPoint(ev) {
@@ -323,8 +529,23 @@ function lookInput(el, fn) {
   el.addEventListener("input", () => { fn(); paint(); scheduleSave(); });
   el.addEventListener("change", () => { fn(); paint(); scheduleSave(); });
 }
-lookInput(document.getElementById("in-stroke"), () => { d.stroke = document.getElementById("in-stroke").value; });
-lookInput(document.getElementById("in-stroke-hex"), () => { d.stroke = document.getElementById("in-stroke-hex").value; });
+const strokeBtn = document.getElementById("in-stroke");
+const strokeHex = document.getElementById("in-stroke-hex");
+strokeBtn.onclick = (ev) => {
+  ev.stopPropagation();
+  pushHist();
+  openIro(strokeBtn, strokeHex, (hex) => setStroke(hex));
+};
+strokeHex.addEventListener("focus", pushHist);
+strokeHex.oninput = () => {
+  const h = parseHex(strokeHex.value);
+  if (!h) return;
+  paintColor(strokeBtn, strokeHex, h);
+  if (iroPick && !document.getElementById("iro-pop").hidden) {
+    try { iroPick.color.set(h); } catch (e) {}
+  }
+  setStroke(h);
+};
 lookInput(document.getElementById("in-width"), () => { d.strokeWidth = Number(document.getElementById("in-width").value) || 1; });
 lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.getElementById("in-glow").value) || 0; });
 lookInput(document.getElementById("in-dash"), () => { d.dash = document.getElementById("in-dash").checked; });
@@ -370,6 +591,53 @@ document.getElementById("view-control").onclick = () => setView("control");
 
 document.getElementById("btn-file").onclick = () => { menu.hidden = !menu.hidden; };
 document.getElementById("file-save").onclick = () => { menu.hidden = true; save(); };
+document.getElementById("file-settings").onclick = () => {
+  menu.hidden = true;
+  openSettings();
+};
+document.getElementById("settings-close").onclick = () => closeSettings();
+document.getElementById("settings-overlay").onclick = (ev) => {
+  if (ev.target.id === "settings-overlay") closeSettings();
+};
+document.getElementById("iro-pal-sel").onchange = () => {
+  palettes.selected = document.getElementById("iro-pal-sel").value;
+  persistPalettes();
+};
+document.getElementById("set-pal-new").onclick = () => {
+  setPalId = "";
+  fillSettingsPalettes();
+  fillSetPalForm();
+  document.getElementById("set-pal-name").focus();
+};
+document.getElementById("set-pal-del").onclick = () => {
+  if (!isCustomPal(setPalId)) return;
+  palettes.custom = (palettes.custom || []).filter((p) => p.id !== setPalId);
+  if (palettes.selected === setPalId) palettes.selected = "basic";
+  setPalId = "";
+  persistPalettes();
+};
+document.getElementById("set-pal-save").onclick = () => {
+  const name = document.getElementById("set-pal-name").value.trim();
+  const colors = document.getElementById("set-pal-import").value.split(/[\s,]+/).map((tok) => parseHex(tok)).filter(Boolean);
+  if (!name) return;
+  const editing = isCustomPal(setPalId) ? paletteById(setPalId) : null;
+  const clash = (palettes.custom || []).find((p) => p.name.toLowerCase() === name.toLowerCase() && p.id !== (editing && editing.id));
+  if (clash) {
+    clash.colors = colors;
+    setPalId = clash.id;
+    palettes.selected = clash.id;
+  } else if (editing) {
+    editing.name = name;
+    editing.colors = colors;
+    palettes.selected = editing.id;
+  } else {
+    const id = "p" + Date.now();
+    palettes.custom.push({ id, name, colors });
+    setPalId = id;
+    palettes.selected = id;
+  }
+  persistPalettes();
+};
 document.getElementById("file-close").onclick = () => {
   const api = location.pathname === "/control" ? "/api/controller/close" : "/api/designer/close";
   fetch(api, { method: "POST" });
@@ -393,6 +661,10 @@ document.getElementById("btn-copy-overlay").onclick = () => navigator.clipboard.
   }
 })();
 
+addEventListener("pointerdown", ev => {
+  if (ev.target.closest("#iro-pop, .swatch, .color-field")) return;
+  closeIro();
+});
 addEventListener("keydown", ev => {
   const inField = ev.target.matches("input[type=text], textarea");
   if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z") {
@@ -405,6 +677,11 @@ addEventListener("keydown", ev => {
     if (inField) return;
     ev.preventDefault();
     redo();
+    return;
+  }
+  if (ev.key === "Escape" && settingsOpen()) {
+    ev.preventDefault();
+    closeSettings();
     return;
   }
   if (ev.key === "Delete" || ev.key === "Backspace") {
@@ -420,6 +697,7 @@ async function boot() {
   document.getElementById("file-version").textContent = v.version;
   const res = await fetch("/api/design");
   d = await res.json();
+  await loadPalettes();
   pushHist();
   paint();
   if (location.pathname === "/control") setView("control");

@@ -123,7 +123,7 @@ body.admin input, body.admin select, body.admin textarea {
   padding: 10px; background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--r); box-shadow: 0 8px 24px #0008;
 }
-#file-menu button { display: block; width: 100%; margin: 0 0 8px; padding: 8px; text-align: left; }
+#file-menu button { display: inline-flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 8px; padding: 8px; text-align: left; }
 #file-menu .file-sep, #file-version { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 #file-version { color: var(--muted); font-size: 11px; }
 html:has(body.about), body.about { height: auto; min-height: 0; }
@@ -156,6 +156,45 @@ body.ctrl-edit #ctrl-grid { flex-direction: column; flex-wrap: nowrap; gap: 8px;
 .event-row select { width: 7em; flex: none; }
 .event-row button { width: auto; margin: 0; padding: 8px; }
 .color-field { display: flex; gap: 6px; align-items: center; }
-.color-field input[type="color"] { width: 40px; height: 32px; padding: 0; flex: none; cursor: pointer; }
+.color-field input { flex: 1; min-width: 0; font-family: consolas, monospace; }
+.swatch { width: 40px !important; height: 32px; padding: 0 !important; margin: 0 !important; display: inline-block !important; vertical-align: middle; cursor: pointer; flex: none; }
+#iro-pop { position: fixed; z-index: 40; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px #0008; }
+#iro-pop[hidden] { display: none !important; }
+#iro-hex, #iro-pal-sel { width: 200px; margin-top: 8px; font-family: consolas, monospace; }
+#iro-pal-sel { font-family: inherit; }
+#iro-pal-chips { display: flex; flex-wrap: wrap; gap: 4px; width: 200px; margin-top: 8px; }
+.pal-chip { width: 40px !important; height: 32px; padding: 0 !important; flex: none; cursor: pointer; }
+#settings-overlay {
+  position: fixed; inset: 0; z-index: 45; padding: 96px;
+  background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+}
+#settings-overlay[hidden] { display: none; }
+#settings-panel {
+  width: 100%; height: 100%; display: flex; flex-direction: column; min-height: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 40px #000a;
+}
+.settings-head {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px; color: var(--accent); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--line);
+}
+.settings-head button { width: auto; margin: 0; padding: 4px 8px; }
+.settings-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px 20px; max-width: 520px; }
+.settings-hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.style-head { font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 12px 0 4px; }
+#set-pal-list { margin: 0 0 10px; }
+#set-pal-list button {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 4px;
+  padding: 6px 8px; text-align: left; font: inherit; font-size: 12px;
+}
+#set-pal-list button.sel { border-color: var(--accent); }
+#set-pal-list button.builtin { color: var(--muted); }
+.set-pal-swatches { display: flex; flex-wrap: wrap; gap: 3px; flex: none; margin-left: auto; }
+.set-pal-swatches i { width: 12px; height: 12px; border-radius: 2px; display: block; }
+#set-pal-new { width: auto; margin: 0 0 12px; padding: 6px 8px; display: inline-flex; align-items: center; gap: 6px; }
+#set-pal-import { width: 100%; min-height: 140px; font-family: consolas, monospace; font-size: 12px; }
+.settings-pal-actions { display: flex; gap: 8px; margin-top: 10px; }
+.settings-pal-actions button { width: auto; margin: 0; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
 .check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
 .check-row input { width: auto; }

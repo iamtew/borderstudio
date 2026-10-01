@@ -362,6 +362,32 @@ func main() {
 		h.broadcast([]byte("update"))
 		writeJSON(w, next)
 	})
+	mux.HandleFunc("GET /api/palettes", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		doc, err := st.palettes()
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, doc)
+	})
+	mux.HandleFunc("PUT /api/palettes", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var doc palettesDoc
+		if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		saved, err := st.savePalettes(doc)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, saved)
+	})
 	mux.HandleFunc("POST /api/event", func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		var body struct {

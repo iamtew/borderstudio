@@ -13,6 +13,29 @@
   <div id="down-banner" hidden>
     <div id="down-msg" role="status">Error: Border Studio application not running!</div>
   </div>
+  <div id="settings-overlay" hidden>
+    <div id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <span id="settings-title">Settings</span>
+        <button type="button" id="settings-close" aria-label="Close settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <div class="settings-body">
+        <div class="style-head">Color palettes</div>
+        <p class="settings-hint">Built-in palettes cannot be edited. Custom palettes are listed below.</p>
+        <div id="set-pal-list"></div>
+        <button type="button" id="set-pal-new"><i class="fa-solid fa-plus" aria-hidden="true"></i> New palette</button>
+        <div id="set-pal-form">
+          <label>Name <input id="set-pal-name" type="text" autocomplete="off" spellcheck="false"></label>
+          <p class="settings-hint">One hex per line or separated by spaces/commas.</p>
+          <textarea id="set-pal-import" rows="8" placeholder="#ffd700"></textarea>
+          <div class="settings-pal-actions">
+            <button type="button" id="set-pal-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
+            <button type="button" id="set-pal-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="shell">
     <div id="bar">
       <div class="bar-left">
@@ -24,6 +47,9 @@
           <div id="file-menu" hidden>
             <button type="button" id="file-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
             <button type="button" id="file-reset" class="design-only"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+            <div class="file-sep">
+              <button type="button" id="file-settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</button>
+            </div>
             <div class="file-sep">
               <button type="button" id="file-close"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
               <button type="button" id="file-quit"><i class="fa-solid fa-power-off" aria-hidden="true"></i> Quit</button>
@@ -74,7 +100,7 @@
       <aside id="inspector-pane" class="win">
         <div class="win-title">Look</div>
         <div class="win-body" id="inspector">
-          <label>Stroke <span class="color-field"><input id="in-stroke" type="color"><input id="in-stroke-hex" type="text" spellcheck="false"></span></label>
+          <label>Stroke <span class="color-field"><button type="button" id="in-stroke" class="swatch"></button><input id="in-stroke-hex" type="text" spellcheck="false" autocomplete="off"></span></label>
           <label>Thickness <input id="in-width" type="number" min="1" step="1"></label>
           <label>Glow <input id="in-glow" type="number" min="0" step="1"></label>
           <label class="check-row"><input id="in-dash" type="checkbox"> Dash animation</label>
@@ -93,6 +119,13 @@
       <div id="ctrl-grid"></div>
     </div>
   </div>
+  <div id="iro-pop" hidden>
+    <div id="iro-box"></div>
+    <input id="iro-hex" type="text" spellcheck="false" autocomplete="off">
+    <select id="iro-pal-sel"></select>
+    <div id="iro-pal-chips"></div>
+  </div>
+  <script src="/iro.min.js"></script>
   <script src="/shared.js"></script>
   <script src="/composer.js"></script>
 </body>

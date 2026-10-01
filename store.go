@@ -39,6 +39,17 @@ type design struct {
 	Events      []ctrlEvent `json:"events"`
 }
 
+type colorPalette struct {
+	ID     string   `json:"id"`
+	Name   string   `json:"name"`
+	Colors []string `json:"colors"`
+}
+
+type palettesDoc struct {
+	Selected string         `json:"selected"`
+	Custom   []colorPalette `json:"custom"`
+}
+
 type store struct {
 	db *sql.DB
 }
@@ -105,6 +116,90 @@ func (st *store) save(d design) error {
 	}
 	_, err = st.db.Exec(`INSERT INTO kv(k, v) VALUES('design', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, string(raw))
 	return err
+}
+
+func (st *store) setKV(k, v string) error {
+	_, err := st.db.Exec(`INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`, k, v)
+	return err
+}
+
+func (st *store) getKV(k string) (string, error) {
+	var v string
+	err := st.db.QueryRow(`SELECT v FROM kv WHERE k=?`, k).Scan(&v)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return v, err
+}
+
+func validHex(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return ""
+	}
+	if v[0] != '#' {
+		v = "#" + v
+	}
+	n := len(v) - 1
+	if n != 3 && n != 4 && n != 6 && n != 8 {
+		return ""
+	}
+	for i := 1; i < len(v); i++ {
+		c := v[i]
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return ""
+		}
+	}
+	return v
+}
+
+func normalizePalettes(d palettesDoc) palettesDoc {
+	out := palettesDoc{Selected: strings.TrimSpace(d.Selected), Custom: []colorPalette{}}
+	if out.Selected == "" {
+		out.Selected = "basic"
+	}
+	for _, p := range d.Custom {
+		name := strings.TrimSpace(p.Name)
+		if name == "" {
+			continue
+		}
+		id := strings.TrimSpace(p.ID)
+		if id == "" {
+			id = name
+		}
+		cols := []string{}
+		for _, c := range p.Colors {
+			if h := validHex(c); h != "" {
+				cols = append(cols, h)
+			}
+		}
+		out.Custom = append(out.Custom, colorPalette{ID: id, Name: name, Colors: cols})
+	}
+	return out
+}
+
+func (st *store) palettes() (palettesDoc, error) {
+	raw, err := st.getKV("palettes")
+	if err != nil {
+		return palettesDoc{}, err
+	}
+	if raw == "" {
+		return palettesDoc{Selected: "basic", Custom: []colorPalette{}}, nil
+	}
+	var d palettesDoc
+	if err := json.Unmarshal([]byte(raw), &d); err != nil {
+		return palettesDoc{Selected: "basic", Custom: []colorPalette{}}, nil
+	}
+	return normalizePalettes(d), nil
+}
+
+func (st *store) savePalettes(d palettesDoc) (palettesDoc, error) {
+	d = normalizePalettes(d)
+	b, err := json.Marshal(d)
+	if err != nil {
+		return d, err
+	}
+	return d, st.setKV("palettes", string(b))
 }
 
 func defaultDesign() design {

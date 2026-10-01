@@ -56,3 +56,44 @@ func TestStoreRoundtrip(t *testing.T) {
 		t.Fatalf("reset %+v", got)
 	}
 }
+
+func TestPalettesRoundtrip(t *testing.T) {
+	st, _, err := openStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.close()
+	got, err := st.palettes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Selected != "basic" || len(got.Custom) != 0 {
+		t.Fatalf("default %+v", got)
+	}
+	saved, err := st.savePalettes(palettesDoc{
+		Selected: "neon",
+		Custom: []colorPalette{
+			{ID: "p1", Name: " Sofa ", Colors: []string{"#9AAC62", "not-hex", "ff00ff"}},
+			{Name: "", Colors: []string{"#fff"}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Selected != "neon" || len(saved.Custom) != 1 {
+		t.Fatalf("saved %+v", saved)
+	}
+	if saved.Custom[0].Name != "Sofa" || len(saved.Custom[0].Colors) != 2 {
+		t.Fatalf("custom %+v", saved.Custom[0])
+	}
+	if saved.Custom[0].Colors[0] != "#9AAC62" || saved.Custom[0].Colors[1] != "#ff00ff" {
+		t.Fatalf("hex %+v", saved.Custom[0].Colors)
+	}
+	again, err := st.palettes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Selected != "neon" || again.Custom[0].ID != "p1" {
+		t.Fatalf("reload %+v", again)
+	}
+}
