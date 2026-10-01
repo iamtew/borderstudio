@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Border Studio</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="overlay">
+  <svg id="stage" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <script src="/shared.js"></script>
+  <script>
+    applyOverlayBackground();
+    const stage = document.getElementById("stage");
+    let d;
+    function paint() {
+      if (!d) return;
+      renderBorder(stage, d, { handles: false });
+    }
+    async function load() {
+      try {
+        const res = await fetch("/api/design");
+        if (!res.ok) return;
+        d = await res.json();
+        paint();
+      } catch (e) {}
+    }
+    load();
+    const es = new EventSource("/api/events");
+    es.onmessage = (ev) => {
+      const msg = (ev.data || "").trim();
+      if (msg.startsWith("event ")) {
+        const id = msg.slice(6);
+        const evn = (d && d.events || []).find(e => e.id === id);
+        fireOverlayAnim(evn ? evn.anim : id);
+        return;
+      }
+      if (msg === "update" || msg === "hello") load();
+    };
+  </script>
+</body>
+</html>

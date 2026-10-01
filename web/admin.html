@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Border Studio</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/fontawesome.min.css">
+  <link rel="stylesheet" href="/css/solid.min.css">
+  <link rel="stylesheet" href="/css/regular.min.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="admin view-design">
+  <div id="down-banner" hidden>
+    <div id="down-msg" role="status">Error: Border Studio application not running!</div>
+  </div>
+  <div id="shell">
+    <div id="bar">
+      <div class="bar-left">
+        <div class="bar-brand-wrap">
+          <button type="button" id="btn-file" aria-haspopup="true" aria-expanded="false" aria-controls="file-menu">
+            <img src="/icon.png" alt="">
+            <span class="bar-brand">Border Studio</span>
+          </button>
+          <div id="file-menu" hidden>
+            <button type="button" id="file-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
+            <button type="button" id="file-reset" class="design-only"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+            <div class="file-sep">
+              <button type="button" id="file-close"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
+              <button type="button" id="file-quit"><i class="fa-solid fa-power-off" aria-hidden="true"></i> Quit</button>
+            </div>
+            <div id="file-version"></div>
+          </div>
+        </div>
+        <div class="bar-views">
+          <button type="button" id="view-design" class="sel">Designer</button>
+          <button type="button" id="view-control">Controller</button>
+        </div>
+        <div id="grid-toggles" class="design-only"><span>Grid:</span></div>
+      </div>
+      <div class="bar-overlay">
+        <button type="button" id="btn-mask" class="design-only"><i class="fa-solid fa-download" aria-hidden="true"></i> Download mask</button>
+        <a id="btn-overlay" href="/overlay" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open overlay</a>
+        <button type="button" id="btn-copy-overlay"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy overlay URL</button>
+      </div>
+    </div>
+    <div id="wrap">
+      <aside id="sidebar" class="win">
+        <div class="win-title">Shape</div>
+        <div class="win-body">
+          <p class="hint">Drag vertices. Click an edge to add a point. Delete removes the selected vertex. Ctrl+Z undoes.</p>
+          <button type="button" id="btn-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add point</button>
+          <button type="button" id="btn-del"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete point</button>
+          <button type="button" id="btn-reset"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+        </div>
+      </aside>
+      <div id="stage-wrap" class="win">
+        <div class="win-body">
+          <div id="frame">
+            <svg id="stage" viewBox="0 0 1920 1080"></svg>
+            <div id="grids"></div>
+          </div>
+        </div>
+      </div>
+      <aside id="inspector-pane" class="win">
+        <div class="win-title">Look</div>
+        <div class="win-body" id="inspector">
+          <label>Stroke <span class="color-field"><input id="in-stroke" type="color"><input id="in-stroke-hex" type="text" spellcheck="false"></span></label>
+          <label>Thickness <input id="in-width" type="number" min="1" step="1"></label>
+          <label>Glow <input id="in-glow" type="number" min="0" step="1"></label>
+          <label class="check-row"><input id="in-dash" type="checkbox"> Dash animation</label>
+          <div class="win-title">Mask</div>
+          <img id="mask-prev" alt="Mask preview">
+          <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
+          <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
+        </div>
+      </aside>
+    </div>
+    <div id="ctrl-view">
+      <div id="ctrl-bar">
+        <button type="button" id="btn-ctrl-edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
+        <button type="button" id="btn-ev-add" hidden><i class="fa-solid fa-plus" aria-hidden="true"></i> Add event</button>
+      </div>
+      <div id="ctrl-grid"></div>
+    </div>
+  </div>
+  <script src="/shared.js"></script>
+  <script src="/composer.js"></script>
+</body>
+</html>

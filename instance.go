@@ -1,0 +1,50 @@
+package main
+
+import (
+	"errors"
+	"syscall"
+	"unsafe"
+)
+
+const instanceMutex = `Local\BorderStudio`
+
+var errAlreadyRunning = errors.New("already running")
+
+var (
+	modKernel32      = syscall.NewLazyDLL("kernel32.dll")
+	procCreateMutexW = modKernel32.NewProc("CreateMutexW")
+	modUser32        = syscall.NewLazyDLL("user32.dll")
+	procMessageBoxW  = modUser32.NewProc("MessageBoxW")
+)
+
+func lockInstance(name string) (syscall.Handle, error) {
+	n, err := syscall.UTF16PtrFromString(name)
+	if err != nil {
+		return 0, err
+	}
+	r0, _, e := procCreateMutexW.Call(0, 0, uintptr(unsafe.Pointer(n)))
+	h := syscall.Handle(r0)
+	if h == 0 {
+		if errno, ok := e.(syscall.Errno); ok && errno != 0 {
+			return 0, errno
+		}
+		return 0, errors.New("CreateMutex failed")
+	}
+	if e == syscall.ERROR_ALREADY_EXISTS {
+		syscall.CloseHandle(h)
+		return 0, errAlreadyRunning
+	}
+	return h, nil
+}
+
+func alert(title, body string) {
+	t, err := syscall.UTF16PtrFromString(title)
+	if err != nil {
+		return
+	}
+	b, err := syscall.UTF16PtrFromString(body)
+	if err != nil {
+		return
+	}
+	procMessageBoxW.Call(0, uintptr(unsafe.Pointer(b)), uintptr(unsafe.Pointer(t)), 0)
+}

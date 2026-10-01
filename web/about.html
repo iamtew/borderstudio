@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>About Border Studio</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="admin about">
+  <div class="about-card">
+    <img src="/icon.png" alt="">
+    <h1>Border Studio</h1>
+    <p id="ver"></p>
+    <button type="button" id="close">Close</button>
+  </div>
+  <script>
+    const fit = () => {
+      const el = document.querySelector(".about-card");
+      resizeTo(el.offsetWidth + outerWidth - innerWidth, el.offsetHeight + outerHeight - innerHeight);
+    };
+    fetch("/api/version").then(r => r.json()).then(d => {
+      document.getElementById("ver").textContent = d.version;
+      const l = document.querySelector('link[rel="icon"]');
+      if (l) l.href = "/favicon.ico?v=" + encodeURIComponent(d.run || d.version);
+      fit();
+    });
+    document.querySelector(".about-card img").addEventListener("load", fit);
+    addEventListener("load", fit);
+    document.getElementById("close").onclick = () => close();
+    addEventListener("keydown", ev => { if (ev.key === "Escape") close(); });
+  </script>
+</body>
+</html>

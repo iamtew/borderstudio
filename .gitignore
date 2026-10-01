@@ -1,0 +1,10 @@
+dist/
+border.db
+designer-chrome/
+controller-chrome/
+about-chrome/
+*.exe
+assets/icon.ico
+*.syso
+*.af~lock~
+bootstrap.md
