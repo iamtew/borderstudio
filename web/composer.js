@@ -28,7 +28,7 @@ function pushHist() {
 
 function applyHist(s) {
   d = JSON.parse(s);
-  sel = Math.min(sel, d.points.length - 1);
+  sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
   paint();
   scheduleSave();
 }
@@ -66,6 +66,11 @@ function paint() {
   document.getElementById("in-mw").value = d.width;
   document.getElementById("in-mh").value = d.height;
   document.getElementById("mask-prev").src = maskCanvas(d).toDataURL("image/png");
+  const k = kindOf(d);
+  document.getElementById("in-kind").value = k;
+  document.getElementById("in-radius").value = d.r || 0;
+  document.body.classList.toggle("shape-poly", k === "polygon");
+  document.body.classList.toggle("shape-roundrect", k === "roundrect");
   paintCtrl();
   paintGrids();
 }
@@ -185,16 +190,89 @@ function addPointAt(p) {
   scheduleSave();
 }
 
+function polyBox(d) {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  (d.points || []).forEach(p => {
+    x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y);
+    x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y);
+  });
+  if (!isFinite(x1)) return { x: 80, y: 80, w: d.width - 160, h: d.height - 160 };
+  return { x: x1, y: y1, w: Math.max(16, x2 - x1), h: Math.max(16, y2 - y1) };
+}
+
+function setKind(k) {
+  pushHist();
+  const prev = kindOf(d);
+  const b = prev === "polygon" ? polyBox(d) : { x: d.x, y: d.y, w: d.w, h: d.h };
+  d.kind = k;
+  if (k === "polygon") {
+    if (prev !== "polygon" || !d.points || d.points.length < 3) {
+      d.points = [
+        { x: b.x, y: b.y }, { x: b.x + b.w, y: b.y },
+        { x: b.x + b.w, y: b.y + b.h }, { x: b.x, y: b.y + b.h },
+      ];
+    }
+  } else {
+    d.x = b.x; d.y = b.y; d.w = b.w; d.h = b.h;
+    if (k === "circle") {
+      const s = Math.min(b.w, b.h);
+      d.x = b.x + (b.w - s) / 2;
+      d.y = b.y + (b.h - s) / 2;
+      d.w = d.h = s;
+    }
+    if (k === "roundrect" && !(d.r > 0)) d.r = Math.min(48, Math.min(d.w, d.h) / 4);
+  }
+  paint();
+  scheduleSave();
+}
+
+function applyBox(t, p, orig) {
+  let { x, y, w, h } = orig;
+  if (t === "move") {
+    x = snapVal(orig.x + p.x - orig.ox, gridLines().xs);
+    y = snapVal(orig.y + p.y - orig.oy, gridLines().ys);
+  } else if (t === "rad") {
+    d.r = Math.max(0, Math.min(p.x - orig.x, Math.min(orig.w, orig.h) / 2));
+    return;
+  } else {
+    if (t.includes("e")) w = p.x - x;
+    if (t.includes("s")) h = p.y - y;
+    if (t.includes("w")) { w += x - p.x; x = p.x; }
+    if (t.includes("n")) { h += y - p.y; y = p.y; }
+    if (w < 16) { if (t.includes("w")) x = orig.x + orig.w - 16; w = 16; }
+    if (h < 16) { if (t.includes("n")) y = orig.y + orig.h - 16; h = 16; }
+    if (kindOf(d) === "circle") {
+      const s = Math.max(w, h);
+      if (t.includes("w")) x = orig.x + orig.w - s;
+      if (t.includes("n")) y = orig.y + orig.h - s;
+      w = h = s;
+    }
+  }
+  d.x = x; d.y = y; d.w = w; d.h = h;
+}
+
 let drag = null;
 stage.addEventListener("pointerdown", ev => {
   const p = svgPoint(ev);
   const hit = ev.target.closest && ev.target.closest(".handle");
   if (hit) {
     pushHist();
-    sel = Number(hit.dataset.i);
-    drag = sel;
+    if (hit.dataset.t) {
+      drag = { t: hit.dataset.t, ox: p.x, oy: p.y, x: d.x, y: d.y, w: d.w, h: d.h };
+    } else {
+      sel = Number(hit.dataset.i);
+      drag = sel;
+    }
     stage.setPointerCapture(ev.pointerId);
     paint();
+    return;
+  }
+  if (kindOf(d) !== "polygon") {
+    if (ev.target.closest && ev.target.closest(".hole, .border-path")) {
+      pushHist();
+      drag = { t: "move", ox: p.x, oy: p.y, x: d.x, y: d.y, w: d.w, h: d.h };
+      stage.setPointerCapture(ev.pointerId);
+    }
     return;
   }
   addPointAt(p);
@@ -202,7 +280,8 @@ stage.addEventListener("pointerdown", ev => {
 stage.addEventListener("pointermove", ev => {
   if (drag == null) return;
   const p = snapPt(svgPoint(ev));
-  d.points[drag] = { x: p.x, y: p.y };
+  if (typeof drag === "number") d.points[drag] = { x: p.x, y: p.y };
+  else applyBox(drag.t, p, drag);
   paint();
 });
 stage.addEventListener("pointerup", () => {
@@ -211,7 +290,7 @@ stage.addEventListener("pointerup", () => {
 });
 
 function delPoint() {
-  if (d.points.length <= 3) return;
+  if (kindOf(d) !== "polygon" || d.points.length <= 3) return;
   pushHist();
   d.points.splice(sel, 1);
   sel = Math.min(sel, d.points.length - 1);
@@ -251,6 +330,10 @@ lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.g
 lookInput(document.getElementById("in-dash"), () => { d.dash = document.getElementById("in-dash").checked; });
 lookInput(document.getElementById("in-mw"), () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
 lookInput(document.getElementById("in-mh"), () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
+document.getElementById("in-kind").onchange = e => setKind(e.target.value);
+lookInput(document.getElementById("in-radius"), () => {
+  d.r = Math.max(0, Number(document.getElementById("in-radius").value) || 0);
+});
 
 function slug(s) {
   return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

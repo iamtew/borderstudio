@@ -20,6 +20,12 @@ func TestValidateDesign(t *testing.T) {
 	if err := validateDesign(design{Width: 10, Height: 10, Points: []point{{0, 0}, {1, 0}}}); err == nil {
 		t.Fatal("expected error for 2 points")
 	}
+	if err := validateDesign(design{Width: 10, Height: 10, Kind: "circle", W: 8, H: 8}); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDesign(design{Width: 10, Height: 10, Kind: "oval"}); err == nil {
+		t.Fatal("expected error for empty oval")
+	}
 }
 
 func TestStoreRoundtrip(t *testing.T) {

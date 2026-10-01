@@ -25,7 +25,13 @@ type ctrlEvent struct {
 type design struct {
 	Width       int         `json:"width"`
 	Height      int         `json:"height"`
-	Points      []point     `json:"points"`
+	Kind        string      `json:"kind,omitempty"` // polygon | roundrect | circle | oval
+	Points      []point     `json:"points,omitempty"`
+	X           float64     `json:"x,omitempty"`
+	Y           float64     `json:"y,omitempty"`
+	W           float64     `json:"w,omitempty"`
+	H           float64     `json:"h,omitempty"`
+	R           float64     `json:"r,omitempty"` // roundrect corner radius
 	Stroke      string      `json:"stroke"`
 	StrokeWidth float64     `json:"strokeWidth"`
 	Glow        float64     `json:"glow"`
@@ -102,12 +108,12 @@ func (st *store) save(d design) error {
 }
 
 func defaultDesign() design {
-	// Chamfered rect in 1920x1080 — looks like a rounded camera hole without beziers.
-	// ponytail: polygon only; cubic corners if this looks cheap
+	// Chamfered rect in 1920x1080 — default hole. Other kinds: roundrect / circle / oval.
 	const w, h, m, r = 1920.0, 1080.0, 80.0, 48.0
 	return design{
 		Width:       1920,
 		Height:      1080,
+		Kind:        "polygon",
 		Stroke:      "#e6f350",
 		StrokeWidth: 12,
 		Glow:        8,
@@ -127,8 +133,17 @@ func validateDesign(d design) error {
 	if d.Width <= 0 || d.Height <= 0 {
 		return fmt.Errorf("bad size")
 	}
-	if len(d.Points) < 3 {
-		return fmt.Errorf("need at least 3 points")
+	switch d.Kind {
+	case "", "polygon":
+		if len(d.Points) < 3 {
+			return fmt.Errorf("need at least 3 points")
+		}
+	case "roundrect", "circle", "oval":
+		if d.W <= 0 || d.H <= 0 {
+			return fmt.Errorf("bad box")
+		}
+	default:
+		return fmt.Errorf("bad kind")
 	}
 	return nil
 }

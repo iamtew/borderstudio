@@ -21,7 +21,7 @@ import (
 	"github.com/getlantern/systray"
 )
 
-const addr = "127.0.0.1:8176"
+const addr = "127.0.0.1:8505"
 
 var version = "dev"
 var runID = strconv.FormatInt(time.Now().UnixNano(), 10)

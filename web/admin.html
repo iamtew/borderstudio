@@ -47,9 +47,19 @@
       <aside id="sidebar" class="win">
         <div class="win-title">Shape</div>
         <div class="win-body">
-          <p class="hint">Drag vertices. Click an edge to add a point. Delete removes the selected vertex. Ctrl+Z undoes.</p>
-          <button type="button" id="btn-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add point</button>
-          <button type="button" id="btn-del"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete point</button>
+          <label>Kind
+            <select id="in-kind">
+              <option value="polygon">Polygon</option>
+              <option value="roundrect">Rounded rect</option>
+              <option value="circle">Circle</option>
+              <option value="oval">Oval</option>
+            </select>
+          </label>
+          <p class="hint poly-only">Drag vertices. Click an edge to add a point. Delete removes the selected vertex. Ctrl+Z undoes.</p>
+          <p class="hint box-only">Drag the hole to move. Drag handles to resize. Ctrl+Z undoes.</p>
+          <button type="button" id="btn-add" class="poly-only"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add point</button>
+          <button type="button" id="btn-del" class="poly-only"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete point</button>
+          <label id="radius-row" class="roundrect-only">Corner radius <input id="in-radius" type="number" min="0" step="1"></label>
           <button type="button" id="btn-reset"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
         </div>
       </aside>

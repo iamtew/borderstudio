@@ -85,6 +85,13 @@ body.admin #frame { border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); 
 .checker { fill: url(#checker); }
 .handle { fill: var(--accent); cursor: grab; }
 .handle.sel { fill: var(--accent2); }
+.handle.box.nw, .handle.box.se { cursor: nwse-resize; }
+.handle.box.ne, .handle.box.sw { cursor: nesw-resize; }
+.handle.box.n, .handle.box.s { cursor: ns-resize; }
+.handle.box.e, .handle.box.w { cursor: ew-resize; }
+.handle.rad { cursor: ew-resize; fill: var(--accent2); }
+body:not(.shape-poly) .poly-only { display: none !important; }
+body.shape-poly .box-only, body:not(.shape-roundrect) .roundrect-only { display: none !important; }
 label { display: block; font-size: 12px; margin: 8px 0 4px; }
 body.admin label { color: var(--muted); }
 body.admin input, body.admin select, body.admin textarea {
