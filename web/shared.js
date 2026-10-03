@@ -34,6 +34,19 @@ const RECIPES = [
     { t: 0.5, hue: 180 }, { t: 0.66, hue: 240 }, { t: 0.83, hue: 300 }, { t: 1, hue: 360 },
   ] },
   { id: "shimmer", label: "Shimmer", loop: true, ms: 1400, ease: "ease-in-out", keys: [{ t: 0, opacity: 1 }, { t: 0.5, opacity: 0.4 }, { t: 1, opacity: 1 }] },
+  { id: "fire", label: "Fire", loop: true, ms: 1600, ease: "ease-in-out", keys: [
+    { t: 0, color: "#E5F20D" }, { t: 0.5, color: "#F20D0D" }, { t: 1, color: "#E5F20D" },
+  ] },
+  { id: "neon-swap", label: "Neon swap", loop: true, ms: 1400, ease: "ease-in-out", keys: [
+    { t: 0, color: "#00FFFF" }, { t: 0.5, color: "#FF00FF" }, { t: 1, color: "#00FFFF" },
+  ] },
+  { id: "orbit", label: "Orbit", loop: true, ms: 1200, ease: "linear", dash: "12 240", keys: [
+    { t: 0, offset: 0, color: "#E5F20D" }, { t: 0.25, color: "#F20D0D" },
+    { t: 0.5, color: "#E5F20D" }, { t: 0.75, color: "#F20D0D" }, { t: 1, offset: -80, color: "#E5F20D" },
+  ] },
+  { id: "chroma", label: "Chroma", loop: true, ms: 2000, ease: "ease-in-out", keys: [
+    { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.85 }, { t: 1, opacity: 1 },
+  ], fx: [{ id: "chroma", px: 2 }] },
   { id: "pulse", label: "Pulse", group: "Pulse", ms: 700, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.8, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
   { id: "pulse-soft", label: "Pulse soft", group: "Pulse", ms: 900, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.35, glow: 10 }, { t: 1, width: 1, glow: 0 }] },
   { id: "pulse-hard", label: "Pulse hard", group: "Pulse", ms: 500, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 2.4, glow: 24 }, { t: 1, width: 1, glow: 0 }] },
@@ -84,6 +97,9 @@ const RECIPES = [
     { t: 0.7, x: -6, y: -5 },
     { t: 1, x: 0, y: 0, opacity: 1 },
   ], fx: [{ id: "chroma", px: 6 }, { id: "slices", n: 5 }] },
+  { id: "chroma-burst", label: "Chroma burst", group: "Glitch", ms: 700, ease: "ease-in-out", keys: [
+    { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.8 }, { t: 1, opacity: 1 },
+  ], fx: [{ id: "chroma", px: 5 }] },
   { id: "spark", label: "Spark", group: "Glitch", ms: 600, ease: "ease", dash: "8 14", keys: [{ t: 0, offset: 0, glow: 0 }, { t: 0.5, color: "#fff", glow: 16, offset: -40 }, { t: 1, offset: 0, glow: 0 }] },
   { id: "boom", label: "Boom", group: "Glitch", ms: 700, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.4, width: 2.6, glow: 28, color: "#fff" }, { t: 1, width: 1, glow: 0 }] },
 ];
@@ -121,6 +137,13 @@ function userScale(el) {
   return w / vb.width;
 }
 
+// SeshHub PFP is ~12rem (192px). Scale the 2→5px shadow recipe to this frame.
+function seshScale(el) {
+  const svg = el && el.ownerSVGElement;
+  const w = svg && svg.getBoundingClientRect().width;
+  return w ? w / 192 : 1;
+}
+
 function recipeFrames(recipe, design, scale) {
   const sc = scale || 1;
   const sw = (design && design.strokeWidth) || 12;
@@ -138,8 +161,10 @@ function recipeFrames(recipe, design, scale) {
     if (useOff) f.strokeDashoffset = ((k.offset != null ? k.offset : 0) * sc) + "px";
     if (useG || useH) {
       const g = baseGlow + (k.glow || 0);
+      const blur = (design && design.blur) || 0;
       let filter = "drop-shadow(0 0 " + g + "px " + (k.color || stroke) + ")";
       if (useH) filter = "hue-rotate(" + (k.hue || 0) + "deg) " + filter;
+      if (blur) filter = "blur(" + blur + "px) " + filter;
       f.filter = filter;
     }
     if (useT) f.transform = "translate(" + (k.x || 0) + "px, " + (k.y || 0) + "px) rotate(" + (k.rot || 0) + "deg)";
@@ -157,24 +182,61 @@ function fxOf(recipe, id) {
   return (recipe.fx || []).find(f => f.id === id) || null;
 }
 
-function mountChroma(el, px) {
+function mountChroma(el, px, ghost) {
   const ns = "http://www.w3.org/2000/svg";
-  const made = [];
-  [[px, "#ff3355"], [-px, "#33aaff"]].forEach(([dx, color]) => {
+  const svg = el.ownerSVGElement;
+  const groups = [];
+  const inks = [];
+  const glow = el.style.getPropertyValue("--glow") || "0px";
+  const blur = el.style.getPropertyValue("--blur") || "0px";
+  let maskId = "";
+  if (ghost && svg) {
+    // SeshHub: box-shadow of the whole frame, photo covers the inside. Punch the hole so only the lips show.
+    maskId = "bs-chroma-cut";
+    const mask = document.createElementNS(ns, "mask");
+    mask.setAttribute("id", maskId);
+    mask.setAttribute("class", "bs-chroma-copy");
+    mask.setAttribute("maskUnits", "userSpaceOnUse");
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const bg = document.createElementNS(ns, "rect");
+    bg.setAttribute("x", String(vb ? vb.x : 0));
+    bg.setAttribute("y", String(vb ? vb.y : 0));
+    bg.setAttribute("width", String(vb && vb.width ? vb.width : 1920));
+    bg.setAttribute("height", String(vb && vb.height ? vb.height : 1080));
+    bg.setAttribute("fill", "#fff");
+    const punch = el.cloneNode(true);
+    punch.setAttribute("class", "");
+    punch.setAttribute("fill", "#000");
+    punch.setAttribute("stroke", "none");
+    punch.style.filter = "none";
+    mask.appendChild(bg);
+    mask.appendChild(punch);
+    svg.insertBefore(mask, el);
+  }
+  [[-1, "#00FFFF"], [1, "#FF00FF"]].forEach(([dir, color]) => {
+    const outer = document.createElementNS(ns, "g");
+    outer.setAttribute("class", "bs-chroma-copy");
+    outer.style.pointerEvents = "none";
+    if (maskId) outer.setAttribute("mask", "url(#" + maskId + ")");
     const g = document.createElementNS(ns, "g");
-    g.setAttribute("class", "bs-chroma-copy");
-    g.setAttribute("transform", "translate(" + dx + " 0)");
-    g.style.pointerEvents = "none";
+    g.setAttribute("transform", "translate(" + (dir * px) + " 0)");
+    g.dataset.dir = String(dir);
     const node = el.cloneNode(true);
     node.setAttribute("class", "bs-chroma-ink");
-    node.setAttribute("stroke", color);
-    node.style.filter = "none";
-    node.style.mixBlendMode = "screen";
+    if (ghost) {
+      node.setAttribute("fill", color);
+      node.setAttribute("stroke", "none");
+    } else {
+      node.setAttribute("stroke", color);
+    }
+    node.style.filter = "blur(" + blur + ") drop-shadow(0 0 " + glow + " " + color + ")";
     g.appendChild(node);
-    el.parentNode.insertBefore(g, el);
-    made.push(node);
+    outer.appendChild(g);
+    el.parentNode.insertBefore(outer, el);
+    groups.push(g);
+    inks.push(node);
   });
-  return made;
+  return { groups, inks };
 }
 
 function mountSlices(svg, design, n, ms) {
@@ -216,6 +278,7 @@ function playRecipe(el, design, recipe, once) {
   if (design) liveDesign = design;
   const svg = el.ownerSVGElement;
   el.getAnimations().forEach(a => a.cancel());
+  el.style.visibility = "";
   clearFx(svg);
   if (!recipe) {
     el.removeAttribute("stroke-dasharray");
@@ -223,7 +286,8 @@ function playRecipe(el, design, recipe, once) {
   }
   if (recipe.dash) el.setAttribute("stroke-dasharray", recipe.dash);
   else el.removeAttribute("stroke-dasharray");
-  const frames = recipeFrames(recipe, design || liveDesign || {}, userScale(el));
+  const scale = userScale(el);
+  const frames = recipeFrames(recipe, design || liveDesign || {}, scale);
   const timing = {
     duration: Math.max(100, recipe.ms || 600),
     easing: recipe.ease || "ease",
@@ -231,7 +295,10 @@ function playRecipe(el, design, recipe, once) {
     fill: "forwards",
   };
   const chroma = fxOf(recipe, "chroma");
-  const copies = chroma && chroma.px ? mountChroma(el, chroma.px) : [];
+  const ghost = !!chroma && (recipe.id === "chroma" || recipe.id === "chroma-burst");
+  const split = chroma && chroma.px ? (ghost ? chroma.px * seshScale(el) : chroma.px) : 0;
+  const pack = split ? mountChroma(el, split, ghost) : { groups: [], inks: [] };
+  if (ghost) el.style.visibility = "hidden";
   const slices = fxOf(recipe, "slices");
   if (slices && slices.n && svg) mountSlices(svg, design || liveDesign, slices.n, recipe.ms);
   const anim = safeAnimate(el, frames, timing);
@@ -241,7 +308,18 @@ function playRecipe(el, design, recipe, once) {
     delete o.filter;
     return o;
   });
-  copies.forEach(c => safeAnimate(c, copyFrames, timing));
+  pack.inks.forEach(c => safeAnimate(c, copyFrames, timing));
+  if (split && pack.groups.length) {
+    const a = split;
+    pack.groups.forEach(g => {
+      const dir = Number(g.dataset.dir) || 1;
+      safeAnimate(g, [
+        { transform: "translate(" + (dir * a) + "px, 0px)" },
+        { transform: "translate(" + (dir * a * 2.5) + "px, 0px)" },
+        { transform: "translate(" + (dir * a) + "px, 0px)" },
+      ], timing);
+    });
+  }
   if (once && anim) {
     anim.onfinish = () => {
       if (token !== playToken) return;
@@ -298,6 +376,7 @@ function styleStroke(el, d) {
   el.setAttribute("stroke-linejoin", "round");
   el.style.setProperty("--sw", (d.strokeWidth || 12) + "px");
   el.style.setProperty("--glow", (d.glow || 0) + "px");
+  el.style.setProperty("--blur", (d.blur || 0) + "px");
   el.style.setProperty("--stroke", d.stroke || "#e6f350");
 }
 

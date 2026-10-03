@@ -37,6 +37,7 @@ type design struct {
 	Stroke      string      `json:"stroke"`
 	StrokeWidth float64     `json:"strokeWidth"`
 	Glow        float64     `json:"glow"`
+	Blur        float64     `json:"blur"`
 	Dash        bool        `json:"dash"`
 	Motion      string      `json:"motion,omitempty"`
 	MotionTune  *motionTune `json:"motionTune,omitempty"`
@@ -222,11 +223,12 @@ var builtinAnimIDs = map[string]bool{
 	"none": true, "dash": true, "dash-rev": true, "dash-fast": true, "dots": true,
 	"long-dash": true, "flow": true, "scan": true, "breathe": true, "heartbeat": true,
 	"glow-pulse": true, "neon": true, "hue": true, "rainbow": true, "shimmer": true,
+	"fire": true, "neon-swap": true, "orbit": true, "chroma": true,
 	"pulse": true, "pulse-soft": true, "pulse-hard": true, "pulse-double": true,
 	"flash": true, "flash-white": true, "flash-hot": true, "flash-cold": true, "whiteout": true,
 	"alert": true, "success": true, "warn": true, "strobe": true, "blink": true, "flicker": true,
 	"shake": true, "jolt": true, "swell": true, "snap": true, "wipe": true, "reverse-wipe": true,
-	"rainbow-burst": true, "glitch": true, "spark": true, "boom": true,
+	"rainbow-burst": true, "glitch": true, "chroma-burst": true, "spark": true, "boom": true,
 }
 
 var animEases = map[string]bool{
@@ -493,6 +495,7 @@ func defaultDesign() design {
 			{ID: "wipe", Label: "Wipe", Anim: "wipe"},
 			{ID: "rainbow", Label: "Rainbow", Anim: "rainbow-burst"},
 			{ID: "glitch", Label: "Glitch", Anim: "glitch"},
+			{ID: "chroma-burst", Label: "Chroma burst", Anim: "chroma-burst"},
 			{ID: "spark", Label: "Spark", Anim: "spark"},
 			{ID: "boom", Label: "Boom", Anim: "boom"},
 		},

@@ -20,10 +20,12 @@ body.overlay.obs { background: transparent; }
 body.overlay svg { width: 100vw; height: 100vh; display: block; }
 body.overlay .border-path { fill: none; }
 .border-path {
-  filter: drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
+  filter: blur(var(--blur, 0px)) drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
   transform-box: fill-box;
   transform-origin: center;
 }
+.bs-chroma-ink { filter: blur(var(--blur, 0px)); }
+.bs-chroma-copy { transform-box: fill-box; transform-origin: center; }
 #down-banner {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0, 0, 0, 0.5);

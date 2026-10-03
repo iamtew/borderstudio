@@ -61,6 +61,7 @@ function paint() {
   paintStrokeWell();
   document.getElementById("in-width").value = d.strokeWidth;
   document.getElementById("in-glow").value = d.glow;
+  document.getElementById("in-blur").value = d.blur || 0;
   fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
   paintTune();
   document.getElementById("in-mw").value = d.width;
@@ -659,6 +660,7 @@ strokeHex.oninput = () => {
 };
 lookInput(document.getElementById("in-width"), () => { d.strokeWidth = Number(document.getElementById("in-width").value) || 1; });
 lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.getElementById("in-glow").value) || 0; });
+lookInput(document.getElementById("in-blur"), () => { d.blur = Math.max(0, Number(document.getElementById("in-blur").value) || 0); });
 lookInput(document.getElementById("in-motion"), () => {
   d.motion = document.getElementById("in-motion").value;
   d.dash = d.motion === "dash";
@@ -706,7 +708,7 @@ function replayMotion() {
   playIdle(path, d);
   const svg = path.ownerSVGElement;
   if (!svg || !at) return;
-  svg.querySelectorAll(".border-path, .bs-chroma-ink").forEach(el => {
+  svg.querySelectorAll(".border-path, .bs-chroma-ink, .bs-chroma-copy").forEach(el => {
     el.getAnimations().forEach(a => {
       const dur = a.effect && a.effect.getTiming().duration;
       if (!dur) return;
