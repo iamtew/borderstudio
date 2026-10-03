@@ -80,6 +80,10 @@ body.admin #frame { border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); 
 .checker { fill: url(#checker); }
 .handle { fill: var(--accent); cursor: grab; }
 .handle.sel { fill: var(--accent2); }
+.handle.smooth { fill: #fff; stroke: var(--accent); stroke-width: 2; }
+.handle.smooth.sel { stroke: var(--accent2); }
+.handle.bez { fill: #fff; stroke: var(--accent2); stroke-width: 2; }
+.arm { stroke: var(--accent2); stroke-width: 1.5; pointer-events: none; }
 .handle.box.nw, .handle.box.se { cursor: nwse-resize; }
 .handle.box.ne, .handle.box.sw { cursor: nesw-resize; }
 .handle.box.n, .handle.box.s { cursor: ns-resize; }

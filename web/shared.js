@@ -8,8 +8,37 @@ function bustFavicon(v) {
 }
 fetch("/api/version").then(r => r.json()).then(d => bustFavicon(d.run || d.version)).catch(() => bustFavicon());
 
+function isSmooth(p) { return !!(p && p.smooth); }
+function ctrlOut(p) { return isSmooth(p) ? { x: p.ox, y: p.oy } : p; }
+function ctrlIn(p) { return isSmooth(p) ? { x: p.ix, y: p.iy } : p; }
+
+// Closed polygon. A smooth vertex uses its handles; a corner is a line.
 function pathD(d) {
-  return (d.points || []).map((p, i) => (i ? "L" : "M") + p.x + " " + p.y).join(" ") + " Z";
+  const pts = d.points || [];
+  if (!pts.length) return "";
+  let s = "M" + pts[0].x + " " + pts[0].y;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    if (!isSmooth(a) && !isSmooth(b)) s += "L" + b.x + " " + b.y;
+    else {
+      const c1 = ctrlOut(a), c2 = ctrlIn(b);
+      s += "C" + c1.x + " " + c1.y + " " + c2.x + " " + c2.y + " " + b.x + " " + b.y;
+    }
+  }
+  return s + "Z";
+}
+
+function tracePoly(ctx, pts) {
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    if (!isSmooth(a) && !isSmooth(b)) ctx.lineTo(b.x, b.y);
+    else {
+      const c1 = ctrlOut(a), c2 = ctrlIn(b);
+      ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, b.x, b.y);
+    }
+  }
+  ctx.closePath();
 }
 
 function kindOf(d) { return d.kind || "polygon"; }
@@ -520,10 +549,29 @@ function renderBorder(svg, d, opts) {
 
   if (handles) {
     if (kindOf(d) === "polygon") {
-      (d.points || []).forEach((p, i) => {
+      const pts = d.points || [];
+      const sp = pts[opts.sel];
+      if (sp && sp.smooth) {
+        [[sp.ix, sp.iy], [sp.ox, sp.oy]].forEach(([hx, hy]) => {
+          const ln = document.createElementNS(ns, "line");
+          ln.setAttribute("x1", sp.x); ln.setAttribute("y1", sp.y);
+          ln.setAttribute("x2", hx); ln.setAttribute("y2", hy);
+          ln.setAttribute("class", "arm");
+          svg.appendChild(ln);
+        });
+        [["in", sp.ix, sp.iy], ["out", sp.ox, sp.oy]].forEach(([name, hx, hy]) => {
+          const h = document.createElementNS(ns, "circle");
+          h.setAttribute("cx", hx); h.setAttribute("cy", hy); h.setAttribute("r", 7);
+          h.setAttribute("class", "handle bez");
+          h.dataset.h = name;
+          h.dataset.i = String(opts.sel);
+          svg.appendChild(h);
+        });
+      }
+      pts.forEach((p, i) => {
         const h = document.createElementNS(ns, "circle");
         h.setAttribute("cx", p.x); h.setAttribute("cy", p.y); h.setAttribute("r", 10);
-        h.setAttribute("class", "handle" + (opts.sel === i ? " sel" : ""));
+        h.setAttribute("class", "handle" + (p.smooth ? " smooth" : "") + (opts.sel === i ? " sel" : ""));
         h.dataset.i = String(i);
         svg.appendChild(h);
       });
@@ -574,8 +622,7 @@ function maskCanvas(d) {
     const rr = Math.max(0, Math.min(d.r || 0, Math.min(d.w, d.h) / 2));
     ctx.roundRect(d.x, d.y, d.w, d.h, rr);
   } else {
-    d.points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
-    ctx.closePath();
+    tracePoly(ctx, d.points);
   }
   ctx.fill("nonzero");
   return c;

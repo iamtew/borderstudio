@@ -13,8 +13,13 @@ import (
 )
 
 type point struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Smooth bool    `json:"smooth,omitempty"`
+	Ix     float64 `json:"ix,omitempty"` // incoming handle, absolute
+	Iy     float64 `json:"iy,omitempty"`
+	Ox     float64 `json:"ox,omitempty"` // outgoing handle, absolute
+	Oy     float64 `json:"oy,omitempty"`
 }
 
 type ctrlEvent struct {
@@ -479,8 +484,8 @@ func defaultDesign() design {
 		Glow:        8,
 		Dash:        false,
 		Points: []point{
-			{m + r, m}, {w - m - r, m}, {w - m, m + r}, {w - m, h - m - r},
-			{w - m - r, h - m}, {m + r, h - m}, {m, h - m - r}, {m, m + r},
+			{X: m + r, Y: m}, {X: w - m - r, Y: m}, {X: w - m, Y: m + r}, {X: w - m, Y: h - m - r},
+			{X: w - m - r, Y: h - m}, {X: m + r, Y: h - m}, {X: m, Y: h - m - r}, {X: m, Y: m + r},
 		},
 		Events: []ctrlEvent{
 			{ID: "pulse", Label: "Pulse", Anim: "pulse"},

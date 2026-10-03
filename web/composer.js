@@ -450,16 +450,51 @@ function svgPoint(ev) {
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
+function edgeAt(a, b, t) {
+  if (!isSmooth(a) && !isSmooth(b)) {
+    return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+  }
+  const c1 = ctrlOut(a), c2 = ctrlIn(b), u = 1 - t;
+  return {
+    x: u * u * u * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * b.x,
+    y: u * u * u * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * b.y,
+  };
+}
+
 function nearestEdge(p) {
   let best = 0, bestD = Infinity;
   for (let i = 0; i < d.points.length; i++) {
     const a = d.points[i], b = d.points[(i + 1) % d.points.length];
-    const t = Math.max(0, Math.min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / ((b.x - a.x) ** 2 + (b.y - a.y) ** 2 || 1)));
-    const q = { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
-    const dd = dist(p, q);
-    if (dd < bestD) { bestD = dd; best = i; }
+    if (!isSmooth(a) && !isSmooth(b)) {
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / ((b.x - a.x) ** 2 + (b.y - a.y) ** 2 || 1)));
+      const q = edgeAt(a, b, t);
+      const dd = dist(p, q);
+      if (dd < bestD) { bestD = dd; best = i; }
+    } else {
+      // ponytail: 16 samples along the cubic; denser split if a long curve misses clicks
+      for (let s = 0; s <= 16; s++) {
+        const dd = dist(p, edgeAt(a, b, s / 16));
+        if (dd < bestD) { bestD = dd; best = i; }
+      }
+    }
   }
   return best;
+}
+
+// Handles sit on the chord through the neighbors, one third of each adjacent edge.
+function smoothen(pts, i) {
+  const n = pts.length;
+  const p = pts[i];
+  const prev = pts[(i + n - 1) % n];
+  const next = pts[(i + 1) % n];
+  let dx = next.x - prev.x, dy = next.y - prev.y;
+  const len = Math.hypot(dx, dy) || 1;
+  dx /= len; dy /= len;
+  const inLen = Math.hypot(p.x - prev.x, p.y - prev.y) / 3;
+  const outLen = Math.hypot(next.x - p.x, next.y - p.y) / 3;
+  p.smooth = true;
+  p.ix = p.x - dx * inLen; p.iy = p.y - dy * inLen;
+  p.ox = p.x + dx * outLen; p.oy = p.y + dy * outLen;
 }
 
 function snapVal(v, lines) {
@@ -570,6 +605,7 @@ function applyBox(t, p, orig) {
 }
 
 let drag = null;
+let dragFrom = null;
 stage.addEventListener("pointerdown", ev => {
   const p = svgPoint(ev);
   const hit = ev.target.closest && ev.target.closest(".handle");
@@ -577,9 +613,13 @@ stage.addEventListener("pointerdown", ev => {
     pushHist();
     if (hit.dataset.t) {
       drag = { t: hit.dataset.t, ox: p.x, oy: p.y, x: d.x, y: d.y, w: d.w, h: d.h };
+    } else if (hit.dataset.h) {
+      sel = Number(hit.dataset.i);
+      drag = { h: hit.dataset.h, i: sel };
     } else {
       sel = Number(hit.dataset.i);
       drag = sel;
+      dragFrom = { cx: ev.clientX, cy: ev.clientY, moved: false, pt: Object.assign({}, d.points[sel]) };
     }
     stage.setPointerCapture(ev.pointerId);
     paint();
@@ -597,14 +637,34 @@ stage.addEventListener("pointerdown", ev => {
 });
 stage.addEventListener("pointermove", ev => {
   if (drag == null) return;
+  if (dragFrom && Math.hypot(ev.clientX - dragFrom.cx, ev.clientY - dragFrom.cy) > 4) dragFrom.moved = true;
   const p = snapPt(svgPoint(ev));
-  if (typeof drag === "number") d.points[drag] = { x: p.x, y: p.y };
-  else applyBox(drag.t, p, drag);
+  if (typeof drag === "number") {
+    const o = dragFrom.pt;
+    const dx = p.x - o.x, dy = p.y - o.y;
+    const n = { x: p.x, y: p.y };
+    if (o.smooth) {
+      n.smooth = true;
+      n.ix = o.ix + dx; n.iy = o.iy + dy;
+      n.ox = o.ox + dx; n.oy = o.oy + dy;
+    }
+    d.points[drag] = n;
+  } else if (drag.h) {
+    const pt = d.points[drag.i];
+    if (drag.h === "out") { pt.ox = p.x; pt.oy = p.y; pt.ix = 2 * pt.x - p.x; pt.iy = 2 * pt.y - p.y; }
+    else { pt.ix = p.x; pt.iy = p.y; pt.ox = 2 * pt.x - p.x; pt.oy = 2 * pt.y - p.y; }
+  } else applyBox(drag.t, p, drag);
   paint();
 });
 stage.addEventListener("pointerup", () => {
+  if (typeof drag === "number" && dragFrom && !dragFrom.moved) {
+    d.points[drag] = dragFrom.pt;
+    if (!dragFrom.pt.smooth) smoothen(d.points, drag);
+    paint();
+  }
   if (drag != null) scheduleSave();
   drag = null;
+  dragFrom = null;
 });
 
 function delPoint() {

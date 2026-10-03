@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -23,7 +24,7 @@ func TestDefaultDesign(t *testing.T) {
 }
 
 func TestValidateDesign(t *testing.T) {
-	if err := validateDesign(design{Width: 10, Height: 10, Points: []point{{0, 0}, {1, 0}}}); err == nil {
+	if err := validateDesign(design{Width: 10, Height: 10, Points: []point{{X: 0, Y: 0}, {X: 1, Y: 0}}}); err == nil {
 		t.Fatal("expected error for 2 points")
 	}
 	if err := validateDesign(design{Width: 10, Height: 10, Kind: "circle", W: 8, H: 8}); err != nil {
@@ -187,6 +188,26 @@ func TestAnimsRoundtrip(t *testing.T) {
 	}
 	if len(again.Custom) != 1 || again.Custom[0].ID != "u-pulse" {
 		t.Fatalf("reload %+v", again)
+	}
+}
+
+func TestSmoothPointRoundTrip(t *testing.T) {
+	p := point{X: 10, Y: 20, Smooth: true, Ix: 0, Iy: 14, Ox: 18, Oy: 20}
+	b, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var q point
+	if err := json.Unmarshal(b, &q); err != nil {
+		t.Fatal(err)
+	}
+	if !q.Smooth || q.Ix != 0 || q.Iy != 14 || q.Ox != 18 || q.Oy != 20 {
+		t.Fatalf("handles dropped: %+v from %s", q, b)
+	}
+	corner := point{X: 1, Y: 2}
+	b, _ = json.Marshal(corner)
+	if strings.Contains(string(b), "smooth") {
+		t.Fatalf("corner grew handles: %s", b)
 	}
 }
 
