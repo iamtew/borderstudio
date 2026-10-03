@@ -104,6 +104,25 @@
           <label>Thickness <input id="in-width" type="number" min="1" step="1"></label>
           <label>Glow <input id="in-glow" type="number" min="0" step="1"></label>
           <label>Motion <select id="in-motion"></select></label>
+          <div id="motion-tune" hidden>
+            <label>Duration (ms) <input id="tune-ms" type="number" min="100" max="10000" step="50"></label>
+            <label>Easing
+              <select id="tune-ease">
+                <option value="ease">Ease</option>
+                <option value="ease-in">Ease in</option>
+                <option value="ease-out">Ease out</option>
+                <option value="ease-in-out">Ease in-out</option>
+                <option value="linear">Linear</option>
+                <option value="steps(1, end)">Steps</option>
+                <option value="steps(2, end)">Steps 2</option>
+              </select>
+            </label>
+            <label>Tint <span class="color-field"><button type="button" id="tune-color" class="swatch" title="Motion color"></button><input id="tune-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="tune-color-clear" hidden aria-label="Use stroke color"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></label>
+            <label>Strength <input id="tune-strength" type="number" min="0" max="3" step="0.1"></label>
+            <label>Preset name <input id="tune-name" type="text" autocomplete="off" spellcheck="false" placeholder="My motion"></label>
+            <button type="button" id="tune-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save as preset</button>
+            <button type="button" id="tune-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete preset</button>
+          </div>
           <div class="win-title">Mask</div>
           <img id="mask-prev" alt="Mask preview">
           <label>Width <input id="in-mw" type="number" min="16" step="1"></label>

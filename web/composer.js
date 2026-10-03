@@ -62,6 +62,7 @@ function paint() {
   document.getElementById("in-width").value = d.strokeWidth;
   document.getElementById("in-glow").value = d.glow;
   fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
+  paintTune();
   document.getElementById("in-mw").value = d.width;
   document.getElementById("in-mh").value = d.height;
   document.getElementById("mask-prev").src = maskCanvas(d).toDataURL("image/png");
@@ -114,8 +115,9 @@ function paintCtrl() {
     fillEventAnimSelect(anim, ev.anim);
     anim.onfocus = pushHist;
     anim.onchange = () => {
-      const prev = EVENT_ANIMS.find(x => x.id === ev.anim);
-      const next = EVENT_ANIMS.find(x => x.id === anim.value) || EVENT_ANIMS[0];
+      const catalog = eventCatalog();
+      const prev = catalog.find(x => x.id === ev.anim);
+      const next = catalog.find(x => x.id === anim.value) || EVENT_ANIMS[0];
       if (!String(ev.label || "").trim() || (prev && ev.label === eventButtonName(prev))) {
         ev.label = eventButtonName(next);
         ev.id = uniqueEventId(slug(ev.label) || next.id, ev);
@@ -346,6 +348,29 @@ function openSettings() {
   document.getElementById("settings-overlay").hidden = false;
 }
 
+let animsDoc = { custom: [] };
+
+async function loadAnims() {
+  try {
+    const res = await fetch("/api/anims");
+    if (res.ok) {
+      animsDoc = await res.json();
+      animsDoc.custom = animsDoc.custom || [];
+    }
+  } catch (e) {}
+  customAnims = animsDoc.custom || [];
+}
+
+async function persistAnims() {
+  try {
+    const res = await fetch("/api/anims", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(animsDoc) });
+    if (res.ok) animsDoc = await res.json();
+  } catch (e) {}
+  animsDoc.custom = animsDoc.custom || [];
+  customAnims = animsDoc.custom;
+  if (d) paint();
+}
+
 function svgPoint(ev) {
   const pt = stage.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
@@ -567,7 +592,126 @@ lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.g
 lookInput(document.getElementById("in-motion"), () => {
   d.motion = document.getElementById("in-motion").value;
   d.dash = d.motion === "dash";
+  const src = recipeById(d.motion, true);
+  d.motionTune = src ? { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 } : null;
+  document.getElementById("tune-name").value = src ? src.label + " copy" : "";
 });
+function readTune() {
+  return {
+    ms: Number(document.getElementById("tune-ms").value),
+    ease: document.getElementById("tune-ease").value,
+    color: parseHex(document.getElementById("tune-color-hex").value),
+    strength: Number(document.getElementById("tune-strength").value),
+  };
+}
+function paintTune() {
+  const box = document.getElementById("motion-tune");
+  const id = motionOf(d);
+  const src = id === "none" ? null : recipeById(id, true);
+  box.hidden = !src;
+  const del = document.getElementById("tune-del");
+  const mine = !!(src && (customAnims || []).some(r => r.loop && r.id === src.id));
+  del.hidden = !mine;
+  if (!src) return;
+  const tune = d.motionTune || { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
+  const ms = document.getElementById("tune-ms");
+  const ease = document.getElementById("tune-ease");
+  const hex = document.getElementById("tune-color-hex");
+  const strength = document.getElementById("tune-strength");
+  if (document.activeElement !== ms) ms.value = tune.ms;
+  if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
+  if (document.activeElement !== hex) hex.value = tune.color || "";
+  if (document.activeElement !== strength) strength.value = tune.strength != null ? tune.strength : 1;
+  const btn = document.getElementById("tune-color");
+  const shown = tune.color || d.stroke || "#e6f350";
+  btn.style.background = shown;
+  btn.dataset.color = shown;
+  document.getElementById("tune-color-clear").hidden = !tune.color;
+}
+function replayMotion() {
+  const path = document.querySelector("#stage .border-path");
+  if (!path) return;
+  const prev = path.getAnimations()[0];
+  const at = prev ? prev.currentTime : 0;
+  playIdle(path, d);
+  const svg = path.ownerSVGElement;
+  if (!svg || !at) return;
+  svg.querySelectorAll(".border-path, .bs-chroma-ink").forEach(el => {
+    el.getAnimations().forEach(a => {
+      const dur = a.effect && a.effect.getTiming().duration;
+      if (!dur) return;
+      try { a.currentTime = at % dur; } catch (e) {}
+    });
+  });
+}
+["tune-ms", "tune-ease", "tune-strength"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("focus", pushHist);
+  el.addEventListener("input", () => { d.motionTune = readTune(); replayMotion(); scheduleSave(); });
+  el.addEventListener("change", () => { d.motionTune = readTune(); replayMotion(); scheduleSave(); });
+});
+document.getElementById("tune-color").onclick = (ev) => {
+  ev.stopPropagation();
+  pushHist();
+  const btn = document.getElementById("tune-color");
+  const hex = document.getElementById("tune-color-hex");
+  openIro(btn, hex, (color) => {
+    hex.value = color;
+    d.motionTune = readTune();
+    paintTune();
+    replayMotion();
+    scheduleSave();
+  });
+};
+document.getElementById("tune-color-hex").addEventListener("focus", pushHist);
+document.getElementById("tune-color-hex").oninput = () => {
+  const h = parseHex(document.getElementById("tune-color-hex").value);
+  if (!h && document.getElementById("tune-color-hex").value.trim()) return;
+  d.motionTune = readTune();
+  paintTune();
+  if (iroPick && !document.getElementById("iro-pop").hidden && h) {
+    try { iroPick.color.set(h); } catch (e) {}
+  }
+  replayMotion();
+  scheduleSave();
+};
+document.getElementById("tune-color-clear").onclick = () => {
+  pushHist();
+  document.getElementById("tune-color-hex").value = "";
+  d.motionTune = readTune();
+  paintTune();
+  replayMotion();
+  scheduleSave();
+};
+document.getElementById("tune-save").onclick = () => {
+  const src = recipeById(motionOf(d), true);
+  if (!src) return;
+  const tune = readTune();
+  d.motionTune = tune;
+  const name = document.getElementById("tune-name").value.trim() || (src.label + " copy");
+  const baked = bakeRecipe(recipeBase(src), Object.assign({ label: name }, tune));
+  const id = "a" + Date.now();
+  animsDoc.custom = animsDoc.custom || [];
+  animsDoc.custom.push(Object.assign({ id: id }, baked));
+  d.motion = id;
+  d.dash = false;
+  d.motionTune = { ms: baked.ms, ease: baked.ease, color: baked.color || "", strength: baked.strength };
+  document.getElementById("tune-name").value = name + " copy";
+  persistAnims();
+  scheduleSave();
+};
+document.getElementById("tune-del").onclick = () => {
+  const id = motionOf(d);
+  if (!(customAnims || []).some(r => r.loop && r.id === id)) return;
+  pushHist();
+  animsDoc.custom = (animsDoc.custom || []).filter(r => r.id !== id);
+  d.motion = "none";
+  d.dash = false;
+  d.motionTune = null;
+  document.getElementById("tune-name").value = "";
+  persistAnims();
+  scheduleSave();
+};
 lookInput(document.getElementById("in-mw"), () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
 lookInput(document.getElementById("in-mh"), () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
 document.getElementById("in-kind").onchange = e => setKind(e.target.value);
@@ -595,7 +739,7 @@ document.getElementById("btn-ev-add").onclick = () => {
   pushHist();
   d.events = d.events || [];
   const used = new Set(d.events.map(e => e.anim));
-  const a = EVENT_ANIMS.find(x => !used.has(x.id)) || EVENT_ANIMS[0];
+  const a = eventCatalog().find(x => !used.has(x.id)) || EVENT_ANIMS[0];
   d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id });
   paintCtrl();
   scheduleSave();
@@ -729,6 +873,7 @@ async function boot() {
   const res = await fetch("/api/design");
   d = await res.json();
   await loadPalettes();
+  await loadAnims();
   pushHist();
   paint();
   if (location.pathname === "/control") setView("control");

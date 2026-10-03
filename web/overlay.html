@@ -19,9 +19,13 @@
     }
     async function load() {
       try {
-        const res = await fetch("/api/design");
-        if (!res.ok) return;
-        d = await res.json();
+        const [des, anim] = await Promise.all([fetch("/api/design"), fetch("/api/anims")]);
+        if (!des.ok) return;
+        d = await des.json();
+        if (anim.ok) {
+          const doc = await anim.json();
+          customAnims = doc.custom || [];
+        }
         paint();
       } catch (e) {}
     }

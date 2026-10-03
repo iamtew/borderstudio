@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	_ "modernc.org/sqlite"
@@ -37,7 +38,15 @@ type design struct {
 	Glow        float64     `json:"glow"`
 	Dash        bool        `json:"dash"`
 	Motion      string      `json:"motion,omitempty"`
+	MotionTune  *motionTune `json:"motionTune,omitempty"`
 	Events      []ctrlEvent `json:"events"`
+}
+
+type motionTune struct {
+	Ms       float64 `json:"ms"`
+	Ease     string  `json:"ease"`
+	Color    string  `json:"color,omitempty"`
+	Strength float64 `json:"strength"`
 }
 
 type colorPalette struct {
@@ -104,6 +113,7 @@ func (st *store) load() (design, error) {
 	if err := validateDesign(d); err != nil {
 		return design{}, err
 	}
+	d.MotionTune = normalizeMotionTune(d.MotionTune)
 	return d, nil
 }
 
@@ -201,6 +211,254 @@ func (st *store) savePalettes(d palettesDoc) (palettesDoc, error) {
 		return d, err
 	}
 	return d, st.setKV("palettes", string(b))
+}
+
+// Ids reserved by RECIPES in web/shared.js. A custom preset cannot take one.
+var builtinAnimIDs = map[string]bool{
+	"none": true, "dash": true, "dash-rev": true, "dash-fast": true, "dots": true,
+	"long-dash": true, "flow": true, "scan": true, "breathe": true, "heartbeat": true,
+	"glow-pulse": true, "neon": true, "hue": true, "rainbow": true, "shimmer": true,
+	"pulse": true, "pulse-soft": true, "pulse-hard": true, "pulse-double": true,
+	"flash": true, "flash-white": true, "flash-hot": true, "flash-cold": true, "whiteout": true,
+	"alert": true, "success": true, "warn": true, "strobe": true, "blink": true, "flicker": true,
+	"shake": true, "jolt": true, "swell": true, "snap": true, "wipe": true, "reverse-wipe": true,
+	"rainbow-burst": true, "glitch": true, "spark": true, "boom": true,
+}
+
+var animEases = map[string]bool{
+	"linear": true, "ease": true, "ease-in": true, "ease-out": true, "ease-in-out": true,
+	"steps(1, end)": true, "steps(2, end)": true,
+}
+
+type animKey struct {
+	T       float64  `json:"t"`
+	Width   *float64 `json:"width,omitempty"`
+	Glow    *float64 `json:"glow,omitempty"`
+	Opacity *float64 `json:"opacity,omitempty"`
+	Color   string   `json:"color,omitempty"`
+	Offset  *float64 `json:"offset,omitempty"`
+	X       *float64 `json:"x,omitempty"`
+	Y       *float64 `json:"y,omitempty"`
+	Rot     *float64 `json:"rot,omitempty"`
+	Hue     *float64 `json:"hue,omitempty"`
+}
+
+type animFx struct {
+	ID string  `json:"id"`
+	Px float64 `json:"px,omitempty"`
+	N  int     `json:"n,omitempty"`
+}
+
+type animRecipe struct {
+	ID       string    `json:"id"`
+	Label    string    `json:"label"`
+	Group    string    `json:"group,omitempty"`
+	Loop     bool      `json:"loop"`
+	Ms       float64   `json:"ms"`
+	Ease     string    `json:"ease"`
+	Dash     string    `json:"dash,omitempty"`
+	From     string    `json:"from,omitempty"`
+	Strength float64   `json:"strength"`
+	Color    string    `json:"color,omitempty"`
+	Base     []animKey `json:"base,omitempty"`
+	Keys     []animKey `json:"keys"`
+	Fx       []animFx  `json:"fx,omitempty"`
+}
+
+type animsDoc struct {
+	Custom []animRecipe `json:"custom"`
+}
+
+func normalizeMotionTune(t *motionTune) *motionTune {
+	if t == nil {
+		return nil
+	}
+	ease := t.Ease
+	if !animEases[ease] {
+		ease = "ease"
+	}
+	color := ""
+	if t.Color != "" {
+		color = validHex(t.Color)
+	}
+	return &motionTune{
+		Ms: clamp(t.Ms, 100, 10000), Ease: ease, Color: color, Strength: clamp(t.Strength, 0, 4),
+	}
+}
+
+func clamp(v, lo, hi float64) float64 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
+func clampPtr(v *float64, lo, hi float64) *float64 {
+	if v == nil {
+		return nil
+	}
+	n := clamp(*v, lo, hi)
+	return &n
+}
+
+func clipText(s string, n int) string {
+	s = strings.TrimSpace(s)
+	if len(s) > n {
+		return s[:n]
+	}
+	return s
+}
+
+func validDash(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" || len(s) > 32 {
+		return ""
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && c != ' ' && c != '.' {
+			return ""
+		}
+	}
+	return s
+}
+
+func normAnimKey(k animKey) animKey {
+	k.T = clamp(k.T, 0, 1)
+	k.Width = clampPtr(k.Width, 0, 8)
+	k.Glow = clampPtr(k.Glow, -40, 160)
+	k.Opacity = clampPtr(k.Opacity, 0, 1)
+	k.Offset = clampPtr(k.Offset, -8000, 8000)
+	k.X = clampPtr(k.X, -400, 400)
+	k.Y = clampPtr(k.Y, -400, 400)
+	k.Rot = clampPtr(k.Rot, -180, 180)
+	k.Hue = clampPtr(k.Hue, 0, 3600)
+	if k.Color != "" {
+		k.Color = validHex(k.Color)
+	}
+	return k
+}
+
+func normAnimKeys(keys []animKey) []animKey {
+	if len(keys) > 24 {
+		keys = keys[:24]
+	}
+	out := make([]animKey, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, normAnimKey(k))
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].T < out[j].T })
+	return out
+}
+
+func normAnimFx(fx []animFx) []animFx {
+	var chroma *animFx
+	var slices *animFx
+	for _, f := range fx {
+		switch strings.TrimSpace(f.ID) {
+		case "chroma":
+			px := clamp(f.Px, 0, 80)
+			if px == 0 {
+				continue
+			}
+			c := animFx{ID: "chroma", Px: px}
+			chroma = &c
+		case "slices":
+			n := f.N
+			if n < 1 {
+				n = 1
+			}
+			if n > 24 {
+				n = 24
+			}
+			s := animFx{ID: "slices", N: n}
+			slices = &s
+		}
+	}
+	out := []animFx{}
+	if chroma != nil {
+		out = append(out, *chroma)
+	}
+	if slices != nil {
+		out = append(out, *slices)
+	}
+	return out
+}
+
+func normalizeAnims(d animsDoc) animsDoc {
+	out := animsDoc{Custom: []animRecipe{}}
+	seen := map[string]bool{}
+	for _, r := range d.Custom {
+		if len(out.Custom) >= 40 {
+			break
+		}
+		label := clipText(r.Label, 60)
+		if label == "" {
+			continue
+		}
+		id := clipText(r.ID, 42)
+		if id == "" {
+			continue
+		}
+		if builtinAnimIDs[id] {
+			id = clipText("u-"+id, 42)
+		}
+		if seen[id] || builtinAnimIDs[id] {
+			continue
+		}
+		seen[id] = true
+		ease := r.Ease
+		if !animEases[ease] {
+			ease = "ease"
+		}
+		group := clipText(r.Group, 24)
+		if group == "" && !r.Loop {
+			group = "Mine"
+		}
+		color := ""
+		if r.Color != "" {
+			color = validHex(r.Color)
+		}
+		keys := normAnimKeys(r.Keys)
+		base := normAnimKeys(r.Base)
+		fx := normAnimFx(r.Fx)
+		if len(keys) == 0 && len(fx) == 0 {
+			continue
+		}
+		out.Custom = append(out.Custom, animRecipe{
+			ID: id, Label: label, Group: group, Loop: r.Loop,
+			Ms: clamp(r.Ms, 100, 10000), Ease: ease, Dash: validDash(r.Dash),
+			From: clipText(r.From, 42), Strength: clamp(r.Strength, 0, 4), Color: color,
+			Base: base, Keys: keys, Fx: fx,
+		})
+	}
+	return out
+}
+
+func (st *store) anims() (animsDoc, error) {
+	raw, err := st.getKV("anims")
+	if err != nil {
+		return animsDoc{}, err
+	}
+	if raw == "" {
+		return animsDoc{Custom: []animRecipe{}}, nil
+	}
+	var d animsDoc
+	if err := json.Unmarshal([]byte(raw), &d); err != nil {
+		return animsDoc{Custom: []animRecipe{}}, nil
+	}
+	return normalizeAnims(d), nil
+}
+
+func (st *store) saveAnims(d animsDoc) (animsDoc, error) {
+	d = normalizeAnims(d)
+	b, err := json.Marshal(d)
+	if err != nil {
+		return d, err
+	}
+	return d, st.setKV("anims", string(b))
 }
 
 func defaultDesign() design {

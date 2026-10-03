@@ -63,6 +63,17 @@ func TestStoreRoundtrip(t *testing.T) {
 	if got.Motion != "rainbow" || !got.Dash {
 		t.Fatalf("motion roundtrip %+v", got)
 	}
+	d.MotionTune = &motionTune{Ms: 50, Ease: "nope", Color: "ff00ff", Strength: 9}
+	if err := st.save(d); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.MotionTune == nil || got.MotionTune.Ms != 100 || got.MotionTune.Ease != "ease" || got.MotionTune.Color != "#ff00ff" || got.MotionTune.Strength != 4 {
+		t.Fatalf("tune %+v", got.MotionTune)
+	}
 	if err := st.save(defaultDesign()); err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +123,58 @@ func TestPalettesRoundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	if again.Selected != "neon" || again.Custom[0].ID != "p1" {
+		t.Fatalf("reload %+v", again)
+	}
+}
+
+func TestAnimsRoundtrip(t *testing.T) {
+	st, _, err := openStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.close()
+	got, err := st.anims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Custom) != 0 {
+		t.Fatalf("default %+v", got)
+	}
+	w := 1.8
+	glow := 16.0
+	pxTooBig := 100.0
+	saved, err := st.saveAnims(animsDoc{Custom: []animRecipe{
+		{
+			ID: "pulse", Label: " Hot copy ", Ms: 50, Ease: "nope", Color: "ff00ff", Strength: 9,
+			Keys: []animKey{{T: 2, Width: &w, Glow: &glow, Color: "not-a-color"}},
+			Fx:   []animFx{{ID: "explode", Px: 4}, {ID: "chroma", Px: pxTooBig}},
+		},
+		{ID: "mine", Label: "", Ms: 400, Keys: []animKey{{T: 0}}},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(saved.Custom) != 1 {
+		t.Fatalf("saved %+v", saved.Custom)
+	}
+	r := saved.Custom[0]
+	if r.ID == "pulse" || builtinAnimIDs[r.ID] {
+		t.Fatalf("builtin id leaked %q", r.ID)
+	}
+	if r.ID != "u-pulse" || r.Label != "Hot copy" || r.Ms != 100 || r.Ease != "ease" {
+		t.Fatalf("norm %+v", r)
+	}
+	if r.Color != "#ff00ff" || r.Strength != 4 || r.Keys[0].T != 1 || r.Keys[0].Color != "" {
+		t.Fatalf("fields %+v", r)
+	}
+	if len(r.Fx) != 1 || r.Fx[0].ID != "chroma" || r.Fx[0].Px != 80 {
+		t.Fatalf("fx %+v", r.Fx)
+	}
+	again, err := st.anims()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.Custom) != 1 || again.Custom[0].ID != "u-pulse" {
 		t.Fatalf("reload %+v", again)
 	}
 }

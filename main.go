@@ -334,6 +334,7 @@ func main() {
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		next.MotionTune = normalizeMotionTune(next.MotionTune)
 		mu.Lock()
 		prev := d
 		d = next
@@ -386,6 +387,33 @@ func main() {
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		writeJSON(w, saved)
+	})
+	mux.HandleFunc("GET /api/anims", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		doc, err := st.anims()
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, doc)
+	})
+	mux.HandleFunc("PUT /api/anims", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var doc animsDoc
+		if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		mu.Lock()
+		saved, err := st.saveAnims(doc)
+		mu.Unlock()
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		h.broadcast([]byte("update"))
 		writeJSON(w, saved)
 	})
 	mux.HandleFunc("POST /api/event", func(w http.ResponseWriter, r *http.Request) {
