@@ -18,9 +18,10 @@ type point struct {
 }
 
 type ctrlEvent struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Anim  string `json:"anim"` // named one-shot from overlay catalog
+	ID    string      `json:"id"`
+	Label string      `json:"label"`
+	Anim  string      `json:"anim"` // named one-shot from overlay catalog
+	Tune  *motionTune `json:"tune,omitempty"`
 }
 
 type design struct {
@@ -114,6 +115,9 @@ func (st *store) load() (design, error) {
 		return design{}, err
 	}
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
+	for i := range d.Events {
+		d.Events[i].Tune = normalizeMotionTune(d.Events[i].Tune)
+	}
 	return d, nil
 }
 

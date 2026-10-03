@@ -135,7 +135,30 @@
         <button type="button" id="btn-ctrl-edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
         <button type="button" id="btn-ev-add" hidden><i class="fa-solid fa-plus" aria-hidden="true"></i> Add event</button>
       </div>
-      <div id="ctrl-grid"></div>
+      <div id="ctrl-main">
+        <div id="ctrl-grid"></div>
+        <aside id="ctrl-tune" hidden>
+          <div class="win-title">Animation</div>
+          <svg id="ctrl-stage" viewBox="0 0 1920 1080"></svg>
+          <label>Duration (ms) <input id="ctrl-ms" type="number" min="100" max="10000" step="50"></label>
+          <label>Easing
+            <select id="ctrl-ease">
+              <option value="ease">Ease</option>
+              <option value="ease-in">Ease in</option>
+              <option value="ease-out">Ease out</option>
+              <option value="ease-in-out">Ease in-out</option>
+              <option value="linear">Linear</option>
+              <option value="steps(1, end)">Steps</option>
+              <option value="steps(2, end)">Steps 2</option>
+            </select>
+          </label>
+          <label>Tint <span class="color-field"><button type="button" id="ctrl-color" class="swatch" title="Animation color"></button><input id="ctrl-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="ctrl-color-clear" hidden aria-label="Use stroke color"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></label>
+          <label>Strength <input id="ctrl-strength" type="number" min="0" max="3" step="0.1"></label>
+          <label>Preset name <input id="ctrl-name" type="text" autocomplete="off" spellcheck="false" placeholder="My animation"></label>
+          <button type="button" id="ctrl-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save as preset</button>
+          <button type="button" id="ctrl-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete preset</button>
+        </aside>
+      </div>
     </div>
   </div>
   <div id="iro-pop" hidden>

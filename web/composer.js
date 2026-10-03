@@ -76,6 +76,12 @@ function paint() {
 }
 
 let ctrlEdit = false;
+let ctrlSel = 0;
+
+function tuneOfRecipe(src) {
+  if (!src) return null;
+  return { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
+}
 
 function paintCtrl() {
   const grid = document.getElementById("ctrl-grid");
@@ -87,13 +93,15 @@ function paintCtrl() {
     ? '<i class="fa-solid fa-check" aria-hidden="true"></i> Done'
     : '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
   grid.replaceChildren();
+  const events = d.events || [];
+  if (ctrlSel >= events.length) ctrlSel = Math.max(0, events.length - 1);
   if (ctrlEdit) {
     const head = document.createElement("div");
     head.className = "event-head";
     head.innerHTML = "<span>Button</span><span>Animation</span><span></span>";
     grid.appendChild(head);
   }
-  (d.events || []).forEach((ev, i) => {
+  events.forEach((ev, i) => {
     if (!ctrlEdit) {
       const b = document.createElement("button");
       b.type = "button";
@@ -103,17 +111,17 @@ function paintCtrl() {
       return;
     }
     const row = document.createElement("div");
-    row.className = "event-row";
+    row.className = "event-row" + (i === ctrlSel ? " sel" : "");
     const lab = document.createElement("input");
     lab.value = ev.label;
     lab.placeholder = "Button name";
     lab.setAttribute("aria-label", "Button name");
-    lab.onfocus = pushHist;
+    lab.onfocus = () => { pushHist(); pickCtrl(i); };
     lab.onchange = () => { ev.label = lab.value; ev.id = slug(lab.value) || ev.id; scheduleSave(); };
     const anim = document.createElement("select");
     anim.setAttribute("aria-label", "Animation");
     fillEventAnimSelect(anim, ev.anim);
-    anim.onfocus = pushHist;
+    anim.onfocus = () => { pushHist(); pickCtrl(i); };
     anim.onchange = () => {
       const catalog = eventCatalog();
       const prev = catalog.find(x => x.id === ev.anim);
@@ -124,6 +132,10 @@ function paintCtrl() {
         lab.value = ev.label;
       }
       ev.anim = anim.value;
+      ev.tune = tuneOfRecipe(recipeById(ev.anim, false));
+      ctrlSel = i;
+      paintCtrlTune();
+      previewCtrl();
       scheduleSave();
     };
     const del = document.createElement("button");
@@ -131,9 +143,67 @@ function paintCtrl() {
     del.setAttribute("aria-label", "Delete");
     del.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
     del.onclick = () => { pushHist(); d.events.splice(i, 1); paintCtrl(); scheduleSave(); };
+    row.addEventListener("pointerdown", () => pickCtrl(i));
     row.append(lab, anim, del);
     grid.appendChild(row);
   });
+  paintCtrlTune();
+  if (ctrlEdit && document.body.classList.contains("view-control")) requestAnimationFrame(previewCtrl);
+}
+
+function pickCtrl(i) {
+  if (ctrlSel === i) return;
+  ctrlSel = i;
+  document.querySelectorAll("#ctrl-grid .event-row").forEach((row, n) => row.classList.toggle("sel", n === i));
+  paintCtrlTune();
+  previewCtrl();
+}
+
+function ctrlEvent() {
+  return ctrlEdit && d && d.events && d.events[ctrlSel];
+}
+
+function readCtrlTune() {
+  return {
+    ms: Number(document.getElementById("ctrl-ms").value),
+    ease: document.getElementById("ctrl-ease").value,
+    color: parseHex(document.getElementById("ctrl-color-hex").value),
+    strength: Number(document.getElementById("ctrl-strength").value),
+  };
+}
+
+function paintCtrlTune() {
+  const box = document.getElementById("ctrl-tune");
+  const ev = ctrlEvent();
+  box.hidden = !ev;
+  if (!ev) return;
+  const src = recipeById(ev.anim, false) || recipeById("pulse", false);
+  const tune = ev.tune || tuneOfRecipe(src);
+  const ms = document.getElementById("ctrl-ms");
+  const ease = document.getElementById("ctrl-ease");
+  const hex = document.getElementById("ctrl-color-hex");
+  const strength = document.getElementById("ctrl-strength");
+  if (document.activeElement !== ms) ms.value = tune.ms;
+  if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
+  if (document.activeElement !== hex) hex.value = tune.color || "";
+  if (document.activeElement !== strength) strength.value = tune.strength != null ? tune.strength : 1;
+  const btn = document.getElementById("ctrl-color");
+  const shown = tune.color || d.stroke || "#e6f350";
+  btn.style.background = shown;
+  btn.dataset.color = shown;
+  document.getElementById("ctrl-del").hidden = !(customAnims || []).some(r => !r.loop && r.id === ev.anim);
+  document.getElementById("ctrl-color-clear").hidden = !tune.color;
+}
+
+function previewCtrl() {
+  const ev = ctrlEvent();
+  const svg = document.getElementById("ctrl-stage");
+  if (!ev || !svg) return;
+  renderBorder(svg, d, { handles: false });
+  const path = svg.querySelector(".border-path");
+  if (!path) return;
+  const src = recipeById(ev.anim, false) || recipeById("pulse", false);
+  playRecipe(path, d, recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
 }
 
 let iroPick = null, iroOn = null;
@@ -734,13 +804,84 @@ function uniqueEventId(base, skip) {
   for (let n = 2; ; n++) if (!ids.has(id + "-" + n)) return id + "-" + n;
 }
 
-document.getElementById("btn-ctrl-edit").onclick = () => { ctrlEdit = !ctrlEdit; paintCtrl(); };
+function applyCtrlTune() {
+  const ev = ctrlEvent();
+  if (!ev) return;
+  ev.tune = readCtrlTune();
+  previewCtrl();
+  scheduleSave();
+}
+["ctrl-ms", "ctrl-ease", "ctrl-strength"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("focus", pushHist);
+  el.addEventListener("input", applyCtrlTune);
+  el.addEventListener("change", applyCtrlTune);
+});
+document.getElementById("ctrl-color").onclick = (ev) => {
+  ev.stopPropagation();
+  pushHist();
+  const btn = document.getElementById("ctrl-color");
+  const hex = document.getElementById("ctrl-color-hex");
+  openIro(btn, hex, (color) => {
+    hex.value = color;
+    applyCtrlTune();
+    paintCtrlTune();
+  });
+};
+document.getElementById("ctrl-color-hex").addEventListener("focus", pushHist);
+document.getElementById("ctrl-color-hex").oninput = () => {
+  const h = parseHex(document.getElementById("ctrl-color-hex").value);
+  if (!h && document.getElementById("ctrl-color-hex").value.trim()) return;
+  applyCtrlTune();
+  paintCtrlTune();
+  if (iroPick && !document.getElementById("iro-pop").hidden && h) {
+    try { iroPick.color.set(h); } catch (e) {}
+  }
+};
+document.getElementById("ctrl-color-clear").onclick = () => {
+  pushHist();
+  document.getElementById("ctrl-color-hex").value = "";
+  applyCtrlTune();
+  paintCtrlTune();
+};
+document.getElementById("ctrl-save").onclick = () => {
+  const ev = ctrlEvent();
+  const src = ev && (recipeById(ev.anim, false) || recipeById("pulse", false));
+  if (!src) return;
+  const tune = readCtrlTune();
+  ev.tune = tune;
+  const name = document.getElementById("ctrl-name").value.trim() || (src.label + " copy");
+  const baked = bakeRecipe(recipeBase(src), Object.assign({ label: name }, tune));
+  const id = "a" + Date.now();
+  animsDoc.custom = animsDoc.custom || [];
+  animsDoc.custom.push(Object.assign({ id: id }, baked));
+  ev.anim = id;
+  ev.tune = { ms: baked.ms, ease: baked.ease, color: baked.color || "", strength: baked.strength };
+  document.getElementById("ctrl-name").value = name + " copy";
+  persistAnims();
+  scheduleSave();
+};
+document.getElementById("ctrl-del").onclick = () => {
+  const ev = ctrlEvent();
+  if (!ev || !(customAnims || []).some(r => !r.loop && r.id === ev.anim)) return;
+  pushHist();
+  animsDoc.custom = (animsDoc.custom || []).filter(r => r.id !== ev.anim);
+  ev.anim = "pulse";
+  ev.tune = tuneOfRecipe(recipeById("pulse", false));
+  persistAnims();
+  scheduleSave();
+};
+document.getElementById("btn-ctrl-edit").onclick = () => {
+  ctrlEdit = !ctrlEdit;
+  paintCtrl();
+};
 document.getElementById("btn-ev-add").onclick = () => {
   pushHist();
   d.events = d.events || [];
   const used = new Set(d.events.map(e => e.anim));
   const a = eventCatalog().find(x => !used.has(x.id)) || EVENT_ANIMS[0];
-  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id });
+  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id, tune: tuneOfRecipe(a) });
+  ctrlSel = d.events.length - 1;
   paintCtrl();
   scheduleSave();
 };

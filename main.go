@@ -335,6 +335,9 @@ func main() {
 			return
 		}
 		next.MotionTune = normalizeMotionTune(next.MotionTune)
+		for i := range next.Events {
+			next.Events[i].Tune = normalizeMotionTune(next.Events[i].Tune)
+		}
 		mu.Lock()
 		prev := d
 		d = next

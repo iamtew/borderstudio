@@ -264,12 +264,8 @@ function recipeBase(recipe) {
   };
 }
 
-function recipeForMotion(design) {
-  const id = motionOf(design);
-  if (id === "none") return null;
-  const src = recipeById(id, true);
+function recipeTuned(src, tune, loop) {
   if (!src) return null;
-  const tune = design.motionTune;
   if (!tune) return src;
   const baked = bakeRecipe(recipeBase(src), {
     label: src.label,
@@ -279,8 +275,14 @@ function recipeForMotion(design) {
     strength: tune.strength != null ? tune.strength : 1,
   });
   baked.id = src.id;
-  baked.loop = true;
+  baked.loop = !!loop;
   return baked;
+}
+
+function recipeForMotion(design) {
+  const id = motionOf(design);
+  if (id === "none") return null;
+  return recipeTuned(recipeById(id, true), design.motionTune, true);
 }
 
 function playIdle(el, design) {
@@ -500,9 +502,9 @@ function maskCanvas(d) {
   return c;
 }
 
-function fireOverlayAnim(kind) {
+function fireOverlayAnim(kind, tune) {
   const el = document.querySelector(".border-path");
   if (!el) return;
   const hit = recipeById(kind, false) || recipeById("pulse", false);
-  playRecipe(el, liveDesign, hit, true);
+  playRecipe(el, liveDesign, recipeTuned(hit, tune, false), true);
 }
