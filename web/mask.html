@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Border Studio Mask</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="overlay">
+  <canvas id="mask"></canvas>
+  <script src="/shared.js"></script>
+  <script>
+    applyOverlayBackground();
+    const c = document.getElementById("mask");
+    let d;
+    function paint() {
+      if (!d) return;
+      const src = maskCanvas(d);
+      c.width = src.width;
+      c.height = src.height;
+      c.getContext("2d").drawImage(src, 0, 0);
+    }
+    async function load() {
+      try {
+        const res = await fetch("/api/design");
+        if (!res.ok) return;
+        d = await res.json();
+        paint();
+      } catch (e) {}
+    }
+    load();
+    const es = new EventSource("/api/events");
+    es.onmessage = (ev) => {
+      const msg = (ev.data || "").trim();
+      if (msg === "update" || msg === "hello") load();
+    };
+  </script>
+</body>
+</html>

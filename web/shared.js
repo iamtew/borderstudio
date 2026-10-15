@@ -514,9 +514,17 @@ function makeShape(ns, d) {
 
 function renderBorder(svg, d, opts) {
   const handles = opts && opts.handles;
-  svg.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
+  const pad = (opts && opts.pad) || 0;
+  svg.setAttribute("viewBox", "0 0 " + (d.width + 2 * pad) + " " + (d.height + 2 * pad));
   svg.replaceChildren();
   const ns = "http://www.w3.org/2000/svg";
+  let root = svg;
+  if (pad) {
+    const g = document.createElementNS(ns, "g");
+    g.setAttribute("transform", "translate(" + pad + " " + pad + ")");
+    svg.appendChild(g);
+    root = g;
+  }
   if (handles) {
     const defs = document.createElementNS(ns, "defs");
     const pat = document.createElementNS(ns, "pattern");
@@ -536,15 +544,15 @@ function renderBorder(svg, d, opts) {
     const bg = document.createElementNS(ns, "rect");
     bg.setAttribute("width", d.width); bg.setAttribute("height", d.height);
     bg.setAttribute("class", "checker");
-    svg.appendChild(bg);
+    root.appendChild(bg);
     const hole = makeShape(ns, d);
     hole.setAttribute("class", "hole");
-    svg.appendChild(hole);
+    root.appendChild(hole);
   }
 
   const path = makeShape(ns, d);
   styleStroke(path, d);
-  svg.appendChild(path);
+  root.appendChild(path);
   playIdle(path, d);
 
   if (handles) {
@@ -557,7 +565,7 @@ function renderBorder(svg, d, opts) {
           ln.setAttribute("x1", sp.x); ln.setAttribute("y1", sp.y);
           ln.setAttribute("x2", hx); ln.setAttribute("y2", hy);
           ln.setAttribute("class", "arm");
-          svg.appendChild(ln);
+          root.appendChild(ln);
         });
         [["in", sp.ix, sp.iy], ["out", sp.ox, sp.oy]].forEach(([name, hx, hy]) => {
           const h = document.createElementNS(ns, "circle");
@@ -565,7 +573,7 @@ function renderBorder(svg, d, opts) {
           h.setAttribute("class", "handle bez");
           h.dataset.h = name;
           h.dataset.i = String(opts.sel);
-          svg.appendChild(h);
+          root.appendChild(h);
         });
       }
       pts.forEach((p, i) => {
@@ -573,7 +581,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("cx", p.x); h.setAttribute("cy", p.y); h.setAttribute("r", 10);
         h.setAttribute("class", "handle" + (p.smooth ? " smooth" : "") + (opts.sel === i ? " sel" : ""));
         h.dataset.i = String(i);
-        svg.appendChild(h);
+        root.appendChild(h);
       });
     } else {
       const x = d.x, y = d.y, w = d.w, hgt = d.h;
@@ -588,7 +596,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("width", 12); h.setAttribute("height", 12);
         h.setAttribute("class", "handle box " + t);
         h.dataset.t = t;
-        svg.appendChild(h);
+        root.appendChild(h);
       });
       if (kindOf(d) === "roundrect") {
         const rr = Math.max(0, Math.min(d.r || 0, Math.min(w, hgt) / 2));
@@ -597,7 +605,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("r", 8);
         h.setAttribute("class", "handle rad");
         h.dataset.t = "rad";
-        svg.appendChild(h);
+        root.appendChild(h);
       }
     }
   }

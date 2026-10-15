@@ -13,18 +13,23 @@
     applyOverlayBackground();
     const stage = document.getElementById("stage");
     let d;
+    let pad = 0;
     function paint() {
       if (!d) return;
-      renderBorder(stage, d, { handles: false });
+      renderBorder(stage, d, { handles: false, pad });
     }
     async function load() {
       try {
-        const [des, anim] = await Promise.all([fetch("/api/design"), fetch("/api/anims")]);
+        const [des, anim, lay] = await Promise.all([fetch("/api/design"), fetch("/api/anims"), fetch("/api/obs/layout")]);
         if (!des.ok) return;
         d = await des.json();
         if (anim.ok) {
           const doc = await anim.json();
           customAnims = doc.custom || [];
+        }
+        if (lay.ok) {
+          const doc = await lay.json();
+          pad = doc.pad || 0;
         }
         paint();
       } catch (e) {}
