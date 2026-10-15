@@ -17,7 +17,7 @@ body.admin {
 }
 body.overlay { background: #111; overflow: hidden; }
 body.overlay.obs { background: transparent; }
-body.overlay svg { width: 100vw; height: 100vh; display: block; }
+body.overlay svg, body.overlay canvas { width: 100vw; height: 100vh; display: block; }
 body.overlay .border-path { fill: none; }
 .border-path {
   filter: blur(var(--blur, 0px)) drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
@@ -199,7 +199,20 @@ body.admin .event-row input, body.admin .event-row select {
   letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--line);
 }
 .settings-head button { width: auto; margin: 0; padding: 4px 8px; }
-.settings-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px 20px; max-width: 520px; }
+.settings-body { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.settings-nav {
+  flex: none; width: 200px; padding: 10px 8px;
+  border-right: 1px solid var(--line); overflow: auto;
+}
+.settings-nav button {
+  display: block; width: 100%; margin: 0 0 4px; padding: 8px 10px;
+  text-align: left; font: inherit; font-size: 12px; color: var(--muted);
+}
+.settings-nav button.sel { color: var(--accent); border-color: var(--accent); }
+.settings-main { flex: 1; min-width: 0; overflow: auto; padding: 16px 24px 24px; }
+.settings-main > section { max-width: 720px; }
+.settings-body label { display: block; margin: 8px 0; }
+.settings-body input, .settings-body select { width: 100%; }
 .settings-hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .style-head { font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 12px 0 4px; }
 #set-pal-list { margin: 0 0 10px; }

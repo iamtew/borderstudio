@@ -410,14 +410,139 @@ function settingsOpen() {
 }
 
 function closeSettings() {
+  saveObs().catch(() => {});
   document.getElementById("settings-overlay").hidden = true;
 }
 
 function openSettings() {
   setPalId = "";
   fillSettingsPalettes();
+  loadObs();
+  showSettingsPage("obs");
   document.getElementById("settings-overlay").hidden = false;
 }
+
+function showSettingsPage(name) {
+  document.querySelectorAll(".settings-nav button").forEach((b) => b.classList.toggle("sel", b.dataset.set === name));
+  document.getElementById("set-obs").hidden = name !== "obs";
+  document.getElementById("set-palettes").hidden = name !== "palettes";
+}
+
+function obsMsg(s) {
+  document.getElementById("obs-msg").textContent = s || "";
+}
+
+async function loadObs() {
+  try {
+    const s = await (await fetch("/api/obs")).json();
+    document.getElementById("obs-host").value = s.host || "127.0.0.1";
+    document.getElementById("obs-port").value = s.port || 4455;
+    document.getElementById("obs-pass").value = s.password || "";
+    await refreshObs(s.camera);
+  } catch (e) {
+    obsMsg(e.message || "OBS settings failed");
+  }
+}
+
+async function saveObs() {
+  const body = {
+    host: document.getElementById("obs-host").value.trim(),
+    port: Number(document.getElementById("obs-port").value) || 4455,
+    password: document.getElementById("obs-pass").value,
+    camera: document.getElementById("obs-camera").value,
+  };
+  const res = await fetch("/api/obs", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function fillSelect(sel, items, value, label, key) {
+  sel.replaceChildren();
+  items.forEach((it) => {
+    const o = document.createElement("option");
+    o.value = key ? it[key] : it;
+    o.textContent = label ? it[label] : it;
+    sel.appendChild(o);
+  });
+  if (value) sel.value = value;
+}
+
+async function refreshObs(camera) {
+  const st = await (await fetch("/api/obs/status")).json();
+  document.getElementById("obs-status").textContent = st.connected ? "Connected" : (st.error ? "Disconnected: " + st.error : "Disconnected");
+  const camSel = document.getElementById("obs-camera");
+  const row = document.getElementById("obs-device-row");
+  if (!st.connected) {
+    fillSelect(camSel, camera ? [{ name: camera }] : [], camera, "name", "name");
+    row.hidden = true;
+    return;
+  }
+  const cams = await (await fetch("/api/obs/cameras")).json();
+  const list = cams.cameras || [];
+  if (camera && !list.some((c) => c.name === camera)) list.unshift({ name: camera, kind: "" });
+  fillSelect(camSel, list, camera, "name", "name");
+  if (camera && camSel.value !== camera && list.length) camSel.value = list[0].name;
+  const needDev = !list.length || camSel.value === "BS Camera Device";
+  row.hidden = !needDev;
+  if (needDev) {
+    const input = camSel.value || "BS Camera Device";
+    try {
+      const devs = await (await fetch("/api/obs/devices?input=" + encodeURIComponent(input))).json();
+      fillSelect(document.getElementById("obs-device"), devs.devices || [], "", "name", "value");
+    } catch (e) {
+      row.hidden = true;
+    }
+  }
+}
+
+document.getElementById("obs-connect").onclick = async () => {
+  obsMsg("");
+  try {
+    const saved = await saveObs();
+    const res = await fetch("/api/obs/connect", { method: "POST" });
+    if (!res.ok) throw new Error(await res.text());
+    await refreshObs(document.getElementById("obs-camera").value || saved.camera);
+  } catch (e) {
+    obsMsg(e.message || "Connect failed");
+    await refreshObs(document.getElementById("obs-camera").value);
+  }
+};
+document.getElementById("obs-disconnect").onclick = async () => {
+  obsMsg("");
+  await fetch("/api/obs/disconnect", { method: "POST" });
+  await refreshObs(document.getElementById("obs-camera").value);
+};
+document.getElementById("obs-camera").onchange = async () => {
+  try {
+    await saveObs();
+    await refreshObs(document.getElementById("obs-camera").value);
+  } catch (e) {
+    obsMsg(e.message || "Save failed");
+  }
+};
+document.getElementById("obs-device").onchange = async () => {
+  obsMsg("");
+  const id = document.getElementById("obs-device").value;
+  const input = document.getElementById("obs-camera").value || "BS Camera Device";
+  const res = await fetch("/api/obs/device", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input, id }) });
+  if (!res.ok) obsMsg(await res.text());
+};
+document.getElementById("obs-scene").onclick = async () => {
+  obsMsg("");
+  try {
+    await saveObs();
+    if (!((await (await fetch("/api/obs/status")).json()).connected)) {
+      const res = await fetch("/api/obs/connect", { method: "POST" });
+      if (!res.ok) throw new Error(await res.text());
+    }
+    const res = await fetch("/api/obs/scene", { method: "POST" });
+    if (!res.ok) throw new Error(await res.text());
+    obsMsg("Scene Border Studio is ready. Nest it in your other scenes.");
+    await refreshObs(document.getElementById("obs-camera").value);
+  } catch (e) {
+    obsMsg(e.message || "Scene failed");
+  }
+};
 
 let animsDoc = { custom: [] };
 
@@ -976,6 +1101,10 @@ document.getElementById("file-settings").onclick = () => {
 document.getElementById("settings-close").onclick = () => closeSettings();
 document.getElementById("settings-overlay").onclick = (ev) => {
   if (ev.target.id === "settings-overlay") closeSettings();
+};
+document.querySelector(".settings-nav").onclick = (ev) => {
+  const b = ev.target.closest("button[data-set]");
+  if (b) showSettingsPage(b.dataset.set);
 };
 document.getElementById("iro-pal-sel").onchange = () => {
   palettes.selected = document.getElementById("iro-pal-sel").value;

@@ -20,18 +20,46 @@
         <button type="button" id="settings-close" aria-label="Close settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
       <div class="settings-body">
-        <div class="style-head">Color palettes</div>
-        <p class="settings-hint">Built-in palettes cannot be edited. Custom palettes are listed below.</p>
-        <div id="set-pal-list"></div>
-        <button type="button" id="set-pal-new"><i class="fa-solid fa-plus" aria-hidden="true"></i> New palette</button>
-        <div id="set-pal-form">
-          <label>Name <input id="set-pal-name" type="text" autocomplete="off" spellcheck="false"></label>
-          <p class="settings-hint">One hex per line or separated by spaces/commas.</p>
-          <textarea id="set-pal-import" rows="8" placeholder="#ffd700"></textarea>
-          <div class="settings-pal-actions">
-            <button type="button" id="set-pal-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
-            <button type="button" id="set-pal-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
-          </div>
+        <nav class="settings-nav" aria-label="Settings">
+          <button type="button" data-set="obs" class="sel">OBS</button>
+          <button type="button" data-set="palettes">Color palettes</button>
+        </nav>
+        <div class="settings-main">
+          <section id="set-obs">
+            <p class="settings-hint">Tools → WebSocket Server Settings in OBS. Advanced Masks plugin required for the owned scene.</p>
+            <label>Host <input id="obs-host" type="text" autocomplete="off" spellcheck="false"></label>
+            <label>Port <input id="obs-port" type="number" min="1" max="65535" step="1"></label>
+            <label>Password <input id="obs-pass" type="password" autocomplete="off" spellcheck="false"></label>
+            <p id="obs-status" class="settings-hint">Disconnected</p>
+            <div class="settings-pal-actions">
+              <button type="button" id="obs-connect"><i class="fa-solid fa-plug" aria-hidden="true"></i> Connect</button>
+              <button type="button" id="obs-disconnect"><i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i> Disconnect</button>
+            </div>
+            <label>Camera
+              <select id="obs-camera"></select>
+            </label>
+            <label id="obs-device-row" hidden>Webcam
+              <select id="obs-device"></select>
+            </label>
+            <div class="settings-pal-actions">
+              <button type="button" id="obs-scene"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Create / Repair scene</button>
+            </div>
+            <p id="obs-msg" class="settings-hint"></p>
+          </section>
+          <section id="set-palettes" hidden>
+            <p class="settings-hint">Built-in palettes cannot be edited. Custom palettes are listed below.</p>
+            <div id="set-pal-list"></div>
+            <button type="button" id="set-pal-new"><i class="fa-solid fa-plus" aria-hidden="true"></i> New palette</button>
+            <div id="set-pal-form">
+              <label>Name <input id="set-pal-name" type="text" autocomplete="off" spellcheck="false"></label>
+              <p class="settings-hint">One hex per line or separated by spaces/commas.</p>
+              <textarea id="set-pal-import" rows="8" placeholder="#ffd700"></textarea>
+              <div class="settings-pal-actions">
+                <button type="button" id="set-pal-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
+                <button type="button" id="set-pal-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -125,6 +153,7 @@
             <button type="button" id="tune-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete preset</button>
           </div>
           <div class="win-title">Mask</div>
+          <p class="hint">This size is the camera hole. Stroke and glow can sit outside it in the OBS scene.</p>
           <img id="mask-prev" alt="Mask preview">
           <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
           <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
