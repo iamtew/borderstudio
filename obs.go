@@ -622,6 +622,14 @@ func browserSettings(path string, w, h int) map[string]any {
 	}
 }
 
+func maskBrowserSettings(w, h int) map[string]any {
+	return map[string]any{
+		"url": browserURL("/mask"), "width": w, "height": h,
+		"fps": 30, "shutdown": false, "restart_when_active": false,
+		"css": "html, body { margin: 0; overflow: hidden; background: #000; }",
+	}
+}
+
 func (o *obsClient) pickCamera() (string, error) {
 	cfg, err := o.st.obs()
 	if err != nil {
@@ -789,7 +797,7 @@ func (o *obsClient) repair() error {
 		filterOn = obsWrap
 	}
 	lay := o.layout()
-	if err := o.ensureInput(obsScene, obsMask, obsKindWeb, browserSettings("/mask", lay.CameraW, lay.CameraH), false); err != nil {
+	if err := o.ensureInput(obsScene, obsMask, obsKindWeb, maskBrowserSettings(lay.CameraW, lay.CameraH), true); err != nil {
 		return err
 	}
 	if err := o.ensureInput(obsScene, obsOverlay, obsKindWeb, browserSettings("/overlay", lay.OverlayW, lay.OverlayH), true); err != nil {
@@ -837,8 +845,9 @@ func (o *obsClient) syncLayout() error {
 		_ = o.setBounds(obsWrap, cam, 0, 0, float64(lay.CameraW), float64(lay.CameraH))
 		_ = o.setBounds(obsScene, obsWrap, float64(lay.PadX), float64(lay.PadY), float64(lay.CameraW), float64(lay.CameraH))
 	}
-	_ = o.ensureInput(obsScene, obsMask, obsKindWeb, browserSettings("/mask", lay.CameraW, lay.CameraH), false)
+	_ = o.ensureInput(obsScene, obsMask, obsKindWeb, maskBrowserSettings(lay.CameraW, lay.CameraH), true)
 	_ = o.ensureInput(obsScene, obsOverlay, obsKindWeb, browserSettings("/overlay", lay.OverlayW, lay.OverlayH), true)
+	_ = o.setBounds(obsScene, obsMask, float64(lay.OverlayW+64), 0, float64(lay.CameraW), float64(lay.CameraH))
 	_ = o.restack()
 	return o.setBounds(obsScene, obsOverlay, 0, 0, float64(lay.OverlayW), float64(lay.OverlayH))
 }

@@ -17,7 +17,8 @@ body.admin {
 }
 body.overlay { background: #111; overflow: hidden; }
 body.overlay.obs { background: transparent; }
-body.overlay svg, body.overlay canvas { width: 100vw; height: 100vh; display: block; }
+body.mask { margin: 0; background: #000; overflow: hidden; }
+body.overlay svg, body.overlay canvas, body.mask canvas { width: 100vw; height: 100vh; display: block; }
 body.overlay .border-path { fill: none; }
 .border-path {
   filter: blur(var(--blur, 0px)) drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
