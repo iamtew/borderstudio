@@ -274,6 +274,14 @@ func main() {
 	defer st.close()
 
 	var mu sync.Mutex
+	obs := newObs(st, func() design {
+		mu.Lock()
+		defer mu.Unlock()
+		return d
+	})
+	if cfg, err := st.obs(); err == nil && cfg.Password != "" {
+		go func() { _ = obs.connect() }()
+	}
 	h := newHub()
 	quitReq := make(chan struct{}, 1)
 	requestQuit := func() {
@@ -297,6 +305,9 @@ func main() {
 	})
 	mux.HandleFunc("GET /overlay", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFileFS(w, r, web, "overlay.html")
+	})
+	mux.HandleFunc("GET /mask", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFileFS(w, r, web, "mask.html")
 	})
 	mux.HandleFunc("GET /about", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFileFS(w, r, web, "about.html")
@@ -349,6 +360,7 @@ func main() {
 		}
 		mu.Unlock()
 		h.broadcast([]byte("update"))
+		obs.schedule()
 		w.WriteHeader(204)
 	})
 	mux.HandleFunc("POST /api/design/reset", func(w http.ResponseWriter, r *http.Request) {
@@ -364,6 +376,7 @@ func main() {
 		}
 		mu.Unlock()
 		h.broadcast([]byte("update"))
+		obs.schedule()
 		writeJSON(w, next)
 	})
 	mux.HandleFunc("GET /api/palettes", func(w http.ResponseWriter, r *http.Request) {
@@ -418,6 +431,101 @@ func main() {
 		}
 		h.broadcast([]byte("update"))
 		writeJSON(w, saved)
+	})
+	mux.HandleFunc("GET /api/obs", func(w http.ResponseWriter, r *http.Request) {
+		s, err := st.obs()
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, s)
+	})
+	mux.HandleFunc("PUT /api/obs", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var next obsSettings
+		if err := json.NewDecoder(r.Body).Decode(&next); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		saved, err := st.saveObs(next)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, saved)
+	})
+	mux.HandleFunc("GET /api/obs/status", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, obs.status())
+	})
+	mux.HandleFunc("GET /api/obs/layout", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		lay := obsLayout(d)
+		mu.Unlock()
+		writeJSON(w, lay)
+	})
+	mux.HandleFunc("POST /api/obs/connect", func(w http.ResponseWriter, r *http.Request) {
+		if err := obs.connect(); err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		writeJSON(w, obs.status())
+	})
+	mux.HandleFunc("POST /api/obs/disconnect", func(w http.ResponseWriter, r *http.Request) {
+		obs.closeConn()
+		writeJSON(w, obs.status())
+	})
+	mux.HandleFunc("GET /api/obs/cameras", func(w http.ResponseWriter, r *http.Request) {
+		cams, err := obs.cameras()
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		writeJSON(w, map[string]any{"cameras": cams})
+	})
+	mux.HandleFunc("GET /api/obs/devices", func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimSpace(r.URL.Query().Get("input"))
+		if name == "" {
+			name = obsDevice
+		}
+		devs, err := obs.devices(name)
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		writeJSON(w, map[string]any{"devices": devs})
+	})
+	mux.HandleFunc("PUT /api/obs/device", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		var body struct {
+			Input string `json:"input"`
+			ID    string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		if body.Input == "" {
+			body.Input = obsDevice
+		}
+		if strings.TrimSpace(body.ID) == "" {
+			http.Error(w, "id required", 400)
+			return
+		}
+		_, err := obs.call("SetInputSettings", map[string]any{
+			"inputName": body.Input, "inputSettings": map[string]any{"video_device_id": body.ID}, "overlay": true,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		w.WriteHeader(204)
+	})
+	mux.HandleFunc("POST /api/obs/scene", func(w http.ResponseWriter, r *http.Request) {
+		if err := obs.repair(); err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		writeJSON(w, obs.status())
 	})
 	mux.HandleFunc("POST /api/event", func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)

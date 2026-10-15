@@ -3,6 +3,7 @@ module borderstudio
 go 1.26.5
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/getlantern/systray v1.2.2
 	modernc.org/sqlite v1.59.0
 )

@@ -211,6 +211,70 @@ func TestSmoothPointRoundTrip(t *testing.T) {
 	}
 }
 
+func TestOverlayPad(t *testing.T) {
+	d := defaultDesign()
+	p := overlayPad(d)
+	want := 57 // ceil(12*1.3 + 8 + 0 + 28 + 5)
+	if p != want {
+		t.Fatalf("pad %d want %d", p, want)
+	}
+	lay := obsLayout(d)
+	if lay.CameraW != d.Width || lay.OverlayW != d.Width+2*p || lay.OverlayH != d.Height+2*p {
+		t.Fatalf("layout %+v", lay)
+	}
+}
+
+func TestObsSettingsRoundtrip(t *testing.T) {
+	st, _, err := openStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.close()
+	got, err := st.obs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Host != "127.0.0.1" || got.Port != 4455 {
+		t.Fatalf("default %+v", got)
+	}
+	saved, err := st.saveObs(obsSettings{Host: " 10.0.0.2 ", Port: 0, Password: "x", Camera: " Cam "})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Host != "10.0.0.2" || saved.Port != 4455 || saved.Camera != "Cam" {
+		t.Fatalf("saved %+v", saved)
+	}
+	again, err := st.obs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Password != "x" || again.Camera != "Cam" {
+		t.Fatalf("reload %+v", again)
+	}
+	kept, err := st.saveObs(obsSettings{Host: "10.0.0.2", Port: 4455, Password: "y", Camera: ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.Camera != "Cam" || kept.Password != "y" {
+		t.Fatalf("empty camera clobber %+v", kept)
+	}
+}
+
+func TestEphemeralExe(t *testing.T) {
+	if !ephemeralExe(`C:\Users\x\AppData\Local\Temp\go-build123`) {
+		t.Fatal("temp")
+	}
+	if !ephemeralExe(`C:\Users\x\AppData\Local\go-build\ab\exe`) {
+		t.Fatal("go-build")
+	}
+	if !ephemeralExe(`/tmp/go-build123`) {
+		t.Fatal("tmp")
+	}
+	if ephemeralExe(`F:\src\borderstudio\dist`) {
+		t.Fatal("dist is not ephemeral")
+	}
+}
+
 func TestDashJSONStillLoads(t *testing.T) {
 	raw := `{"width":10,"height":10,"points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}],"dash":true}`
 	var d design
