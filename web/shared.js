@@ -52,47 +52,74 @@ const RECIPES = [
   { id: "dots", label: "Dots", loop: true, ms: 900, ease: "linear", dash: "2 10", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
   { id: "long-dash", label: "Long dash", loop: true, ms: 1600, ease: "linear", dash: "40 16", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
   { id: "flow", label: "Flow", loop: true, ms: 2400, ease: "linear", dash: "60 40", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "scan", label: "Scan", loop: true, ms: 1800, ease: "linear", dash: "48 220", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "breathe", label: "Breathe", loop: true, ms: 1800, ease: "ease-in-out", keys: [{ t: 0, width: 1 }, { t: 0.5, width: 1.45 }, { t: 1, width: 1 }] },
-  { id: "heartbeat", label: "Heartbeat", loop: true, ms: 1200, ease: "ease-in-out", keys: [{ t: 0, width: 1 }, { t: 0.2, width: 1.7 }, { t: 0.4, width: 1 }, { t: 0.55, width: 1.4 }, { t: 1, width: 1 }] },
-  { id: "glow-pulse", label: "Glow pulse", loop: true, ms: 1600, ease: "ease-in-out", keys: [{ t: 0, glow: 0 }, { t: 0.5, glow: 16 }, { t: 1, glow: 0 }] },
-  { id: "neon", label: "Neon", loop: true, ms: 2000, ease: "steps(2, end)", keys: [{ t: 0, opacity: 1, glow: 0 }, { t: 0.5, opacity: 0.75, glow: 2 }, { t: 1, opacity: 1, glow: 0 }] },
-  { id: "hue", label: "Hue", loop: true, ms: 4000, ease: "linear", keys: [{ t: 0, hue: 0 }, { t: 1, hue: 360 }] },
-  { id: "rainbow", label: "Rainbow", loop: true, ms: 3000, ease: "linear", keys: [
-    { t: 0, hue: 0 }, { t: 0.16, hue: 60 }, { t: 0.33, hue: 120 },
-    { t: 0.5, hue: 180 }, { t: 0.66, hue: 240 }, { t: 0.83, hue: 300 }, { t: 1, hue: 360 },
+  { id: "scan", label: "Scan", loop: true, ms: 1800, ease: "linear", dash: "48 220", keys: [{ t: 0, offset: 0, glow: 8 }, { t: 1, offset: -80, glow: 8 }] },
+  { id: "comet", label: "Comet", loop: true, ms: 2200, ease: "linear", dash: "180 900", keys: [{ t: 0, offset: 0, width: 1.4, glow: 30 }, { t: 1, offset: -1080, width: 1.4, glow: 30 }] },
+  { id: "breathe", label: "Breathe", loop: true, ms: 2400, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.35, glow: 12 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "heartbeat", label: "Heartbeat", loop: true, ms: 1200, ease: "ease-out", keys: [
+    { t: 0, width: 1, glow: 0 }, { t: 0.12, width: 1.6, glow: 14 }, { t: 0.28, width: 1, glow: 2 },
+    { t: 0.42, width: 1.4, glow: 10 }, { t: 0.65, width: 1, glow: 0 }, { t: 1, width: 1, glow: 0 },
   ] },
-  { id: "shimmer", label: "Shimmer", loop: true, ms: 1400, ease: "ease-in-out", keys: [{ t: 0, opacity: 1 }, { t: 0.5, opacity: 0.4 }, { t: 1, opacity: 1 }] },
-  { id: "fire", label: "Fire", loop: true, ms: 1600, ease: "ease-in-out", keys: [
-    { t: 0, color: "#E5F20D" }, { t: 0.5, color: "#F20D0D" }, { t: 1, color: "#E5F20D" },
+  { id: "glow-pulse", label: "Glow pulse", loop: true, ms: 1800, ease: "ease-in-out", keys: [{ t: 0, glow: 2 }, { t: 0.5, glow: 20 }, { t: 1, glow: 2 }] },
+  // Tube hum: steady glow, two irregular stutters per cycle.
+  { id: "neon", label: "Neon", loop: true, ms: 3000, ease: "linear", keys: [
+    { t: 0, opacity: 1, glow: 10 }, { t: 0.04, opacity: 0.55, glow: 3 }, { t: 0.06, opacity: 1, glow: 10 },
+    { t: 0.3, opacity: 1, glow: 12 }, { t: 0.32, opacity: 0.7, glow: 5 }, { t: 0.34, opacity: 1, glow: 10 },
+    { t: 0.36, opacity: 0.4, glow: 2 }, { t: 0.38, opacity: 1, glow: 12 }, { t: 0.7, opacity: 0.95, glow: 9 }, { t: 1, opacity: 1, glow: 10 },
   ] },
-  { id: "neon-swap", label: "Neon swap", loop: true, ms: 1400, ease: "ease-in-out", keys: [
-    { t: 0, color: "#00FFFF" }, { t: 0.5, color: "#FF00FF" }, { t: 1, color: "#00FFFF" },
+  { id: "hue", label: "Hue", loop: true, ms: 4000, ease: "linear", keys: [{ t: 0, hue: 0, glow: 8 }, { t: 1, hue: 360, glow: 8 }] },
+  { id: "rainbow", label: "Rainbow", loop: true, ms: 2400, ease: "linear", keys: [
+    { t: 0, hue: 0, glow: 8 }, { t: 0.16, hue: 60, glow: 16 }, { t: 0.33, hue: 120, glow: 8 },
+    { t: 0.5, hue: 180, glow: 16 }, { t: 0.66, hue: 240, glow: 8 }, { t: 0.83, hue: 300, glow: 16 }, { t: 1, hue: 360, glow: 8 },
+  ] },
+  { id: "aurora", label: "Aurora", loop: true, ms: 6000, ease: "ease-in-out", keys: [
+    { t: 0, hue: 0, glow: 6, width: 1 }, { t: 0.25, hue: 90, glow: 18, width: 1.2 }, { t: 0.5, hue: 180, glow: 6, width: 1 },
+    { t: 0.75, hue: 270, glow: 18, width: 1.2 }, { t: 1, hue: 360, glow: 6, width: 1 },
+  ] },
+  { id: "shimmer", label: "Shimmer", loop: true, ms: 1400, ease: "ease-in-out", keys: [{ t: 0, opacity: 1, glow: 6 }, { t: 0.5, opacity: 0.55, glow: 0 }, { t: 1, opacity: 1, glow: 6 }] },
+  { id: "fire", label: "Fire", loop: true, ms: 1400, ease: "ease-in-out", keys: [
+    { t: 0, color: "#FFE53B", glow: 10, width: 1 }, { t: 0.2, color: "#FF8C1A", glow: 16, width: 1.1 },
+    { t: 0.45, color: "#FF2A0D", glow: 12, width: 1 }, { t: 0.7, color: "#FF8C1A", glow: 18, width: 1.15 },
+    { t: 1, color: "#FFE53B", glow: 10, width: 1 },
+  ] },
+  { id: "neon-swap", label: "Neon swap", loop: true, ms: 1600, ease: "ease-in-out", keys: [
+    { t: 0, color: "#00FFFF", glow: 14 }, { t: 0.5, color: "#FF00FF", glow: 14 }, { t: 1, color: "#00FFFF", glow: 14 },
   ] },
   { id: "orbit", label: "Orbit", loop: true, ms: 1200, ease: "linear", dash: "12 240", keys: [
-    { t: 0, offset: 0, color: "#E5F20D" }, { t: 0.25, color: "#F20D0D" },
-    { t: 0.5, color: "#E5F20D" }, { t: 0.75, color: "#F20D0D" }, { t: 1, offset: -80, color: "#E5F20D" },
+    { t: 0, offset: 0, color: "#E5F20D", glow: 12 }, { t: 0.25, offset: -63, color: "#F20D0D", glow: 12 },
+    { t: 0.5, offset: -126, color: "#E5F20D", glow: 12 }, { t: 0.75, offset: -189, color: "#F20D0D", glow: 12 },
+    { t: 1, offset: -252, color: "#E5F20D", glow: 12 },
   ] },
-  { id: "chroma", label: "Chroma", loop: true, ms: 2000, ease: "ease-in-out", keys: [
+  { id: "chroma", label: "Chroma", loop: true, ms: 2400, ease: "ease-in-out", keys: [
     { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.85 }, { t: 1, opacity: 1 },
   ], fx: [{ id: "chroma", px: 2 }] },
-  { id: "pulse", label: "Pulse", group: "Pulse", ms: 700, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.8, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "pulse-soft", label: "Pulse soft", group: "Pulse", ms: 900, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.35, glow: 10 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "pulse-hard", label: "Pulse hard", group: "Pulse", ms: 500, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 2.4, glow: 24 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "pulse-double", label: "Pulse double", group: "Pulse", ms: 900, ease: "ease", keys: [
-    { t: 0, width: 1 }, { t: 0.25, width: 1.8 }, { t: 0.5, width: 1 }, { t: 0.75, width: 1.5 }, { t: 1, width: 1 },
+  // One-shots: fast attack (peak near t=0.2), slow ease-out release.
+  { id: "pulse", label: "Pulse", group: "Pulse", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.25, width: 1.8, glow: 18 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "pulse-soft", label: "Pulse soft", group: "Pulse", ms: 900, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, width: 1.35, glow: 10 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "pulse-hard", label: "Pulse hard", group: "Pulse", ms: 500, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, width: 2.4, glow: 26 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "pulse-double", label: "Pulse double", group: "Pulse", ms: 900, ease: "ease-out", keys: [
+    { t: 0, width: 1, glow: 0 }, { t: 0.15, width: 1.8, glow: 16 }, { t: 0.45, width: 1, glow: 2 },
+    { t: 0.6, width: 1.5, glow: 12 }, { t: 1, width: 1, glow: 0 },
   ] },
-  { id: "heartbeat", label: "Heartbeat", group: "Pulse", ms: 1000, ease: "ease", keys: [
-    { t: 0, width: 1 }, { t: 0.18, width: 2 }, { t: 0.36, width: 1 }, { t: 0.52, width: 1.55 }, { t: 1, width: 1 },
+  { id: "heartbeat", label: "Heartbeat", group: "Pulse", ms: 1000, ease: "ease-out", keys: [
+    { t: 0, width: 1, glow: 0 }, { t: 0.14, width: 2, glow: 18 }, { t: 0.34, width: 1, glow: 2 },
+    { t: 0.48, width: 1.55, glow: 12 }, { t: 1, width: 1, glow: 0 },
   ] },
-  { id: "flash", label: "Flash", group: "Flash", ms: 400, ease: "ease", keys: [{ t: 0 }, { t: 0.5, color: "#fff" }, { t: 1 }] },
-  { id: "flash-white", label: "Flash white", group: "Flash", ms: 400, ease: "ease", keys: [{ t: 0, glow: 0 }, { t: 0.4, color: "#fff", glow: 20 }, { t: 0.6, color: "#fff", glow: 20 }, { t: 1, glow: 0 }] },
-  { id: "flash-hot", label: "Flash hot", group: "Flash", ms: 450, ease: "ease", keys: [{ t: 0, glow: 0 }, { t: 0.5, color: "#ff4d2e", glow: 18 }, { t: 1, glow: 0 }] },
-  { id: "flash-cold", label: "Flash cold", group: "Flash", ms: 450, ease: "ease", keys: [{ t: 0, glow: 0 }, { t: 0.5, color: "#7ad7ff", glow: 18 }, { t: 1, glow: 0 }] },
-  { id: "whiteout", label: "Whiteout", group: "Flash", ms: 500, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.4, color: "#fff", width: 2.2, glow: 28 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "alert", label: "Alert", group: "Alert", ms: 700, ease: "ease", keys: [{ t: 0, width: 1 }, { t: 0.5, color: "#ff2d2d", width: 1.7 }, { t: 1, width: 1 }] },
-  { id: "success", label: "Success", group: "Alert", ms: 600, ease: "ease", keys: [{ t: 0, width: 1 }, { t: 0.5, color: "#3dff7a", width: 1.5 }, { t: 1, width: 1 }] },
-  { id: "warn", label: "Warn", group: "Alert", ms: 600, ease: "ease", keys: [{ t: 0, width: 1 }, { t: 0.5, color: "#ffbf2e", width: 1.5 }, { t: 1, width: 1 }] },
+  { id: "shockwave", label: "Shockwave", group: "Pulse", ms: 800, ease: "ease-out", keys: [
+    { t: 0, width: 1, glow: 0 }, { t: 0.15, width: 3, glow: 36, color: "#fff" }, { t: 0.5, width: 1.6, glow: 14 }, { t: 1, width: 1, glow: 0 },
+  ] },
+  { id: "flash", label: "Flash", group: "Flash", ms: 400, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.25, color: "#fff", glow: 12 }, { t: 1, glow: 0 }] },
+  { id: "flash-white", label: "Flash white", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.2, color: "#fff", glow: 22 }, { t: 0.45, color: "#fff", glow: 18 }, { t: 1, glow: 0 }] },
+  { id: "flash-hot", label: "Flash hot", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.25, color: "#ff4d2e", glow: 20 }, { t: 1, glow: 0 }] },
+  { id: "flash-cold", label: "Flash cold", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.25, color: "#7ad7ff", glow: 20 }, { t: 1, glow: 0 }] },
+  { id: "whiteout", label: "Whiteout", group: "Flash", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, color: "#fff", width: 2.2, glow: 30 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "lightning", label: "Lightning", group: "Flash", ms: 700, ease: "steps(1, end)", keys: [
+    { t: 0, opacity: 1, glow: 0 }, { t: 0.05, color: "#fff", glow: 30, width: 1.8 }, { t: 0.12, opacity: 0.2 },
+    { t: 0.2, color: "#fff", glow: 40, width: 2.2 }, { t: 0.3, glow: 6 }, { t: 0.38, color: "#fff", glow: 24, width: 1.5 },
+    { t: 0.5, opacity: 0.3 }, { t: 0.6, opacity: 1 }, { t: 1, opacity: 1 },
+  ] },
+  { id: "alert", label: "Alert", group: "Alert", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ff2d2d", width: 1.7, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "success", label: "Success", group: "Alert", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#3dff7a", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "warn", label: "Warn", group: "Alert", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ffbf2e", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
   { id: "strobe", label: "Strobe", group: "Alert", ms: 800, ease: "steps(1, end)", keys: [
     { t: 0, opacity: 1 }, { t: 0.24, opacity: 1 }, { t: 0.25, opacity: 0.15 }, { t: 0.49, opacity: 0.15 },
     { t: 0.5, opacity: 1 }, { t: 0.74, opacity: 1 }, { t: 0.75, opacity: 0.15 }, { t: 1, opacity: 1 },
@@ -104,33 +131,36 @@ const RECIPES = [
     { t: 0, opacity: 1 }, { t: 0.1, opacity: 0.2 }, { t: 0.2, opacity: 1 }, { t: 0.3, opacity: 0.2 },
     { t: 0.4, opacity: 1 }, { t: 0.55, opacity: 0.2 }, { t: 0.7, opacity: 1 }, { t: 1, opacity: 1 },
   ] },
-  { id: "shake", label: "Shake", group: "Hit", ms: 500, ease: "ease", keys: [
-    { t: 0, x: 0, y: 0 }, { t: 0.2, x: -6, y: 2 }, { t: 0.4, x: 7, y: -3 }, { t: 0.6, x: -5, y: -2 }, { t: 0.8, x: 4, y: 3 }, { t: 1, x: 0, y: 0 },
+  // Decaying amplitude so the hit settles instead of stopping dead.
+  { id: "shake", label: "Shake", group: "Hit", ms: 600, ease: "ease-in-out", keys: [
+    { t: 0, x: 0, y: 0 }, { t: 0.1, x: -10, y: 3 }, { t: 0.22, x: 9, y: -4 }, { t: 0.36, x: -7, y: -2 },
+    { t: 0.5, x: 5, y: 3 }, { t: 0.65, x: -3, y: -1 }, { t: 0.8, x: 2, y: 1 }, { t: 1, x: 0, y: 0 },
   ] },
-  { id: "jolt", label: "Jolt", group: "Hit", ms: 350, ease: "ease", keys: [
-    { t: 0, x: 0, y: 0, rot: 0 }, { t: 0.3, x: 10, y: -6, rot: 1 }, { t: 0.6, x: -8, y: 4, rot: 0 }, { t: 1, x: 0, y: 0, rot: 0 },
+  { id: "jolt", label: "Jolt", group: "Hit", ms: 450, ease: "ease-out", keys: [
+    { t: 0, x: 0, y: 0, rot: 0 }, { t: 0.15, x: 12, y: -7, rot: 1.5 }, { t: 0.35, x: -8, y: 4, rot: -1 },
+    { t: 0.55, x: 4, y: -2, rot: 0.5 }, { t: 0.75, x: -2, y: 1, rot: 0 }, { t: 1, x: 0, y: 0, rot: 0 },
   ] },
-  { id: "swell", label: "Swell", group: "Hit", ms: 700, ease: "ease", keys: [{ t: 0, width: 1 }, { t: 0.5, width: 2.1 }, { t: 1, width: 1 }] },
-  { id: "snap", label: "Snap", group: "Hit", ms: 400, ease: "ease", keys: [{ t: 0, width: 1 }, { t: 0.4, width: 0.4 }, { t: 0.7, width: 1.9 }, { t: 1, width: 1 }] },
+  { id: "swell", label: "Swell", group: "Hit", ms: 700, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.45, width: 2.1, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "snap", label: "Snap", group: "Hit", ms: 400, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.35, width: 0.4, glow: 0 }, { t: 0.6, width: 1.9, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
   { id: "wipe", label: "Wipe", group: "Hit", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 2000 }, { t: 1, offset: 0 }] },
   { id: "reverse-wipe", label: "Reverse wipe", group: "Hit", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 2000 }] },
   { id: "rainbow-burst", label: "Rainbow burst", group: "Glitch", ms: 900, ease: "linear", keys: [
-    { t: 0, color: "#ff3b3b" }, { t: 0.2, color: "#ff9f1c" }, { t: 0.4, color: "#e6f350" },
-    { t: 0.6, color: "#2ec4b6" }, { t: 0.8, color: "#c77dff" }, { t: 1 },
+    { t: 0, color: "#ff3b3b", glow: 14 }, { t: 0.2, color: "#ff9f1c", glow: 14 }, { t: 0.4, color: "#e6f350", glow: 14 },
+    { t: 0.6, color: "#2ec4b6", glow: 14 }, { t: 0.8, color: "#c77dff", glow: 14 }, { t: 1, glow: 0 },
   ] },
   { id: "glitch", label: "Glitch", group: "Glitch", ms: 500, ease: "steps(1, end)", keys: [
-    { t: 0, x: 0, y: 0, opacity: 1 },
-    { t: 0.1, x: 8, y: -4, color: "#fff" },
+    { t: 0, x: 0, y: 0, opacity: 1, color: "#fff" },
+    { t: 0.1, x: 8, y: -4 },
     { t: 0.3, x: -10, y: 3, opacity: 0.4 },
     { t: 0.5, x: 4, y: 6, color: "#7ad7ff" },
-    { t: 0.7, x: -6, y: -5 },
+    { t: 0.7, x: -6, y: -5, color: "#fff" },
     { t: 1, x: 0, y: 0, opacity: 1 },
   ], fx: [{ id: "chroma", px: 6 }, { id: "slices", n: 5 }] },
   { id: "chroma-burst", label: "Chroma burst", group: "Glitch", ms: 700, ease: "ease-in-out", keys: [
     { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.8 }, { t: 1, opacity: 1 },
   ], fx: [{ id: "chroma", px: 5 }] },
   { id: "spark", label: "Spark", group: "Glitch", ms: 600, ease: "ease", dash: "8 14", keys: [{ t: 0, offset: 0, glow: 0 }, { t: 0.5, color: "#fff", glow: 16, offset: -40 }, { t: 1, offset: 0, glow: 0 }] },
-  { id: "boom", label: "Boom", group: "Glitch", ms: 700, ease: "ease", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.4, width: 2.6, glow: 28, color: "#fff" }, { t: 1, width: 1, glow: 0 }] },
+  { id: "boom", label: "Boom", group: "Glitch", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, width: 2.6, glow: 30, color: "#fff" }, { t: 1, width: 1, glow: 0 }] },
 ];
 
 const MOTION_KINDS = [{ id: "none", label: "None" }].concat(RECIPES.filter(r => r.loop).map(r => ({ id: r.id, label: r.label })));
@@ -158,41 +188,63 @@ function motionOf(d) {
   return recipeById(id, true) ? id : "none";
 }
 
-function userScale(el) {
-  const svg = el && el.ownerSVGElement;
-  const vb = svg && svg.viewBox && svg.viewBox.baseVal;
-  const w = svg && svg.getBoundingClientRect().width;
-  if (!vb || !vb.width || !w) return 1;
-  return w / vb.width;
+// Shape bbox in its own user space. Zero-size when the svg is not rendered (getBBox throws in some engines).
+function shapeBox(el) {
+  try { return el.getBBox(); } catch (e) { return { x: 0, y: 0, width: 0, height: 0 }; }
 }
 
-// SeshHub PFP is ~12rem (192px). Scale the 2→5px shadow recipe to this frame.
+// SeshHub PFP is ~12rem (192px). Scale the 2→5px shadow recipe to the shape itself,
+// so the split matches between the editor and the overlay regardless of screen size.
 function seshScale(el) {
-  const svg = el && el.ownerSVGElement;
-  const w = svg && svg.getBoundingClientRect().width;
-  return w ? w / 192 : 1;
+  const b = shapeBox(el);
+  const m = Math.max(b.width, b.height);
+  return m ? m / 192 : 1;
 }
 
-function recipeFrames(recipe, design, scale) {
-  const sc = scale || 1;
+// Total length of one dash cycle. An odd list repeats twice per cycle (SVG spec).
+function dashPeriod(dash) {
+  const n = String(dash || "").trim().split(/[\s,]+/).map(Number).filter(v => v > 0);
+  const sum = n.reduce((a, b) => a + b, 0);
+  return n.length % 2 ? sum * 2 : sum;
+}
+
+// Loop end offset snapped to a whole number of dash cycles, so the loop point is invisible.
+function seamOffset(dash, from, to) {
+  const p = dashPeriod(dash);
+  const delta = to - from;
+  if (!p || !delta) return to;
+  return from + (Math.round(delta / p) || Math.sign(delta)) * p;
+}
+
+function recipeFrames(recipe, design) {
   const sw = (design && design.strokeWidth) || 12;
   const baseGlow = (design && design.glow) || 0;
   const stroke = (design && design.stroke) || "#e6f350";
   const keys = (recipe.keys && recipe.keys.length ? recipe.keys : [{ t: 0 }, { t: 1 }]).slice().sort((a, b) => a.t - b.t);
+  if (recipe.loop && recipe.dash && keys.length > 1) {
+    const last = keys.length - 1;
+    const from = keys[0].offset || 0;
+    keys[last] = Object.assign({}, keys[last], { offset: seamOffset(recipe.dash, from, keys[last].offset || 0) });
+  }
   const has = (p) => keys.some(k => k[p] != null && k[p] !== "");
   const useW = has("width"), useOp = has("opacity"), useC = has("color"), useOff = has("offset");
   const useG = has("glow"), useH = has("hue"), useT = has("x") || has("y") || has("rot");
+  // Easing goes on every segment, not the whole iteration: steps(1, end) then holds each key
+  // (strobe, glitch) and ease-in-out rounds every peak instead of rushing through the middle one.
+  const easing = recipe.ease || "ease";
   return keys.map(k => {
-    const f = { offset: k.t };
-    if (useW) f.strokeWidth = (sw * (k.width != null ? k.width : 1) * sc) + "px";
+    const f = { offset: k.t, easing };
+    // SVG stroke CSS values are user units, same space as the stroke-width attribute.
+    if (useW) f.strokeWidth = (sw * (k.width != null ? k.width : 1)) + "px";
     if (useOp) f.opacity = Math.max(0, Math.min(1, k.opacity != null ? k.opacity : 1));
     if (useC) f.stroke = k.color || stroke;
-    if (useOff) f.strokeDashoffset = ((k.offset != null ? k.offset : 0) * sc) + "px";
+    if (useOff) f.strokeDashoffset = (k.offset != null ? k.offset : 0) + "px";
     if (useG || useH) {
       const g = baseGlow + (k.glow || 0);
       const blur = (design && design.blur) || 0;
       let filter = "drop-shadow(0 0 " + g + "px " + (k.color || stroke) + ")";
-      if (useH) filter = "hue-rotate(" + (k.hue || 0) + "deg) " + filter;
+      // Hue after the shadow so the halo cycles color with the stroke.
+      if (useH) filter += " hue-rotate(" + (k.hue || 0) + "deg)";
       if (blur) filter = "blur(" + blur + "px) " + filter;
       f.filter = filter;
     }
@@ -221,17 +273,19 @@ function mountChroma(el, px, ghost) {
   let maskId = "";
   if (ghost && svg) {
     // SeshHub: box-shadow of the whole frame, photo covers the inside. Punch the hole so only the lips show.
+    // The mask lives next to el (inside the overlay's pad/scale <g>), so size it from el's own bbox.
     maskId = "bs-chroma-cut";
     const mask = document.createElementNS(ns, "mask");
     mask.setAttribute("id", maskId);
     mask.setAttribute("class", "bs-chroma-copy");
     mask.setAttribute("maskUnits", "userSpaceOnUse");
-    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const b = shapeBox(el);
+    const pad = Math.max(b.width, b.height, 1000);
     const bg = document.createElementNS(ns, "rect");
-    bg.setAttribute("x", String(vb ? vb.x : 0));
-    bg.setAttribute("y", String(vb ? vb.y : 0));
-    bg.setAttribute("width", String(vb && vb.width ? vb.width : 1920));
-    bg.setAttribute("height", String(vb && vb.height ? vb.height : 1080));
+    bg.setAttribute("x", String(b.x - pad));
+    bg.setAttribute("y", String(b.y - pad));
+    bg.setAttribute("width", String(b.width + 2 * pad));
+    bg.setAttribute("height", String(b.height + 2 * pad));
     bg.setAttribute("fill", "#fff");
     const punch = el.cloneNode(true);
     punch.setAttribute("class", "");
@@ -240,7 +294,7 @@ function mountChroma(el, px, ghost) {
     punch.style.filter = "none";
     mask.appendChild(bg);
     mask.appendChild(punch);
-    svg.insertBefore(mask, el);
+    el.parentNode.insertBefore(mask, el);
   }
   [[-1, "#00FFFF"], [1, "#FF00FF"]].forEach(([dir, color]) => {
     const outer = document.createElementNS(ns, "g");
@@ -268,24 +322,26 @@ function mountChroma(el, px, ghost) {
   return { groups, inks };
 }
 
-function mountSlices(svg, design, n, ms) {
+// Glitch bars across the shape. Appended next to el so they share its pad/scale space.
+function mountSlices(el, n, ms) {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "bs-slices");
   g.style.pointerEvents = "none";
-  svg.appendChild(g);
+  el.parentNode.appendChild(g);
   const colors = ["#ffffff", "#7ad7ff", "#ff4d2e", "#ff00ff"];
-  const w = (design && design.width) || 1920;
-  const h = (design && design.height) || 1080;
+  const b = shapeBox(el);
+  const w = b.width || 1920, h = b.height || 1080;
   const step = () => {
     g.replaceChildren();
     for (let i = 0; i < n; i++) {
       const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      r.setAttribute("x", String((Math.random() - 0.5) * 80));
-      r.setAttribute("y", String(Math.random() * h));
-      r.setAttribute("width", String(w));
-      r.setAttribute("height", String(6 + Math.random() * 22));
+      r.setAttribute("x", String(b.x - w * 0.05 + (Math.random() - 0.5) * w * 0.08));
+      r.setAttribute("y", String(b.y + Math.random() * h));
+      r.setAttribute("width", String(w * 1.1));
+      r.setAttribute("height", String(h * (0.005 + Math.random() * 0.025)));
       r.setAttribute("fill", colors[i % colors.length]);
-      r.setAttribute("opacity", "0.8");
+      r.setAttribute("opacity", String(0.5 + Math.random() * 0.4));
+      r.style.mixBlendMode = "screen";
       g.appendChild(r);
     }
   };
@@ -297,7 +353,9 @@ function mountSlices(svg, design, n, ms) {
 function safeAnimate(el, frames, timing) {
   try { return el.animate(frames, timing); }
   catch (e) {
-    try { return el.animate(frames, Object.assign({}, timing, { easing: "linear" })); }
+    // Bad easing string (old custom preset): retry with linear segments.
+    const plain = frames.map(f => Object.assign({}, f, { easing: "linear" }));
+    try { return el.animate(plain, timing); }
     catch (e2) { return null; }
   }
 }
@@ -309,17 +367,20 @@ function playRecipe(el, design, recipe, once) {
   el.getAnimations().forEach(a => a.cancel());
   el.style.visibility = "";
   clearFx(svg);
+  el.removeAttribute("pathLength");
   if (!recipe) {
     el.removeAttribute("stroke-dasharray");
     return;
   }
   if (recipe.dash) el.setAttribute("stroke-dasharray", recipe.dash);
   else el.removeAttribute("stroke-dasharray");
-  const scale = userScale(el);
-  const frames = recipeFrames(recipe, design || liveDesign || {}, scale);
+  // ponytail: a dash of 1000+ is treated as "draw-on" (wipe) and measured against a 2000-unit perimeter,
+  // so it covers any shape size. Upgrade path: an explicit recipe flag if users want long real dashes.
+  if (parseFloat(recipe.dash) >= 1000) el.setAttribute("pathLength", "2000");
+  const frames = recipeFrames(recipe, design || liveDesign || {});
   const timing = {
     duration: Math.max(100, recipe.ms || 600),
-    easing: recipe.ease || "ease",
+    easing: "linear",
     iterations: once ? 1 : Infinity,
     fill: "forwards",
   };
@@ -329,7 +390,7 @@ function playRecipe(el, design, recipe, once) {
   const pack = split ? mountChroma(el, split, ghost) : { groups: [], inks: [] };
   if (ghost) el.style.visibility = "hidden";
   const slices = fxOf(recipe, "slices");
-  if (slices && slices.n && svg) mountSlices(svg, design || liveDesign, slices.n, recipe.ms);
+  if (slices && slices.n && svg) mountSlices(el, slices.n, recipe.ms);
   const anim = safeAnimate(el, frames, timing);
   const copyFrames = frames.map(f => {
     const o = Object.assign({}, f);
@@ -340,12 +401,13 @@ function playRecipe(el, design, recipe, once) {
   pack.inks.forEach(c => safeAnimate(c, copyFrames, timing));
   if (split && pack.groups.length) {
     const a = split;
+    const easing = ghost ? "ease-in-out" : (recipe.ease || "ease");
     pack.groups.forEach(g => {
       const dir = Number(g.dataset.dir) || 1;
       safeAnimate(g, [
-        { transform: "translate(" + (dir * a) + "px, 0px)" },
-        { transform: "translate(" + (dir * a * 2.5) + "px, 0px)" },
-        { transform: "translate(" + (dir * a) + "px, 0px)" },
+        { transform: "translate(" + (dir * a) + "px, 0px)", easing },
+        { transform: "translate(" + (dir * a * 2.5) + "px, " + (-dir * a * 0.4) + "px)", easing },
+        { transform: "translate(" + (dir * a) + "px, 0px)", easing },
       ], timing);
     });
   }
