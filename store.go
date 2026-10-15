@@ -526,13 +526,17 @@ func validateDesign(d design) error {
 	return nil
 }
 
+func ephemeralExe(dir string) bool {
+	low := strings.ToLower(dir)
+	return strings.Contains(low, `\temp\`) || strings.Contains(low, `/tmp/`) || strings.Contains(low, "go-build")
+}
+
 func dataDir() string {
 	exe, err := os.Executable()
 	if err == nil {
 		dir := filepath.Dir(exe)
-		low := strings.ToLower(dir)
-		// ponytail: go run parks the exe under Temp; keep db next to the project instead
-		if !strings.Contains(low, `\temp\`) && !strings.Contains(low, `/tmp/`) {
+		// ponytail: go run parks the exe under Temp or GOCACHE; keep db next to the project
+		if !ephemeralExe(dir) {
 			return dir
 		}
 	}
