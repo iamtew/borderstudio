@@ -58,6 +58,7 @@ async function save() {
 function paint() {
   stage.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
   renderBorder(stage, d, { handles: true, sel });
+  paintCam();
   paintStrokeWell();
   document.getElementById("in-width").value = d.strokeWidth;
   document.getElementById("in-glow").value = d.glow;
@@ -1165,7 +1166,90 @@ document.getElementById("file-close").onclick = () => {
   fetch(api, { method: "POST" });
 };
 document.getElementById("file-quit").onclick = () => fetch("/api/quit", { method: "POST" });
-document.getElementById("btn-copy-overlay").onclick = () => navigator.clipboard.writeText(location.origin + "/overlay");
+
+// Designer mode: OBS lets go of the webcam and the stage shows it inside the hole.
+// OBS mode: browser lets go, OBS owns the camera. Stream in OBS mode.
+let camStream = null;
+const camVideo = document.getElementById("cam-video");
+
+// The <video> is never re-created, only its clip and box follow the design, so drags don't flicker.
+function paintCam() {
+  if (!camStream) return;
+  const layer = document.getElementById("cam-layer");
+  const fo = document.getElementById("cam-fo");
+  layer.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
+  fo.setAttribute("width", d.width);
+  fo.setAttribute("height", d.height);
+  document.getElementById("cam-clip").replaceChildren(makeShape("http://www.w3.org/2000/svg", d));
+}
+
+function showMode(mode) {
+  document.body.classList.toggle("cam-on", mode === "designer");
+  for (const [id, m] of [["mode-design", "designer"], ["mode-obs", "obs"]]) {
+    const b = document.getElementById(id);
+    b.classList.toggle("sel", m === mode);
+    b.setAttribute("aria-checked", String(m === mode));
+  }
+}
+
+async function putMode(mode) {
+  const res = await fetch("/api/mode", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
+  if (!res.ok) throw new Error((await res.text()).trim());
+  return res.json();
+}
+
+function stopCam() {
+  if (camStream) camStream.getTracks().forEach((t) => t.stop());
+  camStream = null;
+  camVideo.srcObject = null;
+}
+
+async function setMode(mode) {
+  if (mode === "obs") {
+    stopCam();
+    showMode("obs");
+    try { await putMode("obs"); } catch (e) { alert("Could not hand the camera back to OBS: " + e.message); }
+    return;
+  }
+  try {
+    const { device } = await putMode("designer");
+    // Labels stay empty until the page has camera permission once; then the system default is used.
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter((x) => x.kind === "videoinput");
+    const hit = device && cams.find((c) => c.label.toLowerCase().startsWith(device.toLowerCase()));
+    const video = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+    if (hit) video.deviceId = { exact: hit.deviceId };
+    // OBS releases the device asynchronously; a busy camera gets a few short retries.
+    for (let i = 0; !camStream; i++) {
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({ video });
+      } catch (e) {
+        if (e.name !== "NotReadableError" || i >= 4) throw e;
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+    camVideo.srcObject = camStream;
+    showMode("designer");
+    paint();
+  } catch (e) {
+    stopCam();
+    showMode("obs");
+    putMode("obs").catch(() => {});
+    alert("Designer mode needs the camera: " + (e.message || e.name));
+  }
+}
+
+document.getElementById("mode-design").onclick = () => { if (!camStream) setMode("designer"); };
+document.getElementById("mode-obs").onclick = () => setMode("obs");
+document.getElementById("obs-pill").onclick = () => openSettings();
+
+async function pollObs() {
+  let up = false;
+  try { up = (await (await fetch("/api/obs/status")).json()).connected; } catch (e) {}
+  document.getElementById("obs-pill").classList.toggle("up", up);
+  document.getElementById("obs-pill-text").textContent = up ? "OBS connected" : "OBS offline";
+}
+pollObs();
+setInterval(pollObs, 3000);
 
 (function fillGridToggles() {
   const box = document.getElementById("grid-toggles");

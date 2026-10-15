@@ -63,9 +63,17 @@ body.admin button, body.admin #bar a {
   border-radius: var(--r); cursor: pointer;
 }
 body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); }
-body.admin #bar #btn-overlay {
-  background: linear-gradient(to bottom right, var(--accent), var(--accent2));
-  border-color: transparent; color: #282828; font-weight: 700;
+#obs-pill { border-radius: 999px; }
+#obs-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 6px #e5484d; }
+#obs-pill.up .dot { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+#mode-switch { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+#bar #mode-switch button {
+  border: 0; border-radius: 0; padding: 12px 20px;
+  font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+#bar #mode-switch button + button { border-left: 1px solid var(--line); }
+#bar #mode-switch button.sel {
+  background: linear-gradient(to bottom right, var(--accent), var(--accent2)); color: #282828;
 }
 #sidebar button, #inspector button { display: block; width: 100%; margin: 0 0 8px; padding: 8px; }
 #sidebar button, #inspector button { display: inline-flex; align-items: center; gap: 6px; }
@@ -77,6 +85,13 @@ body.admin #bar #btn-overlay {
 }
 body.admin #frame { border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); }
 #frame svg { width: 100%; height: 100%; display: block; }
+#stage { position: relative; }
+#frame #cam-layer { position: absolute; inset: 0; display: none; }
+body.cam-on #frame #cam-layer { display: block; }
+/* transparent, not none: the hole must stay hit-testable for box-shape drags */
+body.cam-on #stage .checker, body.cam-on #stage .hole { fill: transparent; }
+/* fill, not cover: OBS stretches the camera to the hole aspect the same way */
+#cam-video { width: 100%; height: 100%; object-fit: fill; display: block; }
 .hole { fill: #1c1c1c; }
 .checker { fill: url(#checker); }
 .handle { fill: var(--accent); cursor: grab; }

@@ -23,6 +23,18 @@ func TestDefaultDesign(t *testing.T) {
 	}
 }
 
+func TestDeviceName(t *testing.T) {
+	for in, want := range map[string]string{
+		`Logitech BRIO:\\?\usb#vid_046d&pid_085e#{65e8773d}`: "Logitech BRIO",
+		"OBS Virtual Camera":                                 "OBS Virtual Camera",
+		"":                                                   "",
+	} {
+		if got := deviceName(in); got != want {
+			t.Errorf("deviceName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestValidateDesign(t *testing.T) {
 	if err := validateDesign(design{Width: 10, Height: 10, Points: []point{{X: 0, Y: 0}, {X: 1, Y: 0}}}); err == nil {
 		t.Fatal("expected error for 2 points")

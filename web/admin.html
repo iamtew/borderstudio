@@ -75,6 +75,7 @@
           <div id="file-menu" hidden>
             <button type="button" id="file-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
             <button type="button" id="file-reset" class="design-only"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+            <button type="button" id="btn-mask"><i class="fa-solid fa-download" aria-hidden="true"></i> Download mask</button>
             <div class="file-sep">
               <button type="button" id="file-settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</button>
             </div>
@@ -92,9 +93,11 @@
         <div id="grid-toggles" class="design-only"><span>Grid:</span></div>
       </div>
       <div class="bar-overlay">
-        <button type="button" id="btn-mask" class="design-only"><i class="fa-solid fa-download" aria-hidden="true"></i> Download mask</button>
-        <a id="btn-overlay" href="/overlay" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open overlay</a>
-        <button type="button" id="btn-copy-overlay"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy overlay URL</button>
+        <button type="button" id="obs-pill" title="OBS connection settings"><span class="dot" aria-hidden="true"></span> <span id="obs-pill-text">OBS offline</span></button>
+        <div id="mode-switch" role="radiogroup" aria-label="Mode">
+          <button type="button" id="mode-design" role="radio" aria-checked="false"><i class="fa-solid fa-video" aria-hidden="true"></i> Designer mode</button>
+          <button type="button" id="mode-obs" role="radio" aria-checked="true" class="sel"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> OBS mode</button>
+        </div>
       </div>
     </div>
     <div id="wrap">
@@ -120,6 +123,12 @@
       <div id="stage-wrap" class="win">
         <div class="win-body">
           <div id="frame">
+            <svg id="cam-layer" viewBox="0 0 1920 1080">
+              <defs><clipPath id="cam-clip"></clipPath></defs>
+              <foreignObject id="cam-fo" width="1920" height="1080" clip-path="url(#cam-clip)">
+                <video id="cam-video" autoplay muted playsinline></video>
+              </foreignObject>
+            </svg>
             <svg id="stage" viewBox="0 0 1920 1080"></svg>
             <div id="grids"></div>
           </div>

@@ -829,6 +829,54 @@ func (o *obsClient) restack() error {
 	return nil
 }
 
+// deviceName turns a dshow video_device_id ("Logitech BRIO:\\?\usb#...") into
+// the friendly name the browser also shows as the camera label.
+func deviceName(id string) string {
+	name, _, _ := strings.Cut(id, ":")
+	return strings.TrimSpace(name)
+}
+
+// camActive hands the webcam to OBS (on) or releases it so the Designer
+// preview can open it (off). Returns the device friendly name for matching.
+// Offline OBS is not an error: the browser can grab the camera on its own.
+func (o *obsClient) camActive(on bool) (string, error) {
+	if !o.connected() {
+		return "", nil
+	}
+	cfg, err := o.st.obs()
+	if err != nil {
+		return "", err
+	}
+	cam := cfg.Camera
+	if cam == "" {
+		cam = obsDevice
+	}
+	raw, err := o.call("GetInputSettings", map[string]any{"inputName": cam})
+	if err != nil {
+		return "", err
+	}
+	var doc struct {
+		InputSettings struct {
+			Active   *bool  `json:"active"`
+			DeviceID string `json:"video_device_id"`
+		} `json:"inputSettings"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return "", err
+	}
+	// ponytail: win-dshow only exposes a toggle button; we trust its saved
+	// "active" key (missing = active) to know which way to press it.
+	active := doc.InputSettings.Active == nil || *doc.InputSettings.Active
+	if active != on {
+		if _, err := o.call("PressInputPropertiesButton", map[string]any{
+			"inputName": cam, "propertyName": "activate",
+		}); err != nil {
+			return "", err
+		}
+	}
+	return deviceName(doc.InputSettings.DeviceID), nil
+}
+
 func (o *obsClient) syncLayout() error {
 	if !o.connected() {
 		return nil

@@ -524,6 +524,22 @@ func main() {
 		}
 		writeJSON(w, obs.status())
 	})
+	mux.HandleFunc("PUT /api/mode", func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
+		var body struct {
+			Mode string `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || (body.Mode != "designer" && body.Mode != "obs") {
+			http.Error(w, `mode must be "designer" or "obs"`, 400)
+			return
+		}
+		name, err := obs.camActive(body.Mode == "obs")
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		writeJSON(w, map[string]string{"device": name})
+	})
 	mux.HandleFunc("POST /api/event", func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		var body struct {
@@ -552,7 +568,13 @@ func main() {
 		admin := r.URL.Query().Has("admin")
 		if admin {
 			h.addAdmin(1)
-			defer h.addAdmin(-1)
+			defer func() {
+				h.addAdmin(-1)
+				// Last admin window gone (closed or crashed): give the camera back to OBS.
+				if !h.hasAdmin() {
+					go obs.camActive(true)
+				}
+			}()
 		}
 		ch := h.sub()
 		defer h.unsub(ch)
