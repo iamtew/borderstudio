@@ -540,7 +540,9 @@ document.getElementById("obs-scene").onclick = async () => {
     obsMsg("Scene Border Studio is ready. Nest it in your other scenes.");
     await refreshObs(document.getElementById("obs-camera").value);
   } catch (e) {
-    obsMsg(e.message || "Scene failed");
+    const msg = (e.message || "Scene failed").trim();
+    obsMsg(msg);
+    if (/Advanced Masks/i.test(msg)) alert(msg);
   }
 };
 

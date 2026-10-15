@@ -515,13 +515,18 @@ function makeShape(ns, d) {
 function renderBorder(svg, d, opts) {
   const handles = opts && opts.handles;
   const pad = (opts && opts.pad) || 0;
-  svg.setAttribute("viewBox", "0 0 " + (d.width + 2 * pad) + " " + (d.height + 2 * pad));
+  const padX = opts && opts.padX != null ? opts.padX : pad;
+  const padY = opts && opts.padY != null ? opts.padY : pad;
+  const scale = opts && opts.scale ? opts.scale : 1;
+  const vw = (opts && opts.overlayW) || (d.width + 2 * padX);
+  const vh = (opts && opts.overlayH) || (d.height + 2 * padY);
+  svg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
   svg.replaceChildren();
   const ns = "http://www.w3.org/2000/svg";
   let root = svg;
-  if (pad) {
+  if (padX || padY || scale !== 1) {
     const g = document.createElementNS(ns, "g");
-    g.setAttribute("transform", "translate(" + pad + " " + pad + ")");
+    g.setAttribute("transform", "translate(" + padX + " " + padY + ") scale(" + scale + ")");
     svg.appendChild(g);
     root = g;
   }
