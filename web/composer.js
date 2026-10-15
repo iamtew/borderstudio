@@ -143,13 +143,21 @@ function paintCtrl() {
     del.type = "button";
     del.setAttribute("aria-label", "Delete");
     del.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
-    del.onclick = () => { pushHist(); d.events.splice(i, 1); paintCtrl(); scheduleSave(); };
+    del.onclick = () => delEvent(i);
+    row.dataset.i = String(i);
     row.addEventListener("pointerdown", () => pickCtrl(i));
     row.append(lab, anim, del);
     grid.appendChild(row);
   });
   paintCtrlTune();
   if (ctrlEdit && document.body.classList.contains("view-control")) requestAnimationFrame(previewCtrl);
+}
+
+function delEvent(i) {
+  pushHist();
+  d.events.splice(i, 1);
+  paintCtrl();
+  scheduleSave();
 }
 
 function pickCtrl(i) {
@@ -734,6 +742,8 @@ function applyBox(t, p, orig) {
 let drag = null;
 let dragFrom = null;
 stage.addEventListener("pointerdown", ev => {
+  // Right-click opens the app menu; it must not insert a point or start a drag.
+  if (ev.button !== 0) return;
   const p = svgPoint(ev);
   const hit = ev.target.closest && ev.target.closest(".handle");
   if (hit) {
@@ -776,7 +786,8 @@ stage.addEventListener("pointermove", ev => {
       n.ox = o.ox + dx; n.oy = o.oy + dy;
     }
     d.points[drag] = n;
-  } else if (drag.h) {
+  // A box drag stores its height on h. Only "in" / "out" is a bezier handle.
+  } else if (drag.h === "in" || drag.h === "out") {
     const pt = d.points[drag.i];
     if (drag.h === "out") { pt.ox = p.x; pt.oy = p.y; pt.ix = 2 * pt.x - p.x; pt.iy = 2 * pt.y - p.y; }
     else { pt.ix = p.x; pt.iy = p.y; pt.ox = 2 * pt.x - p.x; pt.oy = 2 * pt.y - p.y; }
@@ -784,6 +795,8 @@ stage.addEventListener("pointermove", ev => {
   paint();
 });
 stage.addEventListener("pointerup", () => {
+  const ae = document.activeElement;
+  if (ae && ae.matches && ae.matches("input, textarea, select")) ae.blur();
   if (typeof drag === "number" && dragFrom && !dragFrom.moved) {
     d.points[drag] = dragFrom.pt;
     if (!dragFrom.pt.smooth) smoothen(d.points, drag);
@@ -1094,7 +1107,7 @@ function setView(name) {
 document.getElementById("view-design").onclick = () => setView("design");
 document.getElementById("view-control").onclick = () => setView("control");
 
-document.getElementById("btn-file").onclick = () => { menu.hidden = !menu.hidden; };
+document.getElementById("btn-file").onclick = () => { closeCtx(); menu.hidden = !menu.hidden; };
 document.getElementById("file-save").onclick = () => { menu.hidden = true; save(); };
 document.getElementById("file-settings").onclick = () => {
   menu.hidden = true;
@@ -1174,6 +1187,73 @@ addEventListener("pointerdown", ev => {
   if (ev.target.closest("#iro-pop, .swatch, .color-field")) return;
   closeIro();
 });
+
+const ctx = document.createElement("div");
+ctx.id = "ctx-menu";
+ctx.hidden = true;
+document.body.appendChild(ctx);
+
+function closeCtx() { ctx.hidden = true; }
+
+function addCtxBtn(label, icon, run, disabled, title) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.disabled = !!disabled;
+  if (title) b.title = title;
+  const i = document.createElement("i");
+  i.className = "fa-solid " + icon;
+  i.setAttribute("aria-hidden", "true");
+  b.append(i, document.createTextNode(label));
+  if (!b.disabled) b.onclick = () => { closeCtx(); run(); };
+  ctx.appendChild(b);
+}
+
+// Right-click menu for the admin window. Text fields keep the browser menu.
+addEventListener("contextmenu", ev => {
+  if (!ev.target.closest) return;
+  if (ev.target.closest("input, textarea")) return;
+  ev.preventDefault();
+  if (ev.target.closest("#ctx-menu")) return;
+  menu.hidden = true;
+  ctx.replaceChildren();
+  const extra = [];
+  const onStage = ev.target.closest("#stage");
+  if (document.body.classList.contains("view-design") && d && kindOf(d) === "polygon" && onStage) {
+    const vert = ev.target.closest(".handle[data-i]:not([data-h])");
+    if (vert) {
+      const i = Number(vert.dataset.i);
+      const floor = d.points.length <= 3;
+      extra.push(["Delete point", "fa-trash", () => { sel = i; delPoint(); }, floor, floor ? "A polygon needs 3 points" : ""]);
+    } else {
+      const p = svgPoint(ev);
+      extra.push(["Add point here", "fa-plus", () => addPointAt(p)]);
+    }
+  }
+  const row = ev.target.closest("#ctrl-grid .event-row");
+  if (row && ctrlEdit) extra.push(["Delete button", "fa-trash", () => delEvent(Number(row.dataset.i))]);
+  extra.forEach(it => addCtxBtn(it[0], it[1], it[2], it[3], it[4]));
+  if (extra.length) {
+    const sep = document.createElement("div");
+    sep.className = "file-sep";
+    ctx.appendChild(sep);
+  }
+  addCtxBtn("Undo", "fa-rotate-left", undo, idx <= 0);
+  addCtxBtn("Redo", "fa-rotate-right", redo, idx >= stack.length - 1);
+  addCtxBtn("Save", "fa-floppy-disk", () => save());
+  addCtxBtn("Settings", "fa-gear", openSettings);
+  ctx.hidden = false;
+  ctx.style.left = "0px";
+  ctx.style.top = "0px";
+  const r = ctx.getBoundingClientRect();
+  ctx.style.left = Math.max(4, Math.min(ev.clientX, innerWidth - r.width - 4)) + "px";
+  ctx.style.top = Math.max(4, Math.min(ev.clientY, innerHeight - r.height - 4)) + "px";
+});
+addEventListener("pointerdown", ev => {
+  if (ctx.hidden || ev.target.closest("#ctx-menu")) return;
+  closeCtx();
+});
+addEventListener("scroll", closeCtx, true);
+
 addEventListener("keydown", ev => {
   const inField = ev.target.matches("input[type=text], textarea");
   if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z") {
@@ -1186,6 +1266,11 @@ addEventListener("keydown", ev => {
     if (inField) return;
     ev.preventDefault();
     redo();
+    return;
+  }
+  if (ev.key === "Escape" && !ctx.hidden) {
+    ev.preventDefault();
+    closeCtx();
     return;
   }
   if (ev.key === "Escape" && settingsOpen()) {

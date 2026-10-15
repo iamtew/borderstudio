@@ -10,7 +10,7 @@ just run
 
 Listens on `http://127.0.0.1:8505`. Systray: Designer, Controller, Overlay, Copy URL, About, Quit.
 
-Header tabs switch **Designer** and **Controller**. Controller fills the window under the header. Designer: Reset restores the default hole; Ctrl+Z / Ctrl+Y undo and redo. Shape kind: polygon, rounded rect, circle, or oval. Click a polygon vertex to smooth that corner into a bezier; drag the handles to tune it. Stroke uses an iro.js picker; **File → Settings** edits custom color palettes. Header **Grid** checkboxes draw framing lines (center, thirds, fifths, action/title safe); vertices snap to those lines and always to the canvas edges.
+Header tabs switch **Designer** and **Controller**. Controller fills the window under the header. Designer: Reset restores the default hole; Ctrl+Z / Ctrl+Y undo and redo. Shape kind: polygon, rounded rect, circle, or oval. Click a polygon vertex to smooth that corner into a bezier; drag the handles to tune it. Right-click a vertex to delete it; the admin window uses its own menu. Stroke uses an iro.js picker; **File → Settings** edits custom color palettes. Header **Grid** checkboxes draw framing lines (center, thirds, fifths, action/title safe); vertices snap to those lines and always to the canvas edges.
 
 ## OBS
 
