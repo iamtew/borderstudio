@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,8 @@ type obsSettings struct {
 
 type obsLayoutDoc struct {
 	Pad      int `json:"pad"`
+	PadX     int `json:"padX"`
+	PadY     int `json:"padY"`
 	CameraW  int `json:"cameraW"`
 	CameraH  int `json:"cameraH"`
 	OverlayW int `json:"overlayW"`
@@ -96,9 +99,42 @@ func overlayPad(d design) int {
 	return p
 }
 
-func obsLayout(d design) obsLayoutDoc {
+func obsLayout(d design, canvasW, canvasH int) obsLayoutDoc {
+	if canvasW <= 0 {
+		canvasW = 1920
+	}
+	if canvasH <= 0 {
+		canvasH = 1080
+	}
 	p := overlayPad(d)
-	return obsLayoutDoc{Pad: p, CameraW: d.Width, CameraH: d.Height, OverlayW: d.Width + 2*p, OverlayH: d.Height + 2*p}
+	maxW := canvasW - 2*p
+	maxH := canvasH - 2*p
+	if maxW < 16 {
+		maxW = 16
+	}
+	if maxH < 16 {
+		maxH = 16
+	}
+	dw, dh := float64(d.Width), float64(d.Height)
+	if dw < 1 {
+		dw = 1
+	}
+	if dh < 1 {
+		dh = 1
+	}
+	s := math.Min(float64(maxW)/dw, float64(maxH)/dh)
+	camW := int(math.Floor(dw * s))
+	camH := int(math.Floor(dh * s))
+	if camW < 16 {
+		camW = 16
+	}
+	if camH < 16 {
+		camH = 16
+	}
+	return obsLayoutDoc{
+		Pad: p, PadX: (canvasW - camW) / 2, PadY: (canvasH - camH) / 2,
+		CameraW: camW, CameraH: camH, OverlayW: canvasW, OverlayH: canvasH,
+	}
 }
 
 func obsAuth(password, salt, challenge string) string {
@@ -618,13 +654,45 @@ func (o *obsClient) ensureCamera(name string) (string, error) {
 	}
 	if !ok {
 		if _, err := o.call("CreateInput", map[string]any{
-			"sceneName": obsWrap, "inputName": obsDevice, "inputKind": obsKindVCD,
+			"sceneName": obsScene, "inputName": obsDevice, "inputKind": obsKindVCD,
 			"inputSettings": map[string]any{}, "sceneItemEnabled": true,
 		}); err != nil {
 			return "", err
 		}
 	}
 	return obsDevice, nil
+}
+
+func dedicatedCam(name string) bool {
+	return name == "" || name == obsDevice
+}
+
+func pluginErr(err error) error {
+	return fmt.Errorf("install Advanced Masks: https://github.com/FiniteSingularity/obs-advanced-masks (%s)", err)
+}
+
+func (o *obsClient) videoSize() (int, int) {
+	raw, err := o.call("GetVideoSettings", nil)
+	if err != nil {
+		return 1920, 1080
+	}
+	var doc struct {
+		BaseWidth  int `json:"baseWidth"`
+		BaseHeight int `json:"baseHeight"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil || doc.BaseWidth <= 0 || doc.BaseHeight <= 0 {
+		return 1920, 1080
+	}
+	return doc.BaseWidth, doc.BaseHeight
+}
+
+func (o *obsClient) layout() obsLayoutDoc {
+	d := o.design()
+	if !o.connected() {
+		return obsLayout(d, 1920, 1080)
+	}
+	w, h := o.videoSize()
+	return obsLayout(d, w, h)
 }
 
 func (o *obsClient) setWrapCamera(cam string) error {
@@ -648,11 +716,11 @@ func (o *obsClient) setWrapCamera(cam string) error {
 	return nil
 }
 
-func (o *obsClient) ensureFilter() error {
+func (o *obsClient) ensureFilter(source string) error {
 	if _, err := o.call("GetSourceFilterDefaultSettings", map[string]any{"filterKind": obsKindAM}); err != nil {
-		return fmt.Errorf("install Advanced Masks: https://github.com/FiniteSingularity/obs-advanced-masks (%s)", err)
+		return pluginErr(err)
 	}
-	raw, err := o.call("GetSourceFilterList", map[string]any{"sourceName": obsWrap})
+	raw, err := o.call("GetSourceFilterList", map[string]any{"sourceName": source})
 	if err != nil {
 		return err
 	}
@@ -669,23 +737,23 @@ func (o *obsClient) ensureFilter() error {
 	for _, f := range doc.Filters {
 		if f.FilterName == obsFilter {
 			_, err = o.call("SetSourceFilterSettings", map[string]any{
-				"sourceName": obsWrap, "filterName": obsFilter, "filterSettings": settings, "overlay": true,
+				"sourceName": source, "filterName": obsFilter, "filterSettings": settings, "overlay": true,
 			})
 			return err
 		}
 	}
 	_, err = o.call("CreateSourceFilter", map[string]any{
-		"sourceName": obsWrap, "filterName": obsFilter, "filterKind": obsKindAM, "filterSettings": settings,
+		"sourceName": source, "filterName": obsFilter, "filterKind": obsKindAM, "filterSettings": settings,
 	})
-	return err
+	if err != nil {
+		return pluginErr(err)
+	}
+	return nil
 }
 
 func (o *obsClient) repair() error {
 	cfg, err := o.st.obs()
 	if err != nil {
-		return err
-	}
-	if err := o.ensureScene(obsWrap); err != nil {
 		return err
 	}
 	if err := o.ensureScene(obsScene); err != nil {
@@ -703,21 +771,31 @@ func (o *obsClient) repair() error {
 	if _, err := o.st.saveObs(cfg); err != nil {
 		return err
 	}
-	if err := o.setWrapCamera(cam); err != nil {
-		return err
+	filterOn := cam
+	if dedicatedCam(cam) {
+		if err := o.ensureItem(obsScene, cam, true); err != nil {
+			return err
+		}
+	} else {
+		if err := o.ensureScene(obsWrap); err != nil {
+			return err
+		}
+		if err := o.setWrapCamera(cam); err != nil {
+			return err
+		}
+		if err := o.ensureItem(obsScene, obsWrap, true); err != nil {
+			return err
+		}
+		filterOn = obsWrap
 	}
-	d := o.design()
-	lay := obsLayout(d)
+	lay := o.layout()
 	if err := o.ensureInput(obsScene, obsMask, obsKindWeb, browserSettings("/mask", lay.CameraW, lay.CameraH), false); err != nil {
 		return err
 	}
 	if err := o.ensureInput(obsScene, obsOverlay, obsKindWeb, browserSettings("/overlay", lay.OverlayW, lay.OverlayH), true); err != nil {
 		return err
 	}
-	if err := o.ensureItem(obsScene, obsWrap, true); err != nil {
-		return err
-	}
-	if err := o.ensureFilter(); err != nil {
+	if err := o.ensureFilter(filterOn); err != nil {
 		return err
 	}
 	if err := o.restack(); err != nil {
@@ -747,16 +825,20 @@ func (o *obsClient) syncLayout() error {
 	if !o.connected() {
 		return nil
 	}
-	d := o.design()
-	lay := obsLayout(d)
+	lay := o.layout()
 	cfg, _ := o.st.obs()
-	if cfg.Camera != "" {
-		_ = o.setBounds(obsWrap, cfg.Camera, 0, 0, float64(lay.CameraW), float64(lay.CameraH))
+	cam := cfg.Camera
+	if dedicatedCam(cam) {
+		if cam == "" {
+			cam = obsDevice
+		}
+		_ = o.setBounds(obsScene, cam, float64(lay.PadX), float64(lay.PadY), float64(lay.CameraW), float64(lay.CameraH))
+	} else {
+		_ = o.setBounds(obsWrap, cam, 0, 0, float64(lay.CameraW), float64(lay.CameraH))
+		_ = o.setBounds(obsScene, obsWrap, float64(lay.PadX), float64(lay.PadY), float64(lay.CameraW), float64(lay.CameraH))
 	}
 	_ = o.ensureInput(obsScene, obsMask, obsKindWeb, browserSettings("/mask", lay.CameraW, lay.CameraH), false)
 	_ = o.ensureInput(obsScene, obsOverlay, obsKindWeb, browserSettings("/overlay", lay.OverlayW, lay.OverlayH), true)
-	if err := o.setBounds(obsScene, obsWrap, float64(lay.Pad), float64(lay.Pad), float64(lay.CameraW), float64(lay.CameraH)); err != nil {
-		return err
-	}
+	_ = o.restack()
 	return o.setBounds(obsScene, obsOverlay, 0, 0, float64(lay.OverlayW), float64(lay.OverlayH))
 }

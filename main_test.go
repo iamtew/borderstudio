@@ -218,9 +218,15 @@ func TestOverlayPad(t *testing.T) {
 	if p != want {
 		t.Fatalf("pad %d want %d", p, want)
 	}
-	lay := obsLayout(d)
-	if lay.CameraW != d.Width || lay.OverlayW != d.Width+2*p || lay.OverlayH != d.Height+2*p {
-		t.Fatalf("layout %+v", lay)
+	lay := obsLayout(d, 1920, 1080)
+	if lay.OverlayW != 1920 || lay.OverlayH != 1080 {
+		t.Fatalf("overlay %+v", lay)
+	}
+	if lay.CameraH != 1080-2*p {
+		t.Fatalf("camera should fill tight axis %+v pad %d", lay, p)
+	}
+	if lay.CameraW >= 1920 || lay.PadX+lay.CameraW+lay.PadX > 1920 {
+		t.Fatalf("camera wider than canvas %+v", lay)
 	}
 }
 

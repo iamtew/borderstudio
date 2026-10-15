@@ -458,10 +458,7 @@ func main() {
 		writeJSON(w, obs.status())
 	})
 	mux.HandleFunc("GET /api/obs/layout", func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		lay := obsLayout(d)
-		mu.Unlock()
-		writeJSON(w, lay)
+		writeJSON(w, obs.layout())
 	})
 	mux.HandleFunc("POST /api/obs/connect", func(w http.ResponseWriter, r *http.Request) {
 		if err := obs.connect(); err != nil {
