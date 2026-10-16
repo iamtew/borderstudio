@@ -3,7 +3,7 @@ let sel = 0;
 let saveT;
 let stack = [];
 let idx = -1;
-const SNAP = 12;
+const SNAP_PX = 10;
 const GRIDS = [
   { id: "center", name: "Center", op: 0.55, xs: [0.5], ys: [0.5] },
   { id: "thirds", name: "Thirds", op: 0.4, xs: [1 / 3, 2 / 3], ys: [1 / 3, 2 / 3] },
@@ -633,11 +633,29 @@ function smoothen(pts, i) {
   p.ox = p.x + dx * outLen; p.oy = p.y + dy * outLen;
 }
 
+// Snap distance is in screen pixels, so it feels the same at any window size.
+function snapGap() {
+  const m = stage.getScreenCTM();
+  return SNAP_PX / ((m && m.a) || 1);
+}
+
 function snapVal(v, lines) {
-  let best = v, gap = SNAP;
+  let best = v, gap = snapGap();
   for (const L of lines) {
     const a = Math.abs(v - L);
     if (a < gap) { gap = a; best = L; }
+  }
+  return best;
+}
+
+// Snap a span [start, start+size] so its start, middle, or end lands on the nearest line.
+function snapSpan(start, size, lines) {
+  let best = start, gap = snapGap();
+  for (const off of [0, size / 2, size]) {
+    for (const L of lines) {
+      const a = Math.abs(start + off - L);
+      if (a < gap) { gap = a; best = L - off; }
+    }
   }
   return best;
 }
@@ -718,8 +736,9 @@ function setKind(k) {
 function applyBox(t, p, orig) {
   let { x, y, w, h } = orig;
   if (t === "move") {
-    x = snapVal(orig.x + p.x - orig.ox, gridLines().xs);
-    y = snapVal(orig.y + p.y - orig.oy, gridLines().ys);
+    const { xs, ys } = gridLines();
+    x = snapSpan(orig.x + p.x - orig.ox, w, xs);
+    y = snapSpan(orig.y + p.y - orig.oy, h, ys);
   } else if (t === "rad") {
     d.r = Math.max(0, Math.min(p.x - orig.x, Math.min(orig.w, orig.h) / 2));
     return;
