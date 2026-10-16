@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -72,10 +73,14 @@ type store struct {
 }
 
 func openStore(dir string) (*store, design, error) {
-	db, err := sql.Open("sqlite", filepath.Join(dir, "border.db"))
+	// busy_timeout waits out short locks (OneDrive/antivirus touching the file)
+	// instead of failing with "database is locked".
+	db, err := sql.Open("sqlite", filepath.Join(dir, "border.db")+"?_pragma=busy_timeout(5000)")
 	if err != nil {
 		return nil, design{}, err
 	}
+	// One connection serializes every write, including handlers that do not hold the design mutex.
+	db.SetMaxOpenConns(1)
 	st := &store{db: db}
 	if err := st.init(); err != nil {
 		db.Close()
@@ -114,11 +119,19 @@ func (st *store) load() (design, error) {
 		return design{}, err
 	}
 	var d design
-	if err := json.Unmarshal([]byte(raw), &d); err != nil {
-		return design{}, err
+	err = json.Unmarshal([]byte(raw), &d)
+	if err == nil {
+		err = validateDesign(d)
 	}
-	if err := validateDesign(d); err != nil {
-		return design{}, err
+	if err != nil {
+		// A bad row must not brick startup. Park it in design.bad so nothing is
+		// lost, then start over from the default hole.
+		log.Printf("stored design unusable (%v); kept as design.bad, using default", err)
+		if err := st.setKV("design.bad", raw); err != nil {
+			return design{}, err
+		}
+		d = defaultDesign()
+		return d, st.save(d)
 	}
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
 	for i := range d.Events {
@@ -509,8 +522,16 @@ func defaultDesign() design {
 }
 
 func validateDesign(d design) error {
-	if d.Width <= 0 || d.Height <= 0 {
+	// Caps are far above anything the Designer makes; they only stop junk
+	// payloads from bloating the db and every overlay repaint.
+	if d.Width <= 0 || d.Height <= 0 || d.Width > 16384 || d.Height > 16384 {
 		return fmt.Errorf("bad size")
+	}
+	if len(d.Points) > 512 {
+		return fmt.Errorf("too many points")
+	}
+	if len(d.Events) > 64 {
+		return fmt.Errorf("too many events")
 	}
 	switch d.Kind {
 	case "", "polygon":

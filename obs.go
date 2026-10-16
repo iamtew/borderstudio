@@ -63,6 +63,8 @@ type obsClient struct {
 	conn   *obsConn
 	err    string
 	timer  *time.Timer
+	want   bool        // user asked to be connected; cleared by Disconnect
+	retry  *time.Timer // pending auto-reconnect
 }
 
 type obsConn struct {
@@ -204,6 +206,10 @@ func (o *obsClient) connected() bool {
 func (o *obsClient) closeConn() {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	o.want = false
+	if o.retry != nil {
+		o.retry.Stop()
+	}
 	if o.conn != nil {
 		_ = o.conn.ws.Close(websocket.StatusNormalClosure, "")
 		o.conn = nil
@@ -215,6 +221,9 @@ func (o *obsClient) connect() error {
 	if err != nil {
 		return err
 	}
+	o.mu.Lock()
+	o.want = true
+	o.mu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	c, err := dialObs(ctx, cfg)
@@ -225,6 +234,7 @@ func (o *obsClient) connect() error {
 	if err != nil {
 		o.conn = nil
 		o.err = err.Error()
+		o.retryLocked()
 		o.mu.Unlock()
 		return err
 	}
@@ -304,8 +314,29 @@ func (o *obsClient) watch(c *obsConn) {
 		if o.err == "" {
 			o.err = "disconnected"
 		}
+		o.retryLocked()
 	}
 	o.mu.Unlock()
+}
+
+// retryLocked schedules a reconnect while the user still wants OBS, so an OBS
+// restart (or OBS starting after us) heals without clicking Connect.
+// ponytail: fixed 5s retry, no backoff; fine for one local OBS, add backoff if it ever dials remote hosts.
+func (o *obsClient) retryLocked() {
+	if !o.want {
+		return
+	}
+	if o.retry != nil {
+		o.retry.Stop()
+	}
+	o.retry = time.AfterFunc(5*time.Second, func() {
+		o.mu.Lock()
+		again := o.want && o.conn == nil
+		o.mu.Unlock()
+		if again && o.connect() == nil {
+			o.schedule() // layout may have changed while OBS was away
+		}
+	})
 }
 
 func (c *obsConn) readLoop() {

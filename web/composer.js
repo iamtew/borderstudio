@@ -45,14 +45,59 @@ function redo() {
   applyHist(stack[idx]);
 }
 
+// Save/sync state. Designer and Controller are separate windows that each hold
+// the whole design, so every window pulls the server copy on "update" unless
+// it has edits of its own in flight (those win, last writer wins).
+let saving = 0;       // PUTs in flight
+let dirty = false;    // last save failed; resent when the event stream reconnects
+let pullAgain = false; // an "update" arrived while we were busy
+let lastSeen = "";    // server copy we already hold (stringified)
+
 function scheduleSave() {
   clearTimeout(saveT);
   saveT = setTimeout(save, 250);
 }
 
+function busy() { return saveT || saving || dirty; }
+
 async function save() {
-  const res = await fetch("/api/design", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) });
-  if (!res.ok) banner.hidden = false;
+  clearTimeout(saveT);
+  saveT = 0;
+  saving++;
+  try {
+    const res = await fetch("/api/design", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) });
+    dirty = !res.ok;
+    if (res.ok) lastSeen = JSON.stringify(await res.json());
+  } catch (e) {
+    dirty = true;
+  }
+  saving--;
+  if (dirty) banner.hidden = false;
+  if (pullAgain && !busy()) pullDesign();
+}
+
+async function pullDesign() {
+  if (busy()) { pullAgain = true; return; }
+  pullAgain = false;
+  let s;
+  try {
+    const res = await fetch("/api/design");
+    if (!res.ok) return;
+    s = JSON.stringify(await res.json());
+  } catch (e) { return; }
+  if (s === lastSeen) return;
+  if (busy()) { pullAgain = true; return; } // user edited while we fetched
+  lastSeen = s;
+  d = JSON.parse(s);
+  sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
+  pushHist();
+  paint();
+}
+
+async function pullAnims() {
+  const before = JSON.stringify(animsDoc);
+  await loadAnims();
+  if (d && JSON.stringify(animsDoc) !== before) paint();
 }
 
 function paint() {
@@ -848,6 +893,7 @@ async function resetDesign() {
   const res = await fetch("/api/design/reset", { method: "POST" });
   if (!res.ok) { banner.hidden = false; return; }
   d = await res.json();
+  lastSeen = JSON.stringify(d);
   sel = 0;
   pushHist();
   paint();
@@ -1392,8 +1438,16 @@ addEventListener("keydown", ev => {
 async function boot() {
   const v = await fetch("/api/version").then(r => r.json()).catch(() => ({ version: "dev" }));
   document.getElementById("file-version").textContent = v.version;
-  const res = await fetch("/api/design");
-  d = await res.json();
+  // Server may still be starting (or restarting): show the banner and retry.
+  for (;;) {
+    try {
+      const res = await fetch("/api/design");
+      if (res.ok) { d = await res.json(); break; }
+    } catch (e) {}
+    banner.hidden = false;
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  lastSeen = JSON.stringify(d);
   await loadPalettes();
   await loadAnims();
   pushHist();
@@ -1401,6 +1455,13 @@ async function boot() {
   if (location.pathname === "/control") setView("control");
   const es = new EventSource("/api/events?admin=1");
   es.onerror = () => { banner.hidden = false; };
-  es.onopen = () => { banner.hidden = true; };
+  es.onopen = () => {
+    banner.hidden = true;
+    if (dirty) save();
+  };
+  es.onmessage = (ev) => {
+    const msg = (ev.data || "").trim();
+    if (msg === "update" || msg === "hello") { pullDesign(); pullAnims(); }
+  };
 }
 boot();

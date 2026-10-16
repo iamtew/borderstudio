@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -26,8 +28,8 @@ func TestDefaultDesign(t *testing.T) {
 func TestDeviceName(t *testing.T) {
 	for in, want := range map[string]string{
 		`Logitech BRIO:\\?\usb#vid_046d&pid_085e#{65e8773d}`: "Logitech BRIO",
-		"OBS Virtual Camera":                                 "OBS Virtual Camera",
-		"":                                                   "",
+		"OBS Virtual Camera": "OBS Virtual Camera",
+		"":                   "",
 	} {
 		if got := deviceName(in); got != want {
 			t.Errorf("deviceName(%q) = %q, want %q", in, got, want)
@@ -290,6 +292,67 @@ func TestEphemeralExe(t *testing.T) {
 	}
 	if ephemeralExe(`F:\src\borderstudio\dist`) {
 		t.Fatal("dist is not ephemeral")
+	}
+}
+
+func TestLoadBadDesignFallsBack(t *testing.T) {
+	dir := t.TempDir()
+	st, _, err := openStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.setKV("design", "{not json"); err != nil {
+		t.Fatal(err)
+	}
+	st.close()
+	st, d, err := openStore(dir)
+	if err != nil {
+		t.Fatalf("corrupt design bricked startup: %v", err)
+	}
+	defer st.close()
+	if d.Stroke != defaultDesign().Stroke {
+		t.Fatalf("want default design, got %+v", d)
+	}
+	if bad, _ := st.getKV("design.bad"); bad != "{not json" {
+		t.Fatalf("bad row not kept: %q", bad)
+	}
+}
+
+func TestValidateDesignCaps(t *testing.T) {
+	tri := []point{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 1, Y: 1}}
+	for name, d := range map[string]design{
+		"width":  {Width: 20000, Height: 10, Points: tri},
+		"points": {Width: 10, Height: 10, Points: make([]point, 513)},
+		"events": {Width: 10, Height: 10, Points: tri, Events: make([]ctrlEvent, 65)},
+	} {
+		if validateDesign(d) == nil {
+			t.Errorf("%s: expected cap error", name)
+		}
+	}
+}
+
+func TestHostGuard(t *testing.T) {
+	h := localOnly(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }))
+	for _, c := range []struct {
+		method, host, origin string
+		want                 int
+	}{
+		{"GET", "127.0.0.1:8505", "", 204},
+		{"POST", "localhost:8505", "http://127.0.0.1:8505", 204},
+		{"POST", "127.0.0.1:8505", "", 204},
+		{"GET", "evil.com:8505", "", 403},
+		{"POST", "127.0.0.1:8505", "https://evil.com", 403},
+	} {
+		r := httptest.NewRequest(c.method, "/api/quit", nil)
+		r.Host = c.host
+		if c.origin != "" {
+			r.Header.Set("Origin", c.origin)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != c.want {
+			t.Errorf("%s host=%s origin=%s: got %d want %d", c.method, c.host, c.origin, w.Code, c.want)
+		}
 	}
 }
 

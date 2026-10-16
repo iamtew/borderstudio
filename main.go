@@ -99,6 +99,29 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// localOnly rejects requests that did not come from our own pages or OBS.
+// Host must be our loopback address, which blocks DNS rebinding (evil.com
+// resolving to 127.0.0.1 and reading /api/obs, password included). Writes
+// that carry an Origin must come from that same address, which blocks any
+// web page in the user's browser from POSTing /api/quit or PUT /api/design.
+func localOnly(next http.Handler) http.Handler {
+	_, port, _ := net.SplitHostPort(addr)
+	hosts := map[string]bool{"127.0.0.1:" + port: true, "localhost:" + port: true}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !hosts[r.Host] {
+			http.Error(w, "forbidden host", http.StatusForbidden)
+			return
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			if o := r.Header.Get("Origin"); o != "" && !hosts[strings.TrimPrefix(o, "http://")] {
+				http.Error(w, "forbidden origin", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func serveAsset(name, ctype string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -241,7 +264,9 @@ func trayToast(title, body string) {
 	if err := os.WriteFile(iconPath, png, 0644); err != nil {
 		return
 	}
-	psIcon := strings.ReplaceAll(iconPath, `'`, `''`)
+	// PowerShell single-quoted strings escape ' as ''.
+	q := func(s string) string { return strings.ReplaceAll(s, `'`, `''`) }
+	psIcon, title, body := q(iconPath), q(title), q(body)
 	ps := `Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $bmp = New-Object System.Drawing.Bitmap '` + psIcon + `'
@@ -253,6 +278,15 @@ Start-Sleep -Seconds 6
 $n.Dispose()
 $bmp.Dispose()`
 	go runHidden("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps).Run()
+}
+
+// fatal shows the error in a message box before exiting: the release build is
+// -H=windowsgui, so log output goes nowhere and a plain log.Fatal looks like
+// the app never started.
+func fatal(err error) {
+	log.Println("fatal:", err)
+	alert("Border Studio", err.Error())
+	os.Exit(1)
 }
 
 func main() {
@@ -269,7 +303,7 @@ func main() {
 
 	st, d, err := openStore(dataDir())
 	if err != nil {
-		log.Fatal(err)
+		fatal(fmt.Errorf("open database in %s: %w", dataDir(), err))
 	}
 	defer st.close()
 
@@ -293,7 +327,7 @@ func main() {
 
 	web, err := fs.Sub(assets, "web")
 	if err != nil {
-		log.Fatal(err)
+		fatal(err)
 	}
 
 	mux := http.NewServeMux()
@@ -347,6 +381,8 @@ func main() {
 		}
 		next.MotionTune = normalizeMotionTune(next.MotionTune)
 		for i := range next.Events {
+			next.Events[i].ID = clipText(next.Events[i].ID, 42)
+			next.Events[i].Label = clipText(next.Events[i].Label, 60)
 			next.Events[i].Tune = normalizeMotionTune(next.Events[i].Tune)
 		}
 		mu.Lock()
@@ -361,7 +397,7 @@ func main() {
 		mu.Unlock()
 		h.broadcast([]byte("update"))
 		obs.schedule()
-		w.WriteHeader(204)
+		writeJSON(w, next)
 	})
 	mux.HandleFunc("POST /api/design/reset", func(w http.ResponseWriter, r *http.Request) {
 		next := defaultDesign()
@@ -594,13 +630,13 @@ func main() {
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal(err)
+		fatal(fmt.Errorf("port %s is busy (another program?): %w", addr, err))
 	}
-	srv := &http.Server{Handler: mux}
+	srv := &http.Server{Handler: localOnly(mux), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		log.Println("listening", addr)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+			fatal(err)
 		}
 	}()
 	go func() {
