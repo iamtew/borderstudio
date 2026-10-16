@@ -46,55 +46,56 @@ function kindOf(d) { return d.kind || "polygon"; }
 // Idle loops (loop:true) and controller one-shots. User presets in customAnims use the same shape.
 // width/glow/x/y are deltas from the resting stroke (width 1 = unchanged). glow is extra drop-shadow px.
 const RECIPES = [
-  { id: "dash", label: "Dash", loop: true, ms: 1200, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "dash-rev", label: "Dash reverse", loop: true, ms: 1200, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 80 }] },
-  { id: "dash-fast", label: "Dash fast", loop: true, ms: 450, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "dots", label: "Dots", loop: true, ms: 900, ease: "linear", dash: "2 10", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "long-dash", label: "Long dash", loop: true, ms: 1600, ease: "linear", dash: "40 16", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "flow", label: "Flow", loop: true, ms: 2400, ease: "linear", dash: "60 40", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
-  { id: "scan", label: "Scan", loop: true, ms: 1800, ease: "linear", dash: "48 220", keys: [{ t: 0, offset: 0, glow: 8 }, { t: 1, offset: -80, glow: 8 }] },
-  { id: "comet", label: "Comet", loop: true, ms: 2200, ease: "linear", dash: "180 900", keys: [{ t: 0, offset: 0, width: 1.4, glow: 30 }, { t: 1, offset: -1080, width: 1.4, glow: 30 }] },
-  { id: "breathe", label: "Breathe", loop: true, ms: 2400, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.35, glow: 12 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "heartbeat", label: "Heartbeat", loop: true, ms: 1200, ease: "ease-out", keys: [
-    { t: 0, width: 1, glow: 0 }, { t: 0.12, width: 1.6, glow: 14 }, { t: 0.28, width: 1, glow: 2 },
-    { t: 0.42, width: 1.4, glow: 10 }, { t: 0.65, width: 1, glow: 0 }, { t: 1, width: 1, glow: 0 },
-  ] },
-  { id: "glow-pulse", label: "Glow pulse", loop: true, ms: 1800, ease: "ease-in-out", keys: [{ t: 0, glow: 2 }, { t: 0.5, glow: 20 }, { t: 1, glow: 2 }] },
-  // Tube hum: steady glow, two irregular stutters per cycle.
-  { id: "neon", label: "Neon", loop: true, ms: 3000, ease: "linear", keys: [
-    { t: 0, opacity: 1, glow: 10 }, { t: 0.04, opacity: 0.55, glow: 3 }, { t: 0.06, opacity: 1, glow: 10 },
-    { t: 0.3, opacity: 1, glow: 12 }, { t: 0.32, opacity: 0.7, glow: 5 }, { t: 0.34, opacity: 1, glow: 10 },
-    { t: 0.36, opacity: 0.4, glow: 2 }, { t: 0.38, opacity: 1, glow: 12 }, { t: 0.7, opacity: 0.95, glow: 9 }, { t: 1, opacity: 1, glow: 10 },
-  ] },
-  { id: "hue", label: "Hue", loop: true, ms: 4000, ease: "linear", keys: [{ t: 0, hue: 0, glow: 8 }, { t: 1, hue: 360, glow: 8 }] },
-  { id: "rainbow", label: "Rainbow", loop: true, ms: 2400, ease: "linear", keys: [
-    { t: 0, hue: 0, glow: 8 }, { t: 0.16, hue: 60, glow: 16 }, { t: 0.33, hue: 120, glow: 8 },
-    { t: 0.5, hue: 180, glow: 16 }, { t: 0.66, hue: 240, glow: 8 }, { t: 0.83, hue: 300, glow: 16 }, { t: 1, hue: 360, glow: 8 },
-  ] },
-  { id: "aurora", label: "Aurora", loop: true, ms: 6000, ease: "ease-in-out", keys: [
-    { t: 0, hue: 0, glow: 6, width: 1 }, { t: 0.25, hue: 90, glow: 18, width: 1.2 }, { t: 0.5, hue: 180, glow: 6, width: 1 },
-    { t: 0.75, hue: 270, glow: 18, width: 1.2 }, { t: 1, hue: 360, glow: 6, width: 1 },
-  ] },
-  { id: "shimmer", label: "Shimmer", loop: true, ms: 1400, ease: "ease-in-out", keys: [{ t: 0, opacity: 1, glow: 6 }, { t: 0.5, opacity: 0.55, glow: 0 }, { t: 1, opacity: 1, glow: 6 }] },
-  { id: "fire", label: "Fire", loop: true, ms: 1400, ease: "ease-in-out", keys: [
-    { t: 0, color: "#FFE53B", glow: 10, width: 1 }, { t: 0.2, color: "#FF8C1A", glow: 16, width: 1.1 },
-    { t: 0.45, color: "#FF2A0D", glow: 12, width: 1 }, { t: 0.7, color: "#FF8C1A", glow: 18, width: 1.15 },
-    { t: 1, color: "#FFE53B", glow: 10, width: 1 },
-  ] },
-  { id: "neon-swap", label: "Neon swap", loop: true, ms: 1600, ease: "ease-in-out", keys: [
-    { t: 0, color: "#00FFFF", glow: 14 }, { t: 0.5, color: "#FF00FF", glow: 14 }, { t: 1, color: "#00FFFF", glow: 14 },
-  ] },
-  { id: "orbit", label: "Orbit", loop: true, ms: 1200, ease: "linear", dash: "12 240", keys: [
+  // Order here is the dropdown order: groups in sequence, gentle to intense inside each.
+  { id: "dash", label: "Dash", group: "Dash", loop: true, ms: 1200, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
+  { id: "dash-rev", label: "Dash reverse", group: "Dash", loop: true, ms: 1200, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 80 }] },
+  { id: "dash-fast", label: "Dash fast", group: "Dash", loop: true, ms: 450, ease: "linear", dash: "18 12", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
+  { id: "dots", label: "Dots", group: "Dash", loop: true, ms: 900, ease: "linear", dash: "2 10", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
+  { id: "long-dash", label: "Long dash", group: "Dash", loop: true, ms: 1600, ease: "linear", dash: "40 16", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
+  { id: "flow", label: "Flow", group: "Dash", loop: true, ms: 2400, ease: "linear", dash: "60 40", keys: [{ t: 0, offset: 0 }, { t: 1, offset: -80 }] },
+  { id: "scan", label: "Scan", group: "Travel", loop: true, ms: 1800, ease: "linear", dash: "48 220", keys: [{ t: 0, offset: 0, glow: 8 }, { t: 1, offset: -80, glow: 8 }] },
+  { id: "comet", label: "Comet", group: "Travel", loop: true, ms: 2200, ease: "linear", dash: "180 900", keys: [{ t: 0, offset: 0, width: 1.4, glow: 30 }, { t: 1, offset: -1080, width: 1.4, glow: 30 }] },
+  { id: "orbit", label: "Orbit", group: "Travel", loop: true, ms: 1200, ease: "linear", dash: "12 240", keys: [
     { t: 0, offset: 0, color: "#E5F20D", glow: 12 }, { t: 0.25, offset: -63, color: "#F20D0D", glow: 12 },
     { t: 0.5, offset: -126, color: "#E5F20D", glow: 12 }, { t: 0.75, offset: -189, color: "#F20D0D", glow: 12 },
     { t: 1, offset: -252, color: "#E5F20D", glow: 12 },
   ] },
-  { id: "chroma", label: "Chroma", loop: true, ms: 2400, ease: "ease-in-out", keys: [
+  { id: "breathe", label: "Breathe", group: "Glow", loop: true, ms: 2400, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.5, width: 1.35, glow: 12 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "glow-pulse", label: "Glow pulse", group: "Glow", loop: true, ms: 1800, ease: "ease-in-out", keys: [{ t: 0, glow: 2 }, { t: 0.5, glow: 20 }, { t: 1, glow: 2 }] },
+  { id: "heartbeat", label: "Heartbeat", group: "Glow", loop: true, ms: 1200, ease: "ease-out", keys: [
+    { t: 0, width: 1, glow: 0 }, { t: 0.12, width: 1.6, glow: 14 }, { t: 0.28, width: 1, glow: 2 },
+    { t: 0.42, width: 1.4, glow: 10 }, { t: 0.65, width: 1, glow: 0 }, { t: 1, width: 1, glow: 0 },
+  ] },
+  { id: "shimmer", label: "Shimmer", group: "Glow", loop: true, ms: 1400, ease: "ease-in-out", keys: [{ t: 0, opacity: 1, glow: 6 }, { t: 0.5, opacity: 0.55, glow: 0 }, { t: 1, opacity: 1, glow: 6 }] },
+  // Tube hum: steady glow, two irregular stutters per cycle.
+  { id: "neon", label: "Neon", group: "Glow", loop: true, ms: 3000, ease: "linear", keys: [
+    { t: 0, opacity: 1, glow: 10 }, { t: 0.04, opacity: 0.55, glow: 3 }, { t: 0.06, opacity: 1, glow: 10 },
+    { t: 0.3, opacity: 1, glow: 12 }, { t: 0.32, opacity: 0.7, glow: 5 }, { t: 0.34, opacity: 1, glow: 10 },
+    { t: 0.36, opacity: 0.4, glow: 2 }, { t: 0.38, opacity: 1, glow: 12 }, { t: 0.7, opacity: 0.95, glow: 9 }, { t: 1, opacity: 1, glow: 10 },
+  ] },
+  { id: "hue", label: "Hue", group: "Color", loop: true, ms: 4000, ease: "linear", keys: [{ t: 0, hue: 0, glow: 8 }, { t: 1, hue: 360, glow: 8 }] },
+  { id: "rainbow", label: "Rainbow", group: "Color", loop: true, ms: 2400, ease: "linear", keys: [
+    { t: 0, hue: 0, glow: 8 }, { t: 0.16, hue: 60, glow: 16 }, { t: 0.33, hue: 120, glow: 8 },
+    { t: 0.5, hue: 180, glow: 16 }, { t: 0.66, hue: 240, glow: 8 }, { t: 0.83, hue: 300, glow: 16 }, { t: 1, hue: 360, glow: 8 },
+  ] },
+  { id: "aurora", label: "Aurora", group: "Color", loop: true, ms: 6000, ease: "ease-in-out", keys: [
+    { t: 0, hue: 0, glow: 6, width: 1 }, { t: 0.25, hue: 90, glow: 18, width: 1.2 }, { t: 0.5, hue: 180, glow: 6, width: 1 },
+    { t: 0.75, hue: 270, glow: 18, width: 1.2 }, { t: 1, hue: 360, glow: 6, width: 1 },
+  ] },
+  { id: "neon-swap", label: "Neon swap", group: "Color", loop: true, ms: 1600, ease: "ease-in-out", keys: [
+    { t: 0, color: "#00FFFF", glow: 14 }, { t: 0.5, color: "#FF00FF", glow: 14 }, { t: 1, color: "#00FFFF", glow: 14 },
+  ] },
+  { id: "fire", label: "Fire", group: "Color", loop: true, ms: 1400, ease: "ease-in-out", keys: [
+    { t: 0, color: "#FFE53B", glow: 10, width: 1 }, { t: 0.2, color: "#FF8C1A", glow: 16, width: 1.1 },
+    { t: 0.45, color: "#FF2A0D", glow: 12, width: 1 }, { t: 0.7, color: "#FF8C1A", glow: 18, width: 1.15 },
+    { t: 1, color: "#FFE53B", glow: 10, width: 1 },
+  ] },
+  { id: "chroma", label: "Chroma", group: "Color", loop: true, ms: 2400, ease: "ease-in-out", keys: [
     { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.85 }, { t: 1, opacity: 1 },
   ], fx: [{ id: "chroma", px: 2 }] },
   // One-shots: fast attack (peak near t=0.2), slow ease-out release.
-  { id: "pulse", label: "Pulse", group: "Pulse", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.25, width: 1.8, glow: 18 }, { t: 1, width: 1, glow: 0 }] },
   { id: "pulse-soft", label: "Pulse soft", group: "Pulse", ms: 900, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, width: 1.35, glow: 10 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "pulse", label: "Pulse", group: "Pulse", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.25, width: 1.8, glow: 18 }, { t: 1, width: 1, glow: 0 }] },
   { id: "pulse-hard", label: "Pulse hard", group: "Pulse", ms: 500, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, width: 2.4, glow: 26 }, { t: 1, width: 1, glow: 0 }] },
   { id: "pulse-double", label: "Pulse double", group: "Pulse", ms: 900, ease: "ease-out", keys: [
     { t: 0, width: 1, glow: 0 }, { t: 0.15, width: 1.8, glow: 16 }, { t: 0.45, width: 1, glow: 2 },
@@ -104,6 +105,8 @@ const RECIPES = [
     { t: 0, width: 1, glow: 0 }, { t: 0.14, width: 2, glow: 18 }, { t: 0.34, width: 1, glow: 2 },
     { t: 0.48, width: 1.55, glow: 12 }, { t: 1, width: 1, glow: 0 },
   ] },
+  { id: "swell", label: "Swell", group: "Pulse", ms: 700, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.45, width: 2.1, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "snap", label: "Snap", group: "Pulse", ms: 400, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.35, width: 0.4, glow: 0 }, { t: 0.6, width: 1.9, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
   { id: "shockwave", label: "Shockwave", group: "Pulse", ms: 800, ease: "ease-out", keys: [
     { t: 0, width: 1, glow: 0 }, { t: 0.15, width: 3, glow: 36, color: "#fff" }, { t: 0.5, width: 1.6, glow: 14 }, { t: 1, width: 1, glow: 0 },
   ] },
@@ -111,43 +114,46 @@ const RECIPES = [
   { id: "flash-white", label: "Flash white", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.2, color: "#fff", glow: 22 }, { t: 0.45, color: "#fff", glow: 18 }, { t: 1, glow: 0 }] },
   { id: "flash-hot", label: "Flash hot", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.25, color: "#ff4d2e", glow: 20 }, { t: 1, glow: 0 }] },
   { id: "flash-cold", label: "Flash cold", group: "Flash", ms: 450, ease: "ease-out", keys: [{ t: 0, glow: 0 }, { t: 0.25, color: "#7ad7ff", glow: 20 }, { t: 1, glow: 0 }] },
+  { id: "rainbow-burst", label: "Rainbow burst", group: "Flash", ms: 900, ease: "linear", keys: [
+    { t: 0, color: "#ff3b3b", glow: 14 }, { t: 0.2, color: "#ff9f1c", glow: 14 }, { t: 0.4, color: "#e6f350", glow: 14 },
+    { t: 0.6, color: "#2ec4b6", glow: 14 }, { t: 0.8, color: "#c77dff", glow: 14 }, { t: 1, glow: 0 },
+  ] },
   { id: "whiteout", label: "Whiteout", group: "Flash", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, color: "#fff", width: 2.2, glow: 30 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "boom", label: "Boom", group: "Flash", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, width: 2.6, glow: 30, color: "#fff" }, { t: 1, width: 1, glow: 0 }] },
   { id: "lightning", label: "Lightning", group: "Flash", ms: 700, ease: "steps(1, end)", keys: [
     { t: 0, opacity: 1, glow: 0 }, { t: 0.05, color: "#fff", glow: 30, width: 1.8 }, { t: 0.12, opacity: 0.2 },
     { t: 0.2, color: "#fff", glow: 40, width: 2.2 }, { t: 0.3, glow: 6 }, { t: 0.38, color: "#fff", glow: 24, width: 1.5 },
     { t: 0.5, opacity: 0.3 }, { t: 0.6, opacity: 1 }, { t: 1, opacity: 1 },
   ] },
-  { id: "alert", label: "Alert", group: "Alert", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ff2d2d", width: 1.7, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "success", label: "Success", group: "Alert", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#3dff7a", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "warn", label: "Warn", group: "Alert", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ffbf2e", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "strobe", label: "Strobe", group: "Alert", ms: 800, ease: "steps(1, end)", keys: [
-    { t: 0, opacity: 1 }, { t: 0.24, opacity: 1 }, { t: 0.25, opacity: 0.15 }, { t: 0.49, opacity: 0.15 },
-    { t: 0.5, opacity: 1 }, { t: 0.74, opacity: 1 }, { t: 0.75, opacity: 0.15 }, { t: 1, opacity: 1 },
-  ] },
-  { id: "blink", label: "Blink", group: "Alert", ms: 600, ease: "steps(1, end)", keys: [
+  { id: "success", label: "Success", group: "Status", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#3dff7a", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "warn", label: "Warn", group: "Status", ms: 600, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ffbf2e", width: 1.5, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "alert", label: "Alert", group: "Status", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.3, color: "#ff2d2d", width: 1.7, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
+  { id: "blink", label: "Blink", group: "Blink", ms: 600, ease: "steps(1, end)", keys: [
     { t: 0, opacity: 1 }, { t: 0.45, opacity: 1 }, { t: 0.5, opacity: 0 }, { t: 0.95, opacity: 0 }, { t: 1, opacity: 1 },
   ] },
-  { id: "flicker", label: "Flicker", group: "Alert", ms: 500, ease: "steps(1, end)", keys: [
+  { id: "flicker", label: "Flicker", group: "Blink", ms: 500, ease: "steps(1, end)", keys: [
     { t: 0, opacity: 1 }, { t: 0.1, opacity: 0.2 }, { t: 0.2, opacity: 1 }, { t: 0.3, opacity: 0.2 },
     { t: 0.4, opacity: 1 }, { t: 0.55, opacity: 0.2 }, { t: 0.7, opacity: 1 }, { t: 1, opacity: 1 },
   ] },
-  // Decaying amplitude so the hit settles instead of stopping dead.
-  { id: "shake", label: "Shake", group: "Hit", ms: 600, ease: "ease-in-out", keys: [
-    { t: 0, x: 0, y: 0 }, { t: 0.1, x: -10, y: 3 }, { t: 0.22, x: 9, y: -4 }, { t: 0.36, x: -7, y: -2 },
-    { t: 0.5, x: 5, y: 3 }, { t: 0.65, x: -3, y: -1 }, { t: 0.8, x: 2, y: 1 }, { t: 1, x: 0, y: 0 },
+  { id: "strobe", label: "Strobe", group: "Blink", ms: 800, ease: "steps(1, end)", keys: [
+    { t: 0, opacity: 1 }, { t: 0.24, opacity: 1 }, { t: 0.25, opacity: 0.15 }, { t: 0.49, opacity: 0.15 },
+    { t: 0.5, opacity: 1 }, { t: 0.74, opacity: 1 }, { t: 0.75, opacity: 0.15 }, { t: 1, opacity: 1 },
   ] },
-  { id: "jolt", label: "Jolt", group: "Hit", ms: 450, ease: "ease-out", keys: [
+  // Decaying amplitude so the hit settles instead of stopping dead.
+  { id: "jolt", label: "Jolt", group: "Move", ms: 450, ease: "ease-out", keys: [
     { t: 0, x: 0, y: 0, rot: 0 }, { t: 0.15, x: 12, y: -7, rot: 1.5 }, { t: 0.35, x: -8, y: 4, rot: -1 },
     { t: 0.55, x: 4, y: -2, rot: 0.5 }, { t: 0.75, x: -2, y: 1, rot: 0 }, { t: 1, x: 0, y: 0, rot: 0 },
   ] },
-  { id: "swell", label: "Swell", group: "Hit", ms: 700, ease: "ease-in-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.45, width: 2.1, glow: 14 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "snap", label: "Snap", group: "Hit", ms: 400, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.35, width: 0.4, glow: 0 }, { t: 0.6, width: 1.9, glow: 16 }, { t: 1, width: 1, glow: 0 }] },
-  { id: "wipe", label: "Wipe", group: "Hit", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 2000 }, { t: 1, offset: 0 }] },
-  { id: "reverse-wipe", label: "Reverse wipe", group: "Hit", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 2000 }] },
-  { id: "rainbow-burst", label: "Rainbow burst", group: "Glitch", ms: 900, ease: "linear", keys: [
-    { t: 0, color: "#ff3b3b", glow: 14 }, { t: 0.2, color: "#ff9f1c", glow: 14 }, { t: 0.4, color: "#e6f350", glow: 14 },
-    { t: 0.6, color: "#2ec4b6", glow: 14 }, { t: 0.8, color: "#c77dff", glow: 14 }, { t: 1, glow: 0 },
+  { id: "shake", label: "Shake", group: "Move", ms: 600, ease: "ease-in-out", keys: [
+    { t: 0, x: 0, y: 0 }, { t: 0.1, x: -10, y: 3 }, { t: 0.22, x: 9, y: -4 }, { t: 0.36, x: -7, y: -2 },
+    { t: 0.5, x: 5, y: 3 }, { t: 0.65, x: -3, y: -1 }, { t: 0.8, x: 2, y: 1 }, { t: 1, x: 0, y: 0 },
   ] },
+  { id: "wipe", label: "Wipe", group: "Sweep", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 2000 }, { t: 1, offset: 0 }] },
+  { id: "reverse-wipe", label: "Reverse wipe", group: "Sweep", ms: 800, ease: "ease", dash: "2000 2000", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 2000 }] },
+  { id: "spark", label: "Spark", group: "Sweep", ms: 600, ease: "ease", dash: "8 14", keys: [{ t: 0, offset: 0, glow: 0 }, { t: 0.5, color: "#fff", glow: 16, offset: -40 }, { t: 1, offset: 0, glow: 0 }] },
+  { id: "chroma-burst", label: "Chroma burst", group: "Glitch", ms: 700, ease: "ease-in-out", keys: [
+    { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.8 }, { t: 1, opacity: 1 },
+  ], fx: [{ id: "chroma", px: 5 }] },
   { id: "glitch", label: "Glitch", group: "Glitch", ms: 500, ease: "steps(1, end)", keys: [
     { t: 0, x: 0, y: 0, opacity: 1, color: "#fff" },
     { t: 0.1, x: 8, y: -4 },
@@ -156,14 +162,9 @@ const RECIPES = [
     { t: 0.7, x: -6, y: -5, color: "#fff" },
     { t: 1, x: 0, y: 0, opacity: 1 },
   ], fx: [{ id: "chroma", px: 6 }, { id: "slices", n: 5 }] },
-  { id: "chroma-burst", label: "Chroma burst", group: "Glitch", ms: 700, ease: "ease-in-out", keys: [
-    { t: 0, opacity: 1 }, { t: 0.5, opacity: 0.8 }, { t: 1, opacity: 1 },
-  ], fx: [{ id: "chroma", px: 5 }] },
-  { id: "spark", label: "Spark", group: "Glitch", ms: 600, ease: "ease", dash: "8 14", keys: [{ t: 0, offset: 0, glow: 0 }, { t: 0.5, color: "#fff", glow: 16, offset: -40 }, { t: 1, offset: 0, glow: 0 }] },
-  { id: "boom", label: "Boom", group: "Glitch", ms: 700, ease: "ease-out", keys: [{ t: 0, width: 1, glow: 0 }, { t: 0.2, width: 2.6, glow: 30, color: "#fff" }, { t: 1, width: 1, glow: 0 }] },
 ];
 
-const MOTION_KINDS = [{ id: "none", label: "None" }].concat(RECIPES.filter(r => r.loop).map(r => ({ id: r.id, label: r.label })));
+const MOTION_KINDS = RECIPES.filter(r => r.loop).map(r => ({ id: r.id, label: r.label, group: r.group }));
 const EVENT_ANIMS = RECIPES.filter(r => !r.loop).map(r => ({ id: r.id, label: r.label, ms: r.ms, group: r.group }));
 
 let customAnims = [];
@@ -471,41 +472,43 @@ function styleStroke(el, d) {
   el.style.setProperty("--stroke", d.stroke || "#e6f350");
 }
 
+// A group with an empty label puts its options straight in the select (no optgroup header).
 function fillGrouped(sel, groups) {
   sel.replaceChildren();
   groups.forEach(group => {
     if (!group.items.length) return;
-    const g = document.createElement("optgroup");
-    g.label = group.label;
+    const g = group.label ? document.createElement("optgroup") : sel;
+    if (group.label) g.label = group.label;
     group.items.forEach(m => {
       const o = document.createElement("option");
       o.value = m.id;
       o.textContent = m.label;
       g.appendChild(o);
     });
-    sel.appendChild(g);
+    if (g !== sel) sel.appendChild(g);
   });
 }
 
+// [{group, ...}] -> [{label, items}] in first-seen order, so RECIPES order drives the dropdowns.
+function byGroup(list) {
+  const groups = [];
+  list.forEach(a => {
+    let g = groups.find(x => x.label === a.group);
+    if (!g) { g = { label: a.group, items: [] }; groups.push(g); }
+    g.items.push(a);
+  });
+  return groups;
+}
+
 function fillMotionSelect(sel, value) {
-  const mine = (customAnims || []).filter(r => r.loop);
-  fillGrouped(sel, [
-    { label: "Motion", items: MOTION_KINDS },
-    { label: "Mine", items: mine },
-  ]);
+  fillGrouped(sel, [{ label: "", items: [{ id: "none", label: "None" }] }]
+    .concat(byGroup(MOTION_KINDS), [{ label: "Mine", items: (customAnims || []).filter(r => r.loop) }]));
   const ok = value === "none" || !!recipeById(value, true);
   sel.value = ok ? value : "none";
 }
 
 function fillEventAnimSelect(sel, value) {
-  const groups = [];
-  EVENT_ANIMS.forEach(a => {
-    let g = groups.find(x => x.label === a.group);
-    if (!g) { g = { label: a.group, items: [] }; groups.push(g); }
-    g.items.push(a);
-  });
-  groups.push({ label: "Mine", items: (customAnims || []).filter(r => !r.loop) });
-  fillGrouped(sel, groups);
+  fillGrouped(sel, byGroup(EVENT_ANIMS).concat([{ label: "Mine", items: (customAnims || []).filter(r => !r.loop) }]));
   sel.value = eventCatalog().some(a => a.id === value) ? value : "pulse";
 }
 
