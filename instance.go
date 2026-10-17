@@ -38,13 +38,25 @@ func lockInstance(name string) (syscall.Handle, error) {
 }
 
 func alert(title, body string) {
+	_, _ = messageBox(title, body, 0)
+}
+
+// confirm asks Yes/No. False on No and on any setup failure, so a bad string never deletes data.
+func confirm(title, body string) bool {
+	const mbYesNo = 0x4
+	id, ok := messageBox(title, body, mbYesNo)
+	return ok && id == 6 // IDYES
+}
+
+func messageBox(title, body string, flags uintptr) (uintptr, bool) {
 	t, err := syscall.UTF16PtrFromString(title)
 	if err != nil {
-		return
+		return 0, false
 	}
 	b, err := syscall.UTF16PtrFromString(body)
 	if err != nil {
-		return
+		return 0, false
 	}
-	procMessageBoxW.Call(0, uintptr(unsafe.Pointer(b)), uintptr(unsafe.Pointer(t)), 0)
+	r, _, _ := procMessageBoxW.Call(0, uintptr(unsafe.Pointer(b)), uintptr(unsafe.Pointer(t)), flags)
+	return r, true
 }

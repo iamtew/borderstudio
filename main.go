@@ -33,6 +33,9 @@ var (
 	about      *exec.Cmd
 )
 
+// Edge --app profiles. Same names in Justfile reset-browsers.
+var chromeProfiles = []string{"designer-chrome", "controller-chrome", "about-chrome"}
+
 //go:embed all:web
 //go:embed assets/icon.ico
 //go:embed assets/icon.png
@@ -249,10 +252,37 @@ func closeAppWindows() {
 	killTree(designer)
 	killTree(controller)
 	killTree(about)
-	killProfile("designer-chrome")
-	killProfile("controller-chrome")
-	killProfile("about-chrome")
+	for _, name := range chromeProfiles {
+		killProfile(name)
+	}
 	designer, controller, about = nil, nil, nil
+}
+
+// removeChromeProfiles deletes the Edge profiles under root. Missing dirs are fine.
+// ponytail: one retry after a failed delete; Edge still holds cache files briefly after taskkill.
+func removeChromeProfiles(root string) error {
+	var errs []error
+	for _, name := range chromeProfiles {
+		dir := filepath.Join(root, name)
+		err := os.RemoveAll(dir)
+		if err != nil {
+			time.Sleep(400 * time.Millisecond)
+			err = os.RemoveAll(dir)
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", name, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func clearBrowserData() {
+	closeAppWindows()
+	if err := removeChromeProfiles(dataDir()); err != nil {
+		alert("Border Studio", "Could not clear browser data: "+err.Error())
+		return
+	}
+	trayToast("Border Studio", "Browser data cleared. Open Designer to allow the camera again.")
 }
 
 func trayToast(title, body string) {
@@ -657,6 +687,7 @@ func main() {
 		overlay := systray.AddMenuItem("Overlay", "Open overlay")
 		copyOverlay := systray.AddMenuItem("Copy URL", "Copy overlay URL")
 		systray.AddSeparator()
+		clearBrowsers := systray.AddMenuItem("Clear browser data", "Delete Edge profiles for this copy")
 		aboutItem := systray.AddMenuItem("About", "About Border Studio")
 		quit := systray.AddMenuItem("Quit", "Quit")
 		go func() {
@@ -675,6 +706,11 @@ func main() {
 					openURL(overlayURL())
 				case <-copyOverlay.ClickedCh:
 					copyText(overlayURL())
+				case <-clearBrowsers.ClickedCh:
+					if !confirm("Border Studio", "Close Designer, Controller, and About and delete their saved browser data, including the camera block?") {
+						continue
+					}
+					clearBrowserData()
 				case <-aboutItem.ClickedCh:
 					openAbout()
 				case <-quit.ClickedCh:

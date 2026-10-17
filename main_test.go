@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -353,6 +355,34 @@ func TestHostGuard(t *testing.T) {
 		if w.Code != c.want {
 			t.Errorf("%s host=%s origin=%s: got %d want %d", c.method, c.host, c.origin, w.Code, c.want)
 		}
+	}
+}
+
+func TestRemoveChromeProfiles(t *testing.T) {
+	root := t.TempDir()
+	keep := filepath.Join(root, "border.db")
+	if err := os.WriteFile(keep, []byte("x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range chromeProfiles {
+		dir := filepath.Join(root, name)
+		if err := os.Mkdir(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "Preferences"), []byte("{}"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := removeChromeProfiles(root); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range chromeProfiles {
+		if _, err := os.Stat(filepath.Join(root, name)); !os.IsNotExist(err) {
+			t.Fatalf("%s still there: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatal(err)
 	}
 }
 
