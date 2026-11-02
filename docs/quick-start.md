@@ -13,6 +13,8 @@ Stub. We will flesh this out as the installer settles. The steps below are enoug
 2. Run the installer, then launch Border Studio.
 3. A tray icon means it is running. The window that opens is the **Designer** — that is the whole app.
 
+![Designer Mask tab]({{ '/assets/screens/designer-mask.png' | relative_url }})
+
 ## First run
 
 1. In OBS: **Tools → WebSocket Server Settings**. Turn the server on. Install [Advanced Masks](https://github.com/FiniteSingularity/obs-advanced-masks) if you do not have it.

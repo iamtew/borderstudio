@@ -9,6 +9,8 @@ nav_order: 6
 
 Enable OBS WebSocket (**Tools → WebSocket Server Settings**) and install [Advanced Masks](https://github.com/FiniteSingularity/obs-advanced-masks). In the Designer: **Border Studio → Settings → OBS**. Connect, pick an existing camera, then **Create / Repair scene**. Nest the `Border Studio` scene into your other scenes.
 
+![Settings OBS]({{ '/assets/screens/settings-obs.png' | relative_url }})
+
 Do not rename `Border Studio`, `BS Camera`, `BS Mask`, or `BS Overlay`.
 
 ## Modes

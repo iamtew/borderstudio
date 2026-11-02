@@ -11,6 +11,9 @@ Open the Designer, shape the hole on the Mask tab, paint the edge on Border, and
 
 That is the whole job. Fancy frames without fighting scene collections by hand. Start with the [Quick Start](quick-start.md); the other pages go deeper when you want them.
 
+![Designer Mask tab]({{ '/assets/screens/designer-mask.png' | relative_url }})
+{: .screenshot }
+
 - <span class="ti ti-player-play" aria-hidden="true"></span>[Quick Start](quick-start.md)
 - <span class="ti ti-download" aria-hidden="true"></span>[Install from source](install.md)
 - <span class="ti ti-pencil" aria-hidden="true"></span>[Designer](designer.md)
