@@ -1,12 +1,10 @@
 # Quick Start
 
-Stub. We will flesh this out as the installer settles. The steps below are enough to get on stream.
-
 ## Install
 
 1. Open [GitHub Releases](https://github.com/iamtew/borderstudio/releases) and download the Windows installer from the latest release.
-2. Run the installer, then launch Border Studio.
-3. A tray icon means it is running. The window that opens is the **Designer** — that is the whole app.
+2. Run the installer. Default folder is `%LOCALAPPDATA%\Programs\Border Studio`; change it if you want. Start Menu shortcut is on, desktop shortcut is off.
+3. Launch Border Studio. A tray icon means it is running. The window that opens is the **Designer** — that is the whole app.
 
 ![Designer Mask tab](../assets/screens/designer-mask.png)
 

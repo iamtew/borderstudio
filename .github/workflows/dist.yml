@@ -1,0 +1,53 @@
+# Windows release zip and per-user MSI. One artifact named dist.
+# Run from the Actions tab, or push a numeric tag such as 0.0.1. Does not publish a release.
+name: dist
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "[0-9]*"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Install ImageMagick
+        shell: pwsh
+        run: |
+          choco install imagemagick.app -y --no-progress
+          $magick = Get-ChildItem "C:\Program Files\ImageMagick*" -Directory | Select-Object -First 1
+          if (-not $magick) { Write-Error "ImageMagick not found"; exit 1 }
+          Add-Content $env:GITHUB_PATH $magick.FullName
+
+      - name: Install WiX
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          $tools = Join-Path $env:USERPROFILE ".dotnet\tools"
+          Add-Content $env:GITHUB_PATH $tools
+          $env:PATH = "$tools;$env:PATH"
+          wix extension add --global WixToolset.UI.wixext/5.0.2
+
+      - name: Build dist
+        shell: pwsh
+        run: just build-dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/*.zip
+            dist/*.msi
+          if-no-files-found: error
