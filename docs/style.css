@@ -55,13 +55,13 @@ a { color: var(--accent); }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 36%, transparent 30%, rgba(26, 26, 26, 0.5) 62%, #1a1a1a 100%);
+  background: radial-gradient(ellipse at 50% 28%, transparent 30%, rgba(26, 26, 26, 0.5) 62%, #1a1a1a 100%);
 }
 
 .hero {
   position: fixed;
   z-index: 1;
-  top: 14vh;
+  top: 6vh;
   left: 50%;
   width: min(420px, 56vw);
   height: auto;
