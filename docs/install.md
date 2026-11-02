@@ -9,7 +9,7 @@ nav_order: 2
 just run
 ```
 
-Listens on `http://127.0.0.1:8505`. Use the systray for Designer, Controller, Overlay, Copy URL, Clear browser data, About, and Quit. Windows 10/11 already have WebView2; Designer/Controller/About use it instead of launching Edge.
+Listens on `http://127.0.0.1:8505`. Use the systray for Designer, Effects, Overlay, Copy URL, Clear browser data, About, and Quit. Windows 10/11 already have WebView2; Designer/Effects/About use it instead of launching Edge.
 
 ```
 just build

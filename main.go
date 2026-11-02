@@ -206,7 +206,7 @@ func openDesigner() {
 
 func openController() {
 	showOrCreate(&controllerW, application.WebviewWindowOptions{
-		Title:       "Controller",
+		Title:       "Effects",
 		Width:       1280,
 		Height:      800,
 		URL:         "http://" + addr + "/control",
@@ -387,6 +387,7 @@ func main() {
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		next.Feather = clamp(next.Feather, 0, 64)
 		next.MotionTune = normalizeMotionTune(next.MotionTune)
 		for i := range next.Events {
 			next.Events[i].ID = clipText(next.Events[i].ID, 42)
@@ -666,12 +667,12 @@ func main() {
 	tray.SetTooltip("Border Studio")
 	menu := wailsApp.Menu.New()
 	menu.Add("Designer").SetBitmap(trayIcon("pencil")).OnClick(func(_ *application.Context) { openDesigner() })
-	menu.Add("Controller").SetBitmap(trayIcon("layout-grid")).OnClick(func(_ *application.Context) { openController() })
+	menu.Add("Effects").SetBitmap(trayIcon("sparkles")).OnClick(func(_ *application.Context) { openController() })
 	menu.Add("Overlay").SetBitmap(trayIcon("border-corners")).OnClick(func(_ *application.Context) { openURL(overlayURL()) })
 	menu.Add("Copy URL").SetBitmap(trayIcon("copy")).OnClick(func(_ *application.Context) { copyText(overlayURL()) })
 	menu.AddSeparator()
 	menu.Add("Clear browser data").SetBitmap(trayIcon("browser-x")).OnClick(func(_ *application.Context) {
-		if !confirm("Border Studio", "Close Designer, Controller, and About and delete saved WebView data?") {
+		if !confirm("Border Studio", "Close Designer, Effects, and About and delete saved WebView data?") {
 			return
 		}
 		clearBrowserData()

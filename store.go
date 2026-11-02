@@ -44,6 +44,7 @@ type design struct {
 	StrokeWidth float64     `json:"strokeWidth"`
 	Glow        float64     `json:"glow"`
 	Blur        float64     `json:"blur"`
+	Feather     float64     `json:"feather"`
 	Dash        bool        `json:"dash"`
 	Motion      string      `json:"motion,omitempty"`
 	MotionTune  *motionTune `json:"motionTune,omitempty"`
@@ -133,6 +134,7 @@ func (st *store) load() (design, error) {
 		d = defaultDesign()
 		return d, st.save(d)
 	}
+	d.Feather = clamp(d.Feather, 0, 64)
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
 	for i := range d.Events {
 		d.Events[i].Tune = normalizeMotionTune(d.Events[i].Tune)

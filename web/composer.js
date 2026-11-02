@@ -47,9 +47,9 @@ function redo() {
   applyHist(stack[idx]);
 }
 
-// Save/sync state. Designer and Controller are separate windows that each hold
-// the whole design, so every window pulls the server copy on "update" unless
-// it has edits of its own in flight (those win, last writer wins).
+// Save/sync state. Designer windows each hold the whole design, so every
+// window pulls the server copy on "update" unless it has edits of its own
+// in flight (those win, last writer wins).
 let saving = 0;       // PUTs in flight
 let dirty = false;    // last save failed; resent when the event stream reconnects
 let pullAgain = false; // an "update" arrived while we were busy
@@ -107,28 +107,29 @@ function paint() {
   renderBorder(stage, d, { handles: true, sel, ui: hits });
   if (window.designInk) {
     window.designInk.setView({ overlayW: d.width, overlayH: d.height });
-    window.designInk.playIdle(d);
+    if (!fxEdit) window.designInk.playIdle(d);
   }
-  paintCam();
   paintStrokeWell();
-  document.getElementById("in-width").value = d.strokeWidth;
-  document.getElementById("in-glow").value = d.glow;
-  document.getElementById("in-blur").value = d.blur || 0;
+  fillPair("in-width", "in-width-r", d.strokeWidth);
+  fillPair("in-glow", "in-glow-r", d.glow);
+  fillPair("in-blur", "in-blur-r", d.blur || 0);
+  fillPair("in-feather", "in-feather-r", d.feather || 0);
   fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
   paintTune();
-  document.getElementById("in-mw").value = d.width;
-  document.getElementById("in-mh").value = d.height;
+  fillPair("in-mw", "in-mw-r", d.width);
+  fillPair("in-mh", "in-mh-r", d.height);
   document.getElementById("mask-prev").src = maskCanvas(d).toDataURL("image/png");
+  paintCam();
   const k = kindOf(d);
   document.getElementById("in-kind").value = k;
-  document.getElementById("in-radius").value = d.r || 0;
+  fillPair("in-radius", "in-radius-r", d.r || 0);
   document.body.classList.toggle("shape-poly", k === "polygon");
   document.body.classList.toggle("shape-roundrect", k === "roundrect");
   paintCtrl();
   paintGrids();
 }
 
-let ctrlEdit = false;
+let fxEdit = false;
 let ctrlSel = 0;
 
 function tuneOfRecipe(src) {
@@ -138,90 +139,66 @@ function tuneOfRecipe(src) {
 
 function paintCtrl() {
   const grid = document.getElementById("ctrl-grid");
-  const add = document.getElementById("btn-ev-add");
-  const edit = document.getElementById("btn-ctrl-edit");
-  document.body.classList.toggle("ctrl-edit", ctrlEdit);
-  add.hidden = !ctrlEdit;
-  edit.innerHTML = ctrlEdit
-    ? '<span class="ti ti-check" aria-hidden="true"></span> Done'
-    : '<span class="ti ti-pencil" aria-hidden="true"></span> Edit';
-  grid.replaceChildren();
+  const list = document.getElementById("fx-list");
   const events = d.events || [];
   if (ctrlSel >= events.length) ctrlSel = Math.max(0, events.length - 1);
-  if (ctrlEdit) {
-    const head = document.createElement("div");
-    head.className = "event-head";
-    head.innerHTML = "<span>Button</span><span>Animation</span><span></span>";
-    grid.appendChild(head);
-  }
+  if (fxEdit && !events[ctrlSel]) fxEdit = false;
+  list.hidden = fxEdit;
+  grid.replaceChildren();
   events.forEach((ev, i) => {
-    if (!ctrlEdit) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = ev.label || ev.id;
-      b.onclick = () => fetch("/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: ev.id }) });
-      grid.appendChild(b);
-      return;
-    }
     const row = document.createElement("div");
-    row.className = "event-row" + (i === ctrlSel ? " sel" : "");
-    const lab = document.createElement("input");
-    lab.value = ev.label;
-    lab.placeholder = "Button name";
-    lab.setAttribute("aria-label", "Button name");
-    lab.onfocus = () => { pushHist(); pickCtrl(i); };
-    lab.onchange = () => { ev.label = lab.value; ev.id = slug(lab.value) || ev.id; scheduleSave(); };
-    const anim = document.createElement("select");
-    anim.setAttribute("aria-label", "Animation");
-    fillEventAnimSelect(anim, ev.anim);
-    anim.onfocus = () => { pushHist(); pickCtrl(i); };
-    anim.onchange = () => {
-      const catalog = eventCatalog();
-      const prev = catalog.find(x => x.id === ev.anim);
-      const next = catalog.find(x => x.id === anim.value) || EVENT_ANIMS[0];
-      if (!String(ev.label || "").trim() || (prev && ev.label === eventButtonName(prev))) {
-        ev.label = eventButtonName(next);
-        ev.id = uniqueEventId(slug(ev.label) || next.id, ev);
-        lab.value = ev.label;
-      }
-      ev.anim = anim.value;
-      ev.tune = tuneOfRecipe(recipeById(ev.anim, false));
-      ctrlSel = i;
-      paintCtrlTune();
-      previewCtrl();
-      scheduleSave();
-    };
-    const del = document.createElement("button");
-    del.type = "button";
-    del.setAttribute("aria-label", "Delete");
-    del.innerHTML = '<span class="ti ti-trash" aria-hidden="true"></span>';
-    del.onclick = () => delEvent(i);
+    row.className = "fx-row";
     row.dataset.i = String(i);
-    row.addEventListener("pointerdown", () => pickCtrl(i));
-    row.append(lab, anim, del);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = ev.label || ev.id;
+    b.onclick = () => fireFx(ev);
+    const wrench = document.createElement("button");
+    wrench.type = "button";
+    wrench.className = "fx-wrench";
+    wrench.title = "Edit effect";
+    wrench.setAttribute("aria-label", "Edit " + (ev.label || ev.id));
+    wrench.innerHTML = '<span class="ti ti-tool" aria-hidden="true"></span>';
+    wrench.onclick = () => openFx(i);
+    row.append(b, wrench);
     grid.appendChild(row);
   });
   paintCtrlTune();
-  if (ctrlEdit && document.body.classList.contains("view-control")) requestAnimationFrame(previewCtrl);
+  if (fxEdit) requestAnimationFrame(previewCtrl);
+}
+
+function fireFx(ev) {
+  fetch("/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: ev.id }) });
+  const ink = window.designInk;
+  if (!ink || !d) return;
+  const src = recipeById(ev.anim, false) || recipeById("pulse", false);
+  ink.play(recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
+}
+
+function openFx(i) {
+  fxEdit = true;
+  ctrlSel = i;
+  paintCtrl();
 }
 
 function delEvent(i) {
   pushHist();
   d.events.splice(i, 1);
+  if (ctrlSel >= d.events.length) ctrlSel = Math.max(0, d.events.length - 1);
+  if (!d.events.length) fxEdit = false;
+  if (!fxEdit && window.designInk) window.designInk.playIdle(d);
   paintCtrl();
   scheduleSave();
 }
 
-function pickCtrl(i) {
-  if (ctrlSel === i) return;
-  ctrlSel = i;
-  document.querySelectorAll("#ctrl-grid .event-row").forEach((row, n) => row.classList.toggle("sel", n === i));
-  paintCtrlTune();
-  previewCtrl();
+function closeFx() {
+  fxEdit = false;
+  if (window.designInk) window.designInk.playIdle(d);
+  paintCtrl();
 }
 
 function ctrlEvent() {
-  return ctrlEdit && d && d.events && d.events[ctrlSel];
+  return fxEdit && d && d.events && d.events[ctrlSel];
 }
 
 function readCtrlTune() {
@@ -240,14 +217,16 @@ function paintCtrlTune() {
   if (!ev) return;
   const src = recipeById(ev.anim, false) || recipeById("pulse", false);
   const tune = ev.tune || tuneOfRecipe(src);
-  const ms = document.getElementById("ctrl-ms");
+  const lab = document.getElementById("fx-label");
+  const anim = document.getElementById("fx-anim");
   const ease = document.getElementById("ctrl-ease");
   const hex = document.getElementById("ctrl-color-hex");
-  const strength = document.getElementById("ctrl-strength");
-  if (document.activeElement !== ms) ms.value = tune.ms;
+  if (document.activeElement !== lab) lab.value = ev.label || "";
+  fillEventAnimSelect(anim, ev.anim);
+  fillPair("ctrl-ms", "ctrl-ms-r", tune.ms);
   if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
   if (document.activeElement !== hex) hex.value = tune.color || "";
-  if (document.activeElement !== strength) strength.value = tune.strength != null ? tune.strength : 1;
+  fillPair("ctrl-strength", "ctrl-strength-r", tune.strength != null ? tune.strength : 1);
   const btn = document.getElementById("ctrl-color");
   const shown = tune.color || d.stroke || "#e6f350";
   btn.style.background = shown;
@@ -256,13 +235,10 @@ function paintCtrlTune() {
   document.getElementById("ctrl-color-clear").hidden = !tune.color;
 }
 
-async function previewCtrl() {
+function previewCtrl() {
   const ev = ctrlEvent();
-  if (!ev || !d) return;
-  if (!window.ctrlInk) window.ctrlInk = await mountInk(document.getElementById("ctrl-ink"));
-  const ink = window.ctrlInk;
-  if (!ink) return;
-  ink.setView({ overlayW: d.width, overlayH: d.height });
+  const ink = window.designInk;
+  if (!ev || !d || !ink) return;
   ink.playIdle(d);
   const src = recipeById(ev.anim, false) || recipeById("pulse", false);
   ink.play(recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
@@ -943,6 +919,30 @@ function lookInput(el, fn) {
   el.addEventListener("input", () => { fn(); paint(); scheduleSave(); });
   el.addEventListener("change", () => { fn(); paint(); scheduleSave(); });
 }
+function fillPair(numId, rangeId, v) {
+  const num = document.getElementById(numId);
+  const range = document.getElementById(rangeId);
+  const ae = document.activeElement;
+  if (ae !== num && ae !== range) {
+    num.value = v;
+    if (range) range.value = v;
+  } else if (ae === num && range) range.value = num.value;
+  else if (ae === range) num.value = range.value;
+}
+function bindPair(numId, rangeId, fn) {
+  const num = document.getElementById(numId);
+  const range = document.getElementById(rangeId);
+  const run = (src) => {
+    if (src === range) num.value = range.value;
+    else if (range) range.value = num.value;
+    fn();
+  };
+  lookInput(num, () => run(num));
+  if (range) lookInput(range, () => run(range));
+}
+function onReset(id, fn) {
+  document.getElementById(id).onclick = () => { pushHist(); fn(); paint(); scheduleSave(); };
+}
 const strokeBtn = document.getElementById("in-stroke");
 const strokeHex = document.getElementById("in-stroke-hex");
 strokeBtn.onclick = (ev) => {
@@ -960,9 +960,10 @@ strokeHex.oninput = () => {
   }
   setStroke(h);
 };
-lookInput(document.getElementById("in-width"), () => { d.strokeWidth = Number(document.getElementById("in-width").value) || 1; });
-lookInput(document.getElementById("in-glow"), () => { d.glow = Number(document.getElementById("in-glow").value) || 0; });
-lookInput(document.getElementById("in-blur"), () => { d.blur = Math.max(0, Number(document.getElementById("in-blur").value) || 0); });
+bindPair("in-width", "in-width-r", () => { d.strokeWidth = Math.max(1, Number(document.getElementById("in-width").value) || 1); });
+bindPair("in-glow", "in-glow-r", () => { d.glow = Math.max(0, Number(document.getElementById("in-glow").value) || 0); });
+bindPair("in-blur", "in-blur-r", () => { d.blur = Math.max(0, Number(document.getElementById("in-blur").value) || 0); });
+bindPair("in-feather", "in-feather-r", () => { d.feather = Math.max(0, Math.min(64, Number(document.getElementById("in-feather").value) || 0)); });
 lookInput(document.getElementById("in-motion"), () => {
   d.motion = document.getElementById("in-motion").value;
   d.dash = d.motion === "dash";
@@ -970,6 +971,15 @@ lookInput(document.getElementById("in-motion"), () => {
   d.motionTune = src ? { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 } : null;
   document.getElementById("tune-name").value = src ? src.label + " copy" : "";
 });
+onReset("in-width-reset", () => { d.strokeWidth = 12; });
+onReset("in-glow-reset", () => { d.glow = 8; });
+onReset("in-blur-reset", () => { d.blur = 0; });
+onReset("in-feather-reset", () => { d.feather = 0; });
+onReset("in-stroke-reset", () => { d.stroke = "#e6f350"; });
+onReset("in-motion-reset", () => { d.motion = "none"; d.dash = false; d.motionTune = null; });
+onReset("in-mw-reset", () => { d.width = 1920; });
+onReset("in-mh-reset", () => { d.height = 1080; });
+onReset("in-radius-reset", () => { d.r = 0; });
 function readTune() {
   return {
     ms: Number(document.getElementById("tune-ms").value),
@@ -988,14 +998,12 @@ function paintTune() {
   del.hidden = !mine;
   if (!src) return;
   const tune = d.motionTune || { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
-  const ms = document.getElementById("tune-ms");
   const ease = document.getElementById("tune-ease");
   const hex = document.getElementById("tune-color-hex");
-  const strength = document.getElementById("tune-strength");
-  if (document.activeElement !== ms) ms.value = tune.ms;
+  fillPair("tune-ms", "tune-ms-r", tune.ms);
   if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
   if (document.activeElement !== hex) hex.value = tune.color || "";
-  if (document.activeElement !== strength) strength.value = tune.strength != null ? tune.strength : 1;
+  fillPair("tune-strength", "tune-strength-r", tune.strength != null ? tune.strength : 1);
   const btn = document.getElementById("tune-color");
   const shown = tune.color || d.stroke || "#e6f350";
   btn.style.background = shown;
@@ -1005,12 +1013,29 @@ function paintTune() {
 function replayMotion() {
   if (window.designInk) window.designInk.playIdle(d);
 }
-["tune-ms", "tune-ease", "tune-strength"].forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener("focus", pushHist);
-  el.addEventListener("input", () => { d.motionTune = readTune(); replayMotion(); scheduleSave(); });
-  el.addEventListener("change", () => { d.motionTune = readTune(); replayMotion(); scheduleSave(); });
-});
+function applyTune() { d.motionTune = readTune(); replayMotion(); scheduleSave(); }
+function bindTunePair(numId, rangeId) {
+  const num = document.getElementById(numId);
+  const range = document.getElementById(rangeId);
+  const go = (src) => {
+    if (src === range) num.value = range.value;
+    else range.value = num.value;
+    applyTune();
+  };
+  [num, range].forEach(el => {
+    el.addEventListener("focus", pushHist);
+    el.addEventListener("input", () => go(el));
+    el.addEventListener("change", () => go(el));
+  });
+}
+bindTunePair("tune-ms", "tune-ms-r");
+bindTunePair("tune-strength", "tune-strength-r");
+document.getElementById("tune-ease").addEventListener("focus", pushHist);
+document.getElementById("tune-ease").addEventListener("change", applyTune);
+function motionRecipe() { return recipeById(motionOf(d), true); }
+onReset("tune-ms-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { ms: src ? src.ms : 1000 }); });
+onReset("tune-ease-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { ease: (src && src.ease) || "ease" }); });
+onReset("tune-strength-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { strength: src && src.strength != null ? src.strength : 1 }); });
 document.getElementById("tune-color").onclick = (ev) => {
   ev.stopPropagation();
   pushHist();
@@ -1073,12 +1098,10 @@ document.getElementById("tune-del").onclick = () => {
   persistAnims();
   scheduleSave();
 };
-lookInput(document.getElementById("in-mw"), () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
-lookInput(document.getElementById("in-mh"), () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
+bindPair("in-mw", "in-mw-r", () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
+bindPair("in-mh", "in-mh-r", () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
 document.getElementById("in-kind").onchange = e => setKind(e.target.value);
-lookInput(document.getElementById("in-radius"), () => {
-  d.r = Math.max(0, Number(document.getElementById("in-radius").value) || 0);
-});
+bindPair("in-radius", "in-radius-r", () => { d.r = Math.max(0, Number(document.getElementById("in-radius").value) || 0); });
 
 function slug(s) {
   return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1098,16 +1121,56 @@ function uniqueEventId(base, skip) {
 function applyCtrlTune() {
   const ev = ctrlEvent();
   if (!ev) return;
+  const ae = document.activeElement;
+  [["ctrl-ms", "ctrl-ms-r"], ["ctrl-strength", "ctrl-strength-r"]].forEach(([n, r]) => {
+    const num = document.getElementById(n), range = document.getElementById(r);
+    if (ae === range) num.value = range.value;
+    else if (ae === num) range.value = num.value;
+  });
   ev.tune = readCtrlTune();
   previewCtrl();
   scheduleSave();
 }
-["ctrl-ms", "ctrl-ease", "ctrl-strength"].forEach(id => {
+["ctrl-ms", "ctrl-ms-r", "ctrl-ease", "ctrl-strength", "ctrl-strength-r"].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener("focus", pushHist);
   el.addEventListener("input", applyCtrlTune);
   el.addEventListener("change", applyCtrlTune);
 });
+function fxRecipe() {
+  const ev = ctrlEvent();
+  return ev && (recipeById(ev.anim, false) || recipeById("pulse", false));
+}
+onReset("ctrl-ms-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { ms: src.ms }); previewCtrl(); });
+onReset("ctrl-ease-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { ease: src.ease || "ease" }); previewCtrl(); });
+onReset("ctrl-strength-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { strength: src.strength != null ? src.strength : 1 }); previewCtrl(); });
+document.getElementById("fx-back").onclick = closeFx;
+document.getElementById("fx-label").addEventListener("focus", pushHist);
+document.getElementById("fx-label").onchange = () => {
+  const ev = ctrlEvent();
+  if (!ev) return;
+  ev.label = document.getElementById("fx-label").value;
+  ev.id = slug(ev.label) || ev.id;
+  scheduleSave();
+};
+document.getElementById("fx-anim").onchange = () => {
+  const ev = ctrlEvent();
+  if (!ev) return;
+  pushHist();
+  const catalog = eventCatalog();
+  const prev = catalog.find(x => x.id === ev.anim);
+  const next = catalog.find(x => x.id === document.getElementById("fx-anim").value) || EVENT_ANIMS[0];
+  if (!String(ev.label || "").trim() || (prev && ev.label === eventButtonName(prev))) {
+    ev.label = eventButtonName(next);
+    ev.id = uniqueEventId(slug(ev.label) || next.id, ev);
+  }
+  ev.anim = next.id;
+  ev.tune = tuneOfRecipe(recipeById(ev.anim, false));
+  paintCtrlTune();
+  previewCtrl();
+  scheduleSave();
+};
+document.getElementById("fx-del-ev").onclick = () => delEvent(ctrlSel);
 document.getElementById("ctrl-color").onclick = (ev) => {
   ev.stopPropagation();
   pushHist();
@@ -1162,10 +1225,6 @@ document.getElementById("ctrl-del").onclick = () => {
   persistAnims();
   scheduleSave();
 };
-document.getElementById("btn-ctrl-edit").onclick = () => {
-  ctrlEdit = !ctrlEdit;
-  paintCtrl();
-};
 document.getElementById("btn-ev-add").onclick = () => {
   pushHist();
   d.events = d.events || [];
@@ -1184,30 +1243,20 @@ document.getElementById("btn-mask").onclick = () => {
   a.click();
 };
 
-function setView(name) {
-  document.body.classList.toggle("view-design", name === "design");
-  document.body.classList.toggle("view-control", name === "control");
-  document.getElementById("view-design").classList.toggle("sel", name === "design");
-  document.getElementById("view-control").classList.toggle("sel", name === "control");
-  document.title = name === "control" ? "Border Studio Controller" : "Border Studio Designer";
-  history.replaceState(null, "", name === "control" ? "/control" : "/admin");
-}
-
-document.getElementById("view-design").onclick = () => setView("design");
-document.getElementById("view-control").onclick = () => setView("control");
-
 function setSideTab(name) {
+  if (name !== "effects" && fxEdit) closeFx();
   document.body.classList.toggle("tab-mask", name === "mask");
   document.body.classList.toggle("tab-border", name === "border");
-  const mask = document.getElementById("tab-mask");
-  const border = document.getElementById("tab-border");
-  mask.classList.toggle("sel", name === "mask");
-  border.classList.toggle("sel", name === "border");
-  mask.setAttribute("aria-selected", name === "mask");
-  border.setAttribute("aria-selected", name === "border");
+  document.body.classList.toggle("tab-effects", name === "effects");
+  [["tab-mask", "mask"], ["tab-border", "border"], ["tab-effects", "effects"]].forEach(([id, n]) => {
+    const b = document.getElementById(id);
+    b.classList.toggle("sel", name === n);
+    b.setAttribute("aria-selected", String(name === n));
+  });
 }
 document.getElementById("tab-mask").onclick = () => setSideTab("mask");
 document.getElementById("tab-border").onclick = () => setSideTab("border");
+document.getElementById("tab-effects").onclick = () => setSideTab("effects");
 
 document.getElementById("btn-file").onclick = () => { closeCtx(); menu.hidden = !menu.hidden; };
 document.getElementById("file-save").onclick = () => { menu.hidden = true; save(); };
@@ -1273,15 +1322,18 @@ document.getElementById("file-quit").onclick = () => fetch("/api/quit", { method
 let camStream = null;
 const camVideo = document.getElementById("cam-video");
 
-// The <video> is never re-created, only its clip and box follow the design, so drags don't flicker.
+// The <video> is never re-created; luminance mask follows the hole (including feather).
 function paintCam() {
-  if (!camStream) return;
   const layer = document.getElementById("cam-layer");
   const fo = document.getElementById("cam-fo");
   layer.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
   fo.setAttribute("width", d.width);
   fo.setAttribute("height", d.height);
-  document.getElementById("cam-clip").replaceChildren(makeShape("http://www.w3.org/2000/svg", d));
+  const src = document.getElementById("mask-prev").src;
+  if (!src) return;
+  const url = "url(\"" + src + "\")";
+  layer.style.webkitMaskImage = url;
+  layer.style.maskImage = url;
 }
 
 function showMode(mode) {
@@ -1461,7 +1513,7 @@ addEventListener("contextmenu", ev => {
   ctx.replaceChildren();
   const extra = [];
   const onStage = ev.target.closest("#stage, #hits, #ink");
-  if (document.body.classList.contains("view-design") && d && kindOf(d) === "polygon" && onStage) {
+  if (d && kindOf(d) === "polygon" && onStage) {
     const vert = ev.target.closest(".handle[data-i]:not([data-h])");
     if (vert) {
       const i = Number(vert.dataset.i);
@@ -1472,8 +1524,8 @@ addEventListener("contextmenu", ev => {
       extra.push(["Add point here", "plus", () => addPointAt(p)]);
     }
   }
-  const row = ev.target.closest("#ctrl-grid .event-row");
-  if (row && ctrlEdit) extra.push(["Delete button", "trash", () => delEvent(Number(row.dataset.i))]);
+  const row = ev.target.closest("#ctrl-grid .fx-row");
+  if (row) extra.push(["Delete effect", "trash", () => delEvent(Number(row.dataset.i))]);
   extra.forEach(it => addCtxBtn(it[0], it[1], it[2], it[3], it[4]));
   if (extra.length) {
     const sep = document.createElement("div");
@@ -1522,7 +1574,7 @@ addEventListener("keydown", ev => {
     return;
   }
   if (ev.key === "Delete" || ev.key === "Backspace") {
-    if (!document.body.classList.contains("view-design")) return;
+    if (document.body.classList.contains("tab-effects")) return;
     if (ev.target.matches("input,textarea,select")) return;
     ev.preventDefault();
     delPoint();
@@ -1548,7 +1600,7 @@ async function boot() {
   paint();
   window.designInk = await mountInk(document.getElementById("ink"));
   paint();
-  if (location.pathname === "/control") setView("control");
+  if (location.pathname === "/control") setSideTab("effects");
   const es = new EventSource("/api/events?admin=1");
   es.onerror = () => { banner.hidden = false; };
   es.onopen = () => {

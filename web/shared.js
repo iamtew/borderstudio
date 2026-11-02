@@ -43,7 +43,7 @@ function tracePoly(ctx, pts) {
 
 function kindOf(d) { return d.kind || "polygon"; }
 
-// Idle loops (loop:true) and controller one-shots. User presets in customAnims use the same shape.
+// Idle loops (loop:true) and Effects one-shots. User presets in customAnims use the same shape.
 // width/glow/x/y are deltas from the resting stroke (width 1 = unchanged). glow is extra drop-shadow px.
 const RECIPES = [
   // Order here is the dropdown order: groups in sequence, gentle to intense inside each.
@@ -433,7 +433,7 @@ function renderBorder(svg, d, opts) {
   }
 }
 
-// Mask: full-frame black, white filled hole. OBS Image Mask.
+// Mask: full-frame black, white filled hole. OBS Image Mask. feather blurs the hole edge.
 function maskCanvas(d) {
   const c = document.createElement("canvas");
   c.width = d.width;
@@ -441,6 +441,8 @@ function maskCanvas(d) {
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, c.width, c.height);
+  const feather = Math.max(0, d.feather || 0);
+  if (feather) ctx.filter = "blur(" + feather + "px)";
   ctx.fillStyle = "#fff";
   ctx.beginPath();
   const k = kindOf(d);
@@ -455,6 +457,7 @@ function maskCanvas(d) {
     tracePoly(ctx, d.points);
   }
   ctx.fill("nonzero");
+  ctx.filter = "none";
   return c;
 }
 

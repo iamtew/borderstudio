@@ -1,4 +1,4 @@
-// Pixi ink for overlay, Designer, and Controller preview.
+// Pixi ink for overlay and Designer.
 // SVG still owns handles / hole / camera clip. Recipes stay in shared.js.
 
 function easeUnit(name, t) {
@@ -255,10 +255,8 @@ async function mountInk(host) {
   }
   const w = Math.max(1, host.clientWidth || 1);
   const h = Math.max(1, host.clientHeight || 1);
-  // ponytail: WebGL in OBS, canvas in Designer/devtools (Pixi WebGL init can block those).
-  const pref = /OBS/i.test(navigator.userAgent) ? "webgl" : "canvas";
-  const app = new PIXI.Application();
-  try {
+  async function makeApp(pref) {
+    const app = new PIXI.Application();
     await app.init({
       preference: pref,
       backgroundAlpha: 0,
@@ -268,9 +266,14 @@ async function mountInk(host) {
       width: w,
       height: h,
     });
+    return app;
+  }
+  let app;
+  try {
+    app = await makeApp("webgl");
   } catch (e) {
-    console.error("pixi", e);
-    return null;
+    try { app = await makeApp("canvas"); }
+    catch (e2) { console.error("pixi", e2); return null; }
   }
   const canvas = app.canvas;
   canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;background:transparent";
@@ -294,7 +297,6 @@ async function mountInk(host) {
   const useGL = app.renderer.type !== 4;
   const Blur = PIXI.BlurFilter;
   const blur = useGL && Blur ? new Blur({ strength: 0, quality: 2 }) : null;
-  if (blur) halo.filters = [blur];
 
   const ink = {
     design: null,
@@ -325,10 +327,15 @@ async function mountInk(host) {
     return !!(ink.recipe && (ink.once || ink.recipe.loop));
   }
 
+  function present() {
+    draw(0);
+    try { app.renderer.render(app.stage); } catch (e) {}
+  }
+
   function syncTicker() {
     if (needTick()) app.ticker.start();
     else {
-      draw(ink.recipe ? 0 : 0);
+      present();
       app.ticker.stop();
     }
   }
@@ -414,15 +421,16 @@ async function mountInk(host) {
     const glowPx = Math.max(0, baseGlow * fireFlick);
 
     if (blur) {
-      const b = Math.max(0, (glowPx + blurPx) * 0.65);
+      const b = Math.max(0, blurPx);
       blur.blur = b;
       if ("strength" in blur) blur.strength = b;
+      inkRoot.filters = b > 0 ? [blur] : null;
     }
-    halo.visible = glowPx > 0 || blurPx > 0;
+    halo.visible = glowPx > 0;
     if (halo.visible && !ghost) {
       const span = spanFor(recipe, pose, poly);
       drawPath(halo, poly, recipe && recipe.dash, pose.offset, span.s0, span.s1);
-      halo.stroke(strokeStyle(sw + glowPx * 1.6 + blurPx, color, Math.min(0.85, alpha * 0.55)));
+      halo.stroke(strokeStyle(sw + glowPx * 1.6, color, Math.min(0.85, alpha * 0.55)));
     }
 
     if (!ghost) {
@@ -580,9 +588,9 @@ async function mountInk(host) {
     ink.tMs = 0;
     ink.token++;
     ink.sparks = [];
-    if (!ink.recipe) { draw(0); app.ticker.stop(); return; }
+    if (!ink.recipe) { present(); app.ticker.stop(); return; }
     if (needTick()) { app.ticker.start(); draw(0); }
-    else { draw(0); app.ticker.stop(); }
+    else { present(); app.ticker.stop(); }
   };
   ink.playIdle = function (d) {
     ink.design = d;
