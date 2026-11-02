@@ -1,5 +1,6 @@
 dist/
 border.db
+webview/
 designer-chrome/
 controller-chrome/
 about-chrome/

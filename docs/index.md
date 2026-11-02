@@ -7,9 +7,9 @@ nav_order: 1
 
 Local tray app. Designer draws the camera hole. Overlay is the colored border for OBS Browser Source. Mask is a black/white PNG for an OBS Image Mask/Blend filter.
 
-Listens on `http://127.0.0.1:8505`. Systray: Designer, Controller, Overlay, Copy URL, Clear browser data, About, Quit.
+Listens on `http://127.0.0.1:8505`. Systray: Designer, Controller, Overlay, Copy URL, Clear browser data, About, Quit. Designer, Controller, and About open in our own WebView2 windows (same engine as Edge, our process). Overlay stays a Browser Source URL for OBS.
 
-Data lives in `border.db` next to the exe (`just run` uses the project folder). Edge profiles live beside that data: tray **Clear browser data** resets the running copy, and `just reset-browsers` resets the project folder and `dist/`.
+Data lives in `border.db` next to the exe (`just run` uses the project folder). WebView2 user data lives in a `webview` folder beside that: tray **Clear browser data** resets the running copy, and `just reset-browsers` resets the project folder and `dist/`.
 
 - [Install](install.md)
 - [Designer](designer.md)

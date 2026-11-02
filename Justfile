@@ -20,9 +20,9 @@ build: icon
 package: build
     Compress-Archive -Force -Path dist/borderstudio.exe, README.md, LICENSE -DestinationPath dist/borderstudio.zip
 
-# Quit Border Studio first. A running Edge locks these folders.
+# Quit Border Studio first. A running app locks the webview folder.
 reset-browsers:
-    foreach ($root in @(".", "dist")) { foreach ($name in @("designer-chrome", "controller-chrome", "about-chrome")) { $p = Join-Path $root $name; if (Test-Path $p) { Remove-Item -Recurse -Force $p } } }
+    foreach ($root in @(".", "dist")) { foreach ($name in @("webview", "designer-chrome", "controller-chrome", "about-chrome")) { $p = Join-Path $root $name; if (Test-Path $p) { Remove-Item -Recurse -Force $p } } }
 
 clean: reset-browsers
     if (Test-Path dist) { Remove-Item -Recurse -Force dist }

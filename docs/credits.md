@@ -19,7 +19,7 @@ Full texts sit next to those files (`web/pixi.LICENSE.txt`, `web/webfonts/LICENS
 
 ## Go modules
 
-Direct: [coder/websocket](https://github.com/coder/websocket), [getlantern/systray](https://github.com/getlantern/systray), [modernc.org/sqlite](https://gitlab.com/cznic/sqlite). See `go.mod` for the rest.
+Direct: [coder/websocket](https://github.com/coder/websocket), [Wails v3](https://v3.wails.io/) (native windows + tray), [modernc.org/sqlite](https://gitlab.com/cznic/sqlite). See `go.mod` for the rest.
 
 ## OBS
 
