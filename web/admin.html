@@ -85,6 +85,7 @@
             <button type="button" id="btn-mask"><span class="ti ti-download" aria-hidden="true"></span> Download mask</button>
             <div class="file-sep">
               <button type="button" id="file-settings"><span class="ti ti-settings" aria-hidden="true"></span> Settings</button>
+              <button type="button" id="file-help"><span class="ti ti-info-circle" aria-hidden="true"></span> Help</button>
             </div>
             <div class="file-sep">
               <button type="button" id="file-close"><span class="ti ti-x" aria-hidden="true"></span> Close</button>
@@ -120,8 +121,6 @@
               <option value="oval">Oval</option>
             </select>
           </label>
-          <p class="hint poly-only">Drag vertices. Click a vertex to smooth it into a curve, then drag its handles. Click an edge to add a point. Delete removes the selected vertex. Ctrl+Z undoes.</p>
-          <p class="hint box-only">Drag the hole to move. Drag handles to resize. Ctrl+Z undoes.</p>
           <button type="button" id="btn-add" class="poly-only"><span class="ti ti-plus" aria-hidden="true"></span> Add point</button>
           <button type="button" id="btn-del" class="poly-only"><span class="ti ti-trash" aria-hidden="true"></span> Delete point</button>
           <label id="radius-row" class="roundrect-only">Corner radius
@@ -140,21 +139,15 @@
           </label>
           <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset all</button>
           <div class="win-title">Size</div>
-          <p class="hint">This size is the camera hole. Stroke and glow can sit outside it in the OBS scene.</p>
-          <label>Width
-            <span class="num-row">
-              <input id="in-mw-r" type="range" min="16" max="3840" step="1">
-              <input id="in-mw" type="number" min="16" step="1">
-              <button type="button" id="in-mw-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
-            </span>
-          </label>
-          <label>Height
-            <span class="num-row">
-              <input id="in-mh-r" type="range" min="16" max="3840" step="1">
-              <input id="in-mh" type="number" min="16" step="1">
-              <button type="button" id="in-mh-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
-            </span>
-          </label>
+          <div id="size-presets" role="radiogroup" aria-label="Size">
+            <button type="button" id="size-720" role="radio" aria-checked="false">720p</button>
+            <button type="button" id="size-1080" role="radio" aria-checked="true" class="sel">1080p</button>
+            <button type="button" id="size-custom" role="radio" aria-checked="false">Custom</button>
+          </div>
+          <div id="size-custom-fields" hidden>
+            <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
+            <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
+          </div>
           <div class="win-title">Preview</div>
           <img id="mask-prev" alt="Mask preview">
         </div>

@@ -369,6 +369,10 @@ func main() {
 		requestQuit()
 		w.WriteHeader(204)
 	})
+	mux.HandleFunc("POST /api/help", func(w http.ResponseWriter, r *http.Request) {
+		openURL("https://iamtew.github.io/borderstudio/")
+		w.WriteHeader(204)
+	})
 	mux.HandleFunc("GET /icon.png", serveAsset("assets/icon.png", "image/png"))
 	mux.HandleFunc("GET /favicon.ico", serveAsset("assets/icon.ico", "image/x-icon"))
 	mux.HandleFunc("GET /api/design", func(w http.ResponseWriter, r *http.Request) {

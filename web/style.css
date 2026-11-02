@@ -83,7 +83,13 @@ body.admin .win-body { flex: 1; min-height: 0; overflow: auto; padding: 8px 12px
   font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px;
   color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 4px;
 }
-#sidebar .side-tabs button.sel { color: var(--accent); border-color: var(--accent); }
+#sidebar .side-tabs button.sel, #size-presets button.sel { color: var(--accent); border-color: var(--accent); }
+#size-presets { display: flex; gap: 6px; margin: 0 0 8px; }
+#size-presets button {
+  flex: 1; width: auto; margin: 0; padding: 6px 4px;
+  font-weight: 700; font-size: 11px;
+  color: var(--muted); justify-content: center;
+}
 body.tab-mask .pane-border, body.tab-mask .pane-effects,
 body.tab-border .pane-mask, body.tab-border .pane-effects,
 body.tab-effects .pane-mask, body.tab-effects .pane-border { display: none !important; }
@@ -106,6 +112,9 @@ body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); 
   background: linear-gradient(to bottom right, var(--accent), var(--accent2)); color: #282828;
 }
 #sidebar button, #inspector button { display: inline-flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 8px; padding: 8px; }
+#sidebar #size-presets button { width: auto; margin: 0; padding: 6px 4px; }
+#size-custom-fields { display: flex; gap: 6px; }
+#size-custom-fields label { flex: 1; min-width: 0; margin: 0 0 8px; }
 #sidebar .num-row button, #sidebar .color-field button, #sidebar .fx-wrench { width: auto; margin: 0; }
 #sidebar .fx-row > button { width: auto; margin: 0; }
 #sidebar .fx-row > button:first-child { flex: 1; }
@@ -150,7 +159,7 @@ body.cam-on #frame #cam-layer { display: block; }
 .handle.box.e, .handle.box.w { cursor: ew-resize; }
 .handle.rad { cursor: ew-resize; fill: var(--accent2); }
 body:not(.shape-poly) .poly-only { display: none !important; }
-body.shape-poly .box-only, body:not(.shape-roundrect) .roundrect-only { display: none !important; }
+body:not(.shape-roundrect) .roundrect-only { display: none !important; }
 .num-row { display: flex; gap: 6px; align-items: center; }
 body.admin .num-row input[type="range"] { flex: 1; min-width: 0; padding: 0; height: 24px; }
 .num-row input[type="number"] { width: 4.6em; flex: none; }
@@ -208,7 +217,6 @@ body.about { display: block; text-align: center; overflow: hidden; }
 .about-card h1 { margin: 0 0 8px; font-size: 18px; }
 .about-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; word-break: break-all; }
 .about-card button { min-width: 88px; padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
 #mask-prev { width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; border-radius: var(--r); margin: 8px 0; }
 #ctrl-tune[hidden], #fx-list[hidden] { display: none; }
 #ctrl-tune button, #fx-list #btn-ev-add { width: 100%; margin: 0 0 8px; }

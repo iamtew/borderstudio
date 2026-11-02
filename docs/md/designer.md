@@ -8,7 +8,7 @@ Reset restores the default hole; Ctrl+Z / Ctrl+Y undo and redo. Numeric fields u
 
 ## Chrome
 
-Click the hex mark and **Border Studio** for **Save**, **Reset**, **Download mask**, **Settings**, **Close** (window stays in the tray), and **Quit**. Version sits at the bottom of that menu.
+Click the hex mark and **Border Studio** for **Save**, **Reset**, **Download mask**, **Settings**, **Help** (opens the docs site in your browser), **Close** (window stays in the tray), and **Quit**. Version sits at the bottom of that menu.
 
 ![File menu](../assets/screens/designer-file.png)
 
@@ -20,7 +20,7 @@ The header pill shows OBS online or offline (click it for OBS settings). Next to
 
 ## Sidebar tabs
 
-**Mask** is the camera hole. Shape kind: polygon, rounded rect, circle, or oval. Click a polygon vertex to smooth that corner into a bezier; drag the handles to tune it. Right-click a vertex to delete it; the Designer uses its own menu. Size is the hole; stroke and glow can extend outside it. **Feather** blurs the hole edge (soft mask). Preview shows the black/white mask PNG.
+**Mask** is the camera hole. Shape kind: polygon, rounded rect, circle, or oval. Click a polygon vertex to smooth that corner into a bezier; drag the handles to tune it. Right-click a vertex to delete it; the Designer uses its own menu. Size is the hole (720p, 1080p, or Custom); stroke and glow can extend outside it. **Feather** blurs the hole edge (soft mask). Preview shows the black/white mask PNG.
 
 **Border** is the overlay decoration: stroke, thickness, glow (halo), blur (softens the stroke), and motion.
 

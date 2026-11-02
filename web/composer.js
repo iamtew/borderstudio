@@ -12,6 +12,7 @@ const GRIDS = [
   { id: "title", name: "Title safe", op: 0.25, xs: [0.1, 0.9], ys: [0.1, 0.9] },
 ];
 const shownGrids = new Set();
+let sizeCustom = false;
 const stage = document.getElementById("stage");
 const hits = document.getElementById("hits");
 const frame = document.getElementById("frame");
@@ -31,6 +32,7 @@ function pushHist() {
 function applyHist(s) {
   d = JSON.parse(s);
   sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
+  sizeCustom = namedSize() === "custom";
   paint();
   scheduleSave();
 }
@@ -92,6 +94,7 @@ async function pullDesign() {
   lastSeen = s;
   d = JSON.parse(s);
   sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
+  sizeCustom = false;
   pushHist();
   paint();
 }
@@ -116,8 +119,9 @@ function paint() {
   fillPair("in-feather", "in-feather-r", d.feather || 0);
   fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
   paintTune();
-  fillPair("in-mw", "in-mw-r", d.width);
-  fillPair("in-mh", "in-mh-r", d.height);
+  fillPair("in-mw", "", d.width);
+  fillPair("in-mh", "", d.height);
+  paintSize();
   document.getElementById("mask-prev").src = maskCanvas(d).toDataURL("image/png");
   paintCam();
   const k = kindOf(d);
@@ -907,6 +911,7 @@ async function resetDesign() {
   d = await res.json();
   lastSeen = JSON.stringify(d);
   sel = 0;
+  sizeCustom = false;
   pushHist();
   paint();
 }
@@ -977,8 +982,6 @@ onReset("in-blur-reset", () => { d.blur = 0; });
 onReset("in-feather-reset", () => { d.feather = 0; });
 onReset("in-stroke-reset", () => { d.stroke = "#e6f350"; });
 onReset("in-motion-reset", () => { d.motion = "none"; d.dash = false; d.motionTune = null; });
-onReset("in-mw-reset", () => { d.width = 1920; });
-onReset("in-mh-reset", () => { d.height = 1080; });
 onReset("in-radius-reset", () => { d.r = 0; });
 function readTune() {
   return {
@@ -1098,8 +1101,38 @@ document.getElementById("tune-del").onclick = () => {
   persistAnims();
   scheduleSave();
 };
-bindPair("in-mw", "in-mw-r", () => { d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
-bindPair("in-mh", "in-mh-r", () => { d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
+function namedSize() {
+  if (d.width === 1280 && d.height === 720) return "720";
+  if (d.width === 1920 && d.height === 1080) return "1080";
+  return "custom";
+}
+function sizeKind() {
+  return sizeCustom ? "custom" : namedSize();
+}
+function paintSize() {
+  const kind = sizeKind();
+  [["size-720", "720"], ["size-1080", "1080"], ["size-custom", "custom"]].forEach(([id, k]) => {
+    const b = document.getElementById(id);
+    b.classList.toggle("sel", kind === k);
+    b.setAttribute("aria-checked", String(kind === k));
+  });
+  document.getElementById("size-custom-fields").hidden = kind !== "custom";
+  frame.style.aspectRatio = d.width + " / " + d.height;
+  frame.style.width = "min(100%, calc((100vh - 80px) * " + d.width + " / " + d.height + "))";
+}
+function setSize(w, h, custom) {
+  pushHist();
+  sizeCustom = !!custom;
+  d.width = w;
+  d.height = h;
+  paint();
+  scheduleSave();
+}
+document.getElementById("size-720").onclick = () => setSize(1280, 720, false);
+document.getElementById("size-1080").onclick = () => setSize(1920, 1080, false);
+document.getElementById("size-custom").onclick = () => setSize(d.width, d.height, true);
+lookInput(document.getElementById("in-mw"), () => { sizeCustom = true; d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
+lookInput(document.getElementById("in-mh"), () => { sizeCustom = true; d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
 document.getElementById("in-kind").onchange = e => setKind(e.target.value);
 bindPair("in-radius", "in-radius-r", () => { d.r = Math.max(0, Number(document.getElementById("in-radius").value) || 0); });
 
@@ -1264,6 +1297,10 @@ document.getElementById("file-save").onclick = () => { menu.hidden = true; save(
 document.getElementById("file-settings").onclick = () => {
   menu.hidden = true;
   openSettings();
+};
+document.getElementById("file-help").onclick = () => {
+  menu.hidden = true;
+  fetch("/api/help", { method: "POST" });
 };
 document.getElementById("settings-close").onclick = () => closeSettings();
 document.getElementById("settings-overlay").onclick = (ev) => {
