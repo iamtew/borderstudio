@@ -2,9 +2,11 @@
 
 ## Install
 
-1. Open [GitHub Releases](https://github.com/iamtew/borderstudio/releases) and download the Windows installer from the latest release.
-2. Run the installer. Default folder is `%LOCALAPPDATA%\Programs\Border Studio`; change it if you want. Start Menu shortcut is on, desktop shortcut is off.
-3. Launch Border Studio. A tray icon means it is running. The window that opens is the **Designer** — that is the whole app.
+1. Open the [latest release](https://github.com/iamtew/borderstudio/releases/latest). Download the Windows installer: `borderstudio-*-win-x64.msi` (not the `.zip`).
+2. Run the MSI. It is per-user, no admin. Default folder is `%LOCALAPPDATA%\Programs\Border Studio`. Next through; Start Menu shortcut is on, desktop is off unless you tick it.
+3. Launch **Border Studio** from Start. A tray icon means it is running. The window that opens is the **Designer** — that is the whole app.
+
+Portable: unzip `borderstudio-*-win-x64.zip` and run `borderstudio.exe`.
 
 ![Designer Mask tab](../assets/screens/designer-mask.png)
 
