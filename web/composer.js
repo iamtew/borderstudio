@@ -486,11 +486,34 @@ function openSettings() {
 function showSettingsPage(name) {
   document.querySelectorAll(".settings-nav button").forEach((b) => b.classList.toggle("sel", b.dataset.set === name));
   document.getElementById("set-obs").hidden = name !== "obs";
+  document.getElementById("set-mode").hidden = name !== "mode";
   document.getElementById("set-palettes").hidden = name !== "palettes";
 }
 
 function obsMsg(s) {
   document.getElementById("obs-msg").textContent = s || "";
+}
+
+let modePrefs = { defaultMode: "obs", autoOffline: true, autoOnline: true, modeGraceSec: 0 };
+
+function applyModePrefs(s) {
+  modePrefs.defaultMode = s.defaultMode === "designer" ? "designer" : "obs";
+  modePrefs.autoOffline = !!s.autoOffline;
+  modePrefs.autoOnline = !!s.autoOnline;
+  modePrefs.modeGraceSec = Math.max(0, Number(s.modeGraceSec) || 0);
+  document.querySelectorAll('input[name="mode-default"]').forEach((r) => { r.checked = r.value === modePrefs.defaultMode; });
+  document.getElementById("mode-auto-off").checked = modePrefs.autoOffline;
+  document.getElementById("mode-auto-on").checked = modePrefs.autoOnline;
+  document.getElementById("mode-grace").value = String(modePrefs.modeGraceSec);
+}
+
+function readModePrefsFromForm() {
+  return {
+    defaultMode: document.querySelector('input[name="mode-default"]:checked')?.value === "designer" ? "designer" : "obs",
+    autoOffline: document.getElementById("mode-auto-off").checked,
+    autoOnline: document.getElementById("mode-auto-on").checked,
+    modeGraceSec: Math.max(0, Number(document.getElementById("mode-grace").value) || 0),
+  };
 }
 
 async function loadObs() {
@@ -499,6 +522,7 @@ async function loadObs() {
     document.getElementById("obs-host").value = s.host || "127.0.0.1";
     document.getElementById("obs-port").value = s.port || 4455;
     document.getElementById("obs-pass").value = s.password || "";
+    applyModePrefs(s);
     await refreshObs(s.camera);
   } catch (e) {
     obsMsg(e.message || "OBS settings failed");
@@ -506,11 +530,16 @@ async function loadObs() {
 }
 
 async function saveObs() {
+  Object.assign(modePrefs, readModePrefsFromForm());
   const body = {
     host: document.getElementById("obs-host").value.trim(),
     port: Number(document.getElementById("obs-port").value) || 4455,
     password: document.getElementById("obs-pass").value,
     camera: document.getElementById("obs-camera").value,
+    defaultMode: modePrefs.defaultMode,
+    autoOffline: modePrefs.autoOffline,
+    autoOnline: modePrefs.autoOnline,
+    modeGraceSec: modePrefs.modeGraceSec,
   };
   const res = await fetch("/api/obs", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await res.text());
@@ -1263,37 +1292,49 @@ function stopCam() {
   camVideo.srcObject = null;
 }
 
+let modeBusy = false;
+
+function uiMode() {
+  return document.body.classList.contains("cam-on") ? "designer" : "obs";
+}
+
 async function setMode(mode) {
-  if (mode === "obs") {
-    stopCam();
-    showMode("obs");
-    try { await putMode("obs"); } catch (e) { alert("Could not hand the camera back to OBS: " + e.message); }
-    return;
-  }
+  if (modeBusy) return;
+  modeBusy = true;
   try {
-    const { device } = await putMode("designer");
-    // Labels stay empty until the page has camera permission once; then the system default is used.
-    const cams = (await navigator.mediaDevices.enumerateDevices()).filter((x) => x.kind === "videoinput");
-    const hit = device && cams.find((c) => c.label.toLowerCase().startsWith(device.toLowerCase()));
-    const video = { width: { ideal: 1920 }, height: { ideal: 1080 } };
-    if (hit) video.deviceId = { exact: hit.deviceId };
-    // OBS releases the device asynchronously; a busy camera gets a few short retries.
-    for (let i = 0; !camStream; i++) {
-      try {
-        camStream = await navigator.mediaDevices.getUserMedia({ video });
-      } catch (e) {
-        if (e.name !== "NotReadableError" || i >= 4) throw e;
-        await new Promise((r) => setTimeout(r, 400));
-      }
+    if (mode === "obs") {
+      stopCam();
+      showMode("obs");
+      try { await putMode("obs"); } catch (e) { alert("Could not hand the camera back to OBS: " + e.message); }
+      return;
     }
-    camVideo.srcObject = camStream;
-    showMode("designer");
-    paint();
-  } catch (e) {
-    stopCam();
-    showMode("obs");
-    putMode("obs").catch(() => {});
-    alert("Designer mode needs the camera: " + (e.message || e.name));
+    try {
+      const { device } = await putMode("designer");
+      // Labels stay empty until the page has camera permission once; then the system default is used.
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter((x) => x.kind === "videoinput");
+      const hit = device && cams.find((c) => c.label.toLowerCase().startsWith(device.toLowerCase()));
+      const video = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (hit) video.deviceId = { exact: hit.deviceId };
+      // OBS releases the device asynchronously; a busy camera gets a few short retries.
+      for (let i = 0; !camStream; i++) {
+        try {
+          camStream = await navigator.mediaDevices.getUserMedia({ video });
+        } catch (e) {
+          if (e.name !== "NotReadableError" || i >= 4) throw e;
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      camVideo.srcObject = camStream;
+      showMode("designer");
+      paint();
+    } catch (e) {
+      stopCam();
+      showMode("obs");
+      putMode("obs").catch(() => {});
+      alert("Designer mode needs the camera: " + (e.message || e.name));
+    }
+  } finally {
+    modeBusy = false;
   }
 }
 
@@ -1301,14 +1342,60 @@ document.getElementById("mode-design").onclick = () => { if (!camStream) setMode
 document.getElementById("mode-obs").onclick = () => setMode("obs");
 document.getElementById("obs-pill").onclick = () => openSettings();
 
+let lastObsUp = null;
+let modeGraceTimer = null;
+
+function autoWant(up) {
+  if (!up && modePrefs.autoOffline) return "designer";
+  if (up && modePrefs.autoOnline) return "obs";
+  return "";
+}
+
+function cancelModeGrace() {
+  if (modeGraceTimer) {
+    clearTimeout(modeGraceTimer);
+    modeGraceTimer = null;
+  }
+}
+
+function scheduleMode(mode) {
+  if (modeBusy || uiMode() === mode) {
+    cancelModeGrace();
+    return;
+  }
+  cancelModeGrace();
+  const go = () => {
+    modeGraceTimer = null;
+    if (modeBusy || uiMode() === mode) return;
+    setMode(mode);
+  };
+  const ms = modePrefs.modeGraceSec * 1000;
+  if (ms <= 0) go();
+  else modeGraceTimer = setTimeout(go, ms);
+}
+
 async function pollObs() {
   let up = false;
   try { up = (await (await fetch("/api/obs/status")).json()).connected; } catch (e) {}
   document.getElementById("obs-pill").classList.toggle("up", up);
   document.getElementById("obs-pill-text").textContent = up ? "OBS connected" : "OBS offline";
+  const first = lastObsUp === null;
+  if (!first && up === lastObsUp) return;
+  lastObsUp = up;
+  if (first) {
+    scheduleMode(autoWant(up) || modePrefs.defaultMode);
+    return;
+  }
+  const want = autoWant(up);
+  if (want) scheduleMode(want);
+  else cancelModeGrace();
 }
-pollObs();
-setInterval(pollObs, 3000);
+
+(async () => {
+  try { applyModePrefs(await (await fetch("/api/obs")).json()); } catch (e) {}
+  pollObs();
+  setInterval(pollObs, 3000);
+})();
 
 (function fillGridToggles() {
   const box = document.getElementById("grid-toggles");

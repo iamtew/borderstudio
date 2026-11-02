@@ -30,10 +30,14 @@ const (
 )
 
 type obsSettings struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Password string `json:"password"`
-	Camera   string `json:"camera"`
+	Host         string `json:"host"`
+	Port         int    `json:"port"`
+	Password     string `json:"password"`
+	Camera       string `json:"camera"`
+	DefaultMode  string `json:"defaultMode"`
+	AutoOffline  bool   `json:"autoOffline"`
+	AutoOnline   bool   `json:"autoOnline"`
+	ModeGraceSec int    `json:"modeGraceSec"`
 }
 
 type obsLayoutDoc struct {
@@ -155,6 +159,16 @@ func normalizeObs(s obsSettings) obsSettings {
 		s.Port = 4455
 	}
 	s.Camera = strings.TrimSpace(s.Camera)
+	if s.DefaultMode == "" {
+		s.DefaultMode = "obs"
+		s.AutoOffline = true
+		s.AutoOnline = true
+	} else if s.DefaultMode != "designer" {
+		s.DefaultMode = "obs"
+	}
+	if s.ModeGraceSec < 0 {
+		s.ModeGraceSec = 0
+	}
 	return s
 }
 
@@ -174,12 +188,18 @@ func (st *store) obs() (obsSettings, error) {
 }
 
 func (st *store) saveObs(s obsSettings) (obsSettings, error) {
-	s = normalizeObs(s)
-	if s.Camera == "" {
-		if prev, err := st.obs(); err == nil {
+	if prev, err := st.obs(); err == nil {
+		if s.Camera == "" {
 			s.Camera = prev.Camera
 		}
+		if s.DefaultMode == "" {
+			s.DefaultMode = prev.DefaultMode
+			s.AutoOffline = prev.AutoOffline
+			s.AutoOnline = prev.AutoOnline
+			s.ModeGraceSec = prev.ModeGraceSec
+		}
 	}
+	s = normalizeObs(s)
 	b, err := json.Marshal(s)
 	if err != nil {
 		return s, err

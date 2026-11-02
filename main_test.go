@@ -256,15 +256,22 @@ func TestObsSettingsRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Host != "127.0.0.1" || got.Port != 4455 {
+	if got.Host != "127.0.0.1" || got.Port != 4455 || got.DefaultMode != "obs" || !got.AutoOffline || !got.AutoOnline || got.ModeGraceSec != 0 {
 		t.Fatalf("default %+v", got)
 	}
 	saved, err := st.saveObs(obsSettings{Host: " 10.0.0.2 ", Port: 0, Password: "x", Camera: " Cam "})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if saved.Host != "10.0.0.2" || saved.Port != 4455 || saved.Camera != "Cam" {
+	if saved.Host != "10.0.0.2" || saved.Port != 4455 || saved.Camera != "Cam" || !saved.AutoOffline {
 		t.Fatalf("saved %+v", saved)
+	}
+	modes, err := st.saveObs(obsSettings{Host: "10.0.0.2", Port: 4455, Password: "x", Camera: "Cam", DefaultMode: "designer", AutoOffline: false, AutoOnline: true, ModeGraceSec: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if modes.DefaultMode != "designer" || modes.AutoOffline || !modes.AutoOnline || modes.ModeGraceSec != 5 {
+		t.Fatalf("mode prefs %+v", modes)
 	}
 	again, err := st.obs()
 	if err != nil {
@@ -277,7 +284,7 @@ func TestObsSettingsRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if kept.Camera != "Cam" || kept.Password != "y" {
+	if kept.Camera != "Cam" || kept.Password != "y" || kept.DefaultMode != "designer" {
 		t.Fatalf("empty camera clobber %+v", kept)
 	}
 }

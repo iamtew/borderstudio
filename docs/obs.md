@@ -13,10 +13,12 @@ Do not rename `Border Studio`, `BS Camera`, `BS Mask`, or `BS Overlay`.
 
 ## Modes
 
-The header pill shows whether OBS is connected (click it for OBS settings). The big switch next to it picks the mode:
+The header pill shows whether OBS is connected (click it for OBS settings). The switch next to it is **OBS mode** (left) and **Designer mode** (right):
 
 - **Designer Mode** deactivates the Border Studio camera in OBS and shows that webcam inside the hole on the Designer stage, masked exactly like OBS will. The mask, overlay, and OBS scene still update live.
-- **OBS Mode** releases the webcam back to OBS. **Stream in OBS Mode.** Every window opens in OBS Mode, and closing the last Designer/Controller window hands the camera back to OBS automatically.
+- **OBS Mode** releases the webcam back to OBS. **Stream in OBS Mode.** Closing the last Designer/Controller window hands the camera back to OBS automatically.
+
+**File → Settings → Mode** sets the default when a window opens, whether to switch when OBS goes offline (Designer) or comes online (OBS mode), and a grace delay in seconds so a brief blip does not flip the camera. Auto-switch only follows OBS going online or offline; it does not override a manual click while OBS stays in the same state. New installs default to OBS mode, both auto-switches on, grace 0.
 
 ## Manual fallback
 

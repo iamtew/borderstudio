@@ -22,6 +22,7 @@
       <div class="settings-body">
         <nav class="settings-nav" aria-label="Settings">
           <button type="button" data-set="obs" class="sel">OBS</button>
+          <button type="button" data-set="mode">Mode</button>
           <button type="button" data-set="palettes">Color palettes</button>
         </nav>
         <div class="settings-main">
@@ -45,6 +46,15 @@
               <button type="button" id="obs-scene"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Create / Repair scene</button>
             </div>
             <p id="obs-msg" class="settings-hint"></p>
+          </section>
+          <section id="set-mode" hidden>
+            <p class="settings-hint">Used when a window opens. Auto-switch only runs when OBS goes online or offline, not against a manual click.</p>
+            <p class="settings-hint">Default mode</p>
+            <label><input type="radio" name="mode-default" value="obs" checked> OBS mode</label>
+            <label><input type="radio" name="mode-default" value="designer"> Designer mode</label>
+            <label><input type="checkbox" id="mode-auto-off" checked> Switch to Designer mode when OBS goes offline</label>
+            <label><input type="checkbox" id="mode-auto-on" checked> Switch to OBS mode when OBS comes online</label>
+            <label>Grace (seconds) <input id="mode-grace" type="number" min="0" step="1" value="0"></label>
           </section>
           <section id="set-palettes" hidden>
             <p class="settings-hint">Built-in palettes cannot be edited. Custom palettes are listed below.</p>
@@ -95,8 +105,8 @@
       <div class="bar-overlay">
         <button type="button" id="obs-pill" title="OBS connection settings"><span class="dot" aria-hidden="true"></span> <span id="obs-pill-text">OBS offline</span></button>
         <div id="mode-switch" role="radiogroup" aria-label="Mode">
-          <button type="button" id="mode-design" role="radio" aria-checked="false"><i class="fa-solid fa-video" aria-hidden="true"></i> Designer mode</button>
           <button type="button" id="mode-obs" role="radio" aria-checked="true" class="sel"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> OBS mode</button>
+          <button type="button" id="mode-design" role="radio" aria-checked="false"><i class="fa-solid fa-video" aria-hidden="true"></i> Designer mode</button>
         </div>
       </div>
     </div>
