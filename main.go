@@ -653,15 +653,15 @@ func main() {
 		fatal(fmt.Errorf("webview data dir %s: %w", wvDir, err))
 	}
 
+	png, _ := assets.ReadFile("assets/icon.png")
 	wailsApp = application.New(application.Options{
 		Name: "Border Studio",
+		Icon: png,
 		Windows: application.WindowsOptions{
 			DisableQuitOnLastWindowClosed: true,
 			WebviewUserDataPath:           wvDir,
 		},
 	})
-	png, _ := assets.ReadFile("assets/icon.png")
-	wailsApp.SetIcon(png)
 	tray := wailsApp.SystemTray.New()
 	tray.SetIcon(png)
 	tray.SetTooltip("Border Studio")
