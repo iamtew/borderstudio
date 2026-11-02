@@ -361,21 +361,17 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFileFS(w, r, web, "admin.html")
-	})
-	mux.HandleFunc("GET /control", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFileFS(w, r, web, "admin.html")
-	})
-	mux.HandleFunc("GET /overlay", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFileFS(w, r, web, "overlay.html")
-	})
-	mux.HandleFunc("GET /mask", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFileFS(w, r, web, "mask.html")
-	})
-	mux.HandleFunc("GET /about", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFileFS(w, r, web, "about.html")
-	})
+	html := func(name string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			http.ServeFileFS(w, r, web, name)
+		}
+	}
+	mux.HandleFunc("GET /admin", html("admin.html"))
+	mux.HandleFunc("GET /control", html("admin.html"))
+	mux.HandleFunc("GET /overlay", html("overlay.html"))
+	mux.HandleFunc("GET /mask", html("mask.html"))
+	mux.HandleFunc("GET /about", html("about.html"))
 	mux.HandleFunc("GET /api/version", handleVersion)
 	mux.HandleFunc("POST /api/designer/close", func(w http.ResponseWriter, r *http.Request) {
 		closeDesignerWindow()
