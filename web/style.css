@@ -112,7 +112,14 @@ body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); 
 #stage-wrap .win-body { display: flex; align-items: center; justify-content: center; }
 #frame {
   width: min(100%, calc((100vh - 80px) * 16 / 9));
-  aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #111;
+  aspect-ratio: 16 / 9; position: relative; overflow: hidden;
+  background-color: #fff;
+  background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%),
+    linear-gradient(-45deg, #c8c8c8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #c8c8c8 75%),
+    linear-gradient(-45deg, transparent 75%, #c8c8c8 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
 body.admin #frame { border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); }
 #frame svg { width: 100%; height: 100%; display: block; }
@@ -122,11 +129,9 @@ body.cam-on #frame #cam-layer { display: block; }
 #frame #ink { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 #frame #hits { position: absolute; inset: 0; z-index: 4; }
 /* transparent, not none: the hole must stay hit-testable for box-shape drags */
-body.cam-on #stage .checker, body.cam-on #stage .hole { fill: transparent; }
+.hole { fill: transparent; }
 /* fill, not cover: OBS stretches the camera to the hole aspect the same way */
 #cam-video { width: 100%; height: 100%; object-fit: fill; display: block; }
-.hole { fill: #1c1c1c; }
-.checker { fill: url(#checker); }
 .handle { fill: var(--accent); cursor: grab; }
 .handle.sel { fill: var(--accent2); }
 .handle.smooth { fill: #fff; stroke: var(--accent); stroke-width: 2; }

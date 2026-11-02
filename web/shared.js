@@ -366,25 +366,6 @@ function renderBorder(svg, d, opts) {
   }
   const ui = (opts && opts.ui) || (handles ? svg : null);
   if (handles) {
-    const defs = document.createElementNS(ns, "defs");
-    const pat = document.createElementNS(ns, "pattern");
-    pat.setAttribute("id", "checker");
-    pat.setAttribute("width", "40");
-    pat.setAttribute("height", "40");
-    pat.setAttribute("patternUnits", "userSpaceOnUse");
-    const a = document.createElementNS(ns, "rect");
-    a.setAttribute("width", "40"); a.setAttribute("height", "40"); a.setAttribute("fill", "#2a2a2a");
-    const b = document.createElementNS(ns, "rect");
-    b.setAttribute("width", "20"); b.setAttribute("height", "20"); b.setAttribute("fill", "#222");
-    const c = document.createElementNS(ns, "rect");
-    c.setAttribute("x", "20"); c.setAttribute("y", "20"); c.setAttribute("width", "20"); c.setAttribute("height", "20"); c.setAttribute("fill", "#222");
-    pat.append(a, b, c);
-    defs.appendChild(pat);
-    svg.appendChild(defs);
-    const bg = document.createElementNS(ns, "rect");
-    bg.setAttribute("width", d.width); bg.setAttribute("height", d.height);
-    bg.setAttribute("class", "checker");
-    root.appendChild(bg);
     const hole = makeShape(ns, d);
     hole.setAttribute("class", "hole");
     root.appendChild(hole);
