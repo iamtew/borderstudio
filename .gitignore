@@ -6,6 +6,7 @@ controller-chrome/
 about-chrome/
 *.exe
 assets/icon.ico
+assets/tray/
 *.syso
 *.af~lock~
 bootstrap.md

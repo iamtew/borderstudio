@@ -6,7 +6,7 @@ default:
 icon:
     magick assets/icon.png -define icon:auto-resize=256,128,64,48,32,16 assets/icon.ico
     New-Item -ItemType Directory -Force assets/tray | Out-Null
-    foreach ($n in @("pencil","layout-grid","border-corners","copy","browser-x","info-circle","power","sparkles")) { $svg = (Get-Content ("web/icons/" + $n + ".svg") -Raw) -replace "currentColor", "#F0EDE4"; $tmp = Join-Path $env:TEMP ("borderstudio-" + $n + ".svg"); [System.IO.File]::WriteAllText($tmp, $svg); magick -background none -density 384 $tmp -resize 16x16 ("assets/tray/" + $n + ".png") }
+    foreach ($n in @("pencil","border-corners","copy","browser-x","info-circle","power","sparkles")) { $svg = (Get-Content ("web/icons/" + $n + ".svg") -Raw) -replace "currentColor", "#F0EDE4"; $tmp = Join-Path $env:TEMP ("borderstudio-" + $n + ".svg"); [System.IO.File]::WriteAllText($tmp, $svg); magick -background none -density 384 $tmp -resize 16x16 -strip ("assets/tray/" + $n + ".png") }
 
 [private]
 git-version:
@@ -29,4 +29,5 @@ reset-browsers:
 clean: reset-browsers
     if (Test-Path dist) { Remove-Item -Recurse -Force dist }
     if (Test-Path assets/icon.ico) { Remove-Item -Force assets/icon.ico }
+    if (Test-Path assets/tray) { Remove-Item -Recurse -Force assets/tray }
     if (Test-Path rsrc_windows_amd64.syso) { Remove-Item -Force rsrc_windows_amd64.syso }
