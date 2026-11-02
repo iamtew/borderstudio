@@ -222,7 +222,7 @@ body.about { display: block; text-align: center; overflow: hidden; }
 .swatch { width: 40px !important; height: 32px; padding: 0 !important; margin: 0 !important; display: inline-block !important; vertical-align: middle; cursor: pointer; flex: none; }
 #iro-pop { position: fixed; z-index: 40; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px #0008; }
 #iro-pop[hidden] { display: none !important; }
-#iro-hex, #iro-pal-sel { width: 200px; margin-top: 8px; font-family: consolas, monospace; }
+#iro-hex, #iro-pal-sel { display: block; width: 200px; margin-top: 8px; font-family: consolas, monospace; }
 #iro-pal-sel { font-family: inherit; }
 #iro-pal-chips { display: flex; flex-wrap: wrap; gap: 4px; width: 200px; margin-top: 8px; }
 .pal-chip { width: 40px !important; height: 32px; padding: 0 !important; flex: none; cursor: pointer; }
