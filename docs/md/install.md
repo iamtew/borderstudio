@@ -18,7 +18,13 @@ Writes `dist/borderstudio.exe`.
 just package
 ```
 
-Zips the exe with `README.md` and `LICENSE`.
+Zips the exe with `README.md` and `LICENSE` as `dist/borderstudio-<ver>-win-x64.zip`. `<ver>` is the latest numeric git tag (`0.1.0`, no `v`), or `0.0.0` if none.
+
+```
+just msi
+```
+
+Builds a per-user MSI (`dist/borderstudio-<ver>-win-x64.msi`). Default install is `%LOCALAPPDATA%\Programs\Border Studio`; the Meat Bag can change the folder. Start Menu shortcut is on, desktop shortcut is off. Needs [WiX](https://wixtoolset.org/) 5 on PATH (`dotnet tool install -g wix`). `just build-dist` makes the zip and the MSI. CI builds both on a numeric tag.
 
 ```
 just reset-browsers

@@ -21,8 +21,25 @@ build: icon
     New-Item -ItemType Directory -Force dist | Out-Null
     $v = (just git-version).Trim(); go run github.com/tc-hib/go-winres@latest simply --arch amd64 --manifest none --icon assets/icon.ico --product-name='Border Studio' --file-description='Border Studio' --original-filename=borderstudio.exe --product-version=$v --file-version=$v; go build "-ldflags=-H=windowsgui -X main.version=$v" -o dist/borderstudio.exe .
 
+[private]
+msi-version:
+    @$tag = git describe --tags --abbrev=0 2>$null; if ($LASTEXITCODE -ne 0) { "0.0.0"; exit 0 }; $tag = $tag.Trim(); if ($tag -notmatch '^[0-9]') { "0.0.0" } else { $tag }
+
 package: build
-    Compress-Archive -Force -Path dist/borderstudio.exe, README.md, LICENSE -DestinationPath dist/borderstudio.zip
+    $ver = (just msi-version).Trim(); Compress-Archive -Force -Path dist/borderstudio.exe, README.md, LICENSE -DestinationPath "dist/borderstudio-$ver-win-x64.zip"
+
+# Zip plus per-user MSI. Version is the latest numeric git tag, or 0.0.0.
+build-dist: package
+    @just msi-only
+
+# Per-user MSI from a fresh build. Needs wix on PATH: dotnet tool install -g wix
+msi: build
+    @just msi-only
+
+# MSI from an existing dist/ tree (no go rebuild).
+msi-only:
+    if (-not (Get-Command wix -ErrorAction SilentlyContinue)) { Write-Error "wix not on PATH. Install: dotnet tool install -g wix"; exit 1 }
+    $ver = (just msi-version).Trim(); $payload = (Resolve-Path dist).Path; wix build -wx -arch x64 -ext WixToolset.UI.wixext -b "payload=$payload" -d Version=$ver -o "dist/borderstudio-$ver-win-x64.msi" packaging/borderstudio.wxs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # Quit Border Studio first. A running app locks the webview folder.
 reset-browsers:
