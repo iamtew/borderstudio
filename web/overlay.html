@@ -7,24 +7,27 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="overlay">
-  <svg id="stage" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div id="stage"></div>
+  <script src="/pixi.min.js"></script>
   <script src="/shared.js"></script>
+  <script src="/ink.js"></script>
   <script>
     applyOverlayBackground();
     const stage = document.getElementById("stage");
     let d;
+    let ink;
     let lay = { padX: 0, padY: 0, overlayW: 1920, overlayH: 1080, cameraW: 1920 };
     function paint() {
-      if (!d) return;
+      if (!d || !ink) return;
       const scale = d.width ? (lay.cameraW || d.width) / d.width : 1;
-      renderBorder(stage, d, {
-        handles: false,
+      ink.setView({
         padX: lay.padX || 0,
         padY: lay.padY || 0,
         overlayW: lay.overlayW,
         overlayH: lay.overlayH,
         scale,
       });
+      ink.playIdle(d);
     }
     async function load() {
       try {
@@ -39,18 +42,22 @@
         paint();
       } catch (e) {}
     }
-    load();
-    const es = new EventSource("/api/events");
-    es.onmessage = (ev) => {
-      const msg = (ev.data || "").trim();
-      if (msg.startsWith("event ")) {
-        const id = msg.slice(6);
-        const evn = (d && d.events || []).find(e => e.id === id);
-        fireOverlayAnim(evn ? evn.anim : id, evn && evn.tune);
-        return;
-      }
-      if (msg === "update" || msg === "hello") load();
-    };
+    (async () => {
+      ink = await mountInk(stage);
+      window.overlayInk = ink;
+      load();
+      const es = new EventSource("/api/events");
+      es.onmessage = (ev) => {
+        const msg = (ev.data || "").trim();
+        if (msg.startsWith("event ")) {
+          const id = msg.slice(6);
+          const evn = (d && d.events || []).find(e => e.id === id);
+          fireOverlayAnim(evn ? evn.anim : id, evn && evn.tune);
+          return;
+        }
+        if (msg === "update" || msg === "hello") load();
+      };
+    })();
   </script>
 </body>
 </html>

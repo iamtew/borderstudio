@@ -169,8 +169,6 @@ const EVENT_ANIMS = RECIPES.filter(r => !r.loop).map(r => ({ id: r.id, label: r.
 
 let customAnims = [];
 let liveDesign = null;
-let playToken = 0;
-let sliceTimer = 0;
 
 function recipeById(id, loop) {
   const want = !!loop;
@@ -189,19 +187,6 @@ function motionOf(d) {
   return recipeById(id, true) ? id : "none";
 }
 
-// Shape bbox in its own user space. Zero-size when the svg is not rendered (getBBox throws in some engines).
-function shapeBox(el) {
-  try { return el.getBBox(); } catch (e) { return { x: 0, y: 0, width: 0, height: 0 }; }
-}
-
-// SeshHub PFP is ~12rem (192px). Scale the 2→5px shadow recipe to the shape itself,
-// so the split matches between the editor and the overlay regardless of screen size.
-function seshScale(el) {
-  const b = shapeBox(el);
-  const m = Math.max(b.width, b.height);
-  return m ? m / 192 : 1;
-}
-
 // Total length of one dash cycle. An odd list repeats twice per cycle (SVG spec).
 function dashPeriod(dash) {
   const n = String(dash || "").trim().split(/[\s,]+/).map(Number).filter(v => v > 0);
@@ -217,207 +202,8 @@ function seamOffset(dash, from, to) {
   return from + (Math.round(delta / p) || Math.sign(delta)) * p;
 }
 
-function recipeFrames(recipe, design) {
-  const sw = (design && design.strokeWidth) || 12;
-  const baseGlow = (design && design.glow) || 0;
-  const stroke = (design && design.stroke) || "#e6f350";
-  const keys = (recipe.keys && recipe.keys.length ? recipe.keys : [{ t: 0 }, { t: 1 }]).slice().sort((a, b) => a.t - b.t);
-  if (recipe.loop && recipe.dash && keys.length > 1) {
-    const last = keys.length - 1;
-    const from = keys[0].offset || 0;
-    keys[last] = Object.assign({}, keys[last], { offset: seamOffset(recipe.dash, from, keys[last].offset || 0) });
-  }
-  const has = (p) => keys.some(k => k[p] != null && k[p] !== "");
-  const useW = has("width"), useOp = has("opacity"), useC = has("color"), useOff = has("offset");
-  const useG = has("glow"), useH = has("hue"), useT = has("x") || has("y") || has("rot");
-  // Easing goes on every segment, not the whole iteration: steps(1, end) then holds each key
-  // (strobe, glitch) and ease-in-out rounds every peak instead of rushing through the middle one.
-  const easing = recipe.ease || "ease";
-  return keys.map(k => {
-    const f = { offset: k.t, easing };
-    // SVG stroke CSS values are user units, same space as the stroke-width attribute.
-    if (useW) f.strokeWidth = (sw * (k.width != null ? k.width : 1)) + "px";
-    if (useOp) f.opacity = Math.max(0, Math.min(1, k.opacity != null ? k.opacity : 1));
-    if (useC) f.stroke = k.color || stroke;
-    if (useOff) f.strokeDashoffset = (k.offset != null ? k.offset : 0) + "px";
-    if (useG || useH) {
-      const g = baseGlow + (k.glow || 0);
-      const blur = (design && design.blur) || 0;
-      let filter = "drop-shadow(0 0 " + g + "px " + (k.color || stroke) + ")";
-      // Hue after the shadow so the halo cycles color with the stroke.
-      if (useH) filter += " hue-rotate(" + (k.hue || 0) + "deg)";
-      if (blur) filter = "blur(" + blur + "px) " + filter;
-      f.filter = filter;
-    }
-    if (useT) f.transform = "translate(" + (k.x || 0) + "px, " + (k.y || 0) + "px) rotate(" + (k.rot || 0) + "deg)";
-    return f;
-  });
-}
-
-function clearFx(svg) {
-  if (sliceTimer) { clearInterval(sliceTimer); sliceTimer = 0; }
-  if (!svg) return;
-  svg.querySelectorAll(".bs-chroma-copy, .bs-slices").forEach(n => n.remove());
-}
-
 function fxOf(recipe, id) {
   return (recipe.fx || []).find(f => f.id === id) || null;
-}
-
-function mountChroma(el, px, ghost) {
-  const ns = "http://www.w3.org/2000/svg";
-  const svg = el.ownerSVGElement;
-  const groups = [];
-  const inks = [];
-  const glow = el.style.getPropertyValue("--glow") || "0px";
-  const blur = el.style.getPropertyValue("--blur") || "0px";
-  let maskId = "";
-  if (ghost && svg) {
-    // SeshHub: box-shadow of the whole frame, photo covers the inside. Punch the hole so only the lips show.
-    // The mask lives next to el (inside the overlay's pad/scale <g>), so size it from el's own bbox.
-    maskId = "bs-chroma-cut";
-    const mask = document.createElementNS(ns, "mask");
-    mask.setAttribute("id", maskId);
-    mask.setAttribute("class", "bs-chroma-copy");
-    mask.setAttribute("maskUnits", "userSpaceOnUse");
-    const b = shapeBox(el);
-    const pad = Math.max(b.width, b.height, 1000);
-    const bg = document.createElementNS(ns, "rect");
-    bg.setAttribute("x", String(b.x - pad));
-    bg.setAttribute("y", String(b.y - pad));
-    bg.setAttribute("width", String(b.width + 2 * pad));
-    bg.setAttribute("height", String(b.height + 2 * pad));
-    bg.setAttribute("fill", "#fff");
-    const punch = el.cloneNode(true);
-    punch.setAttribute("class", "");
-    punch.setAttribute("fill", "#000");
-    punch.setAttribute("stroke", "none");
-    punch.style.filter = "none";
-    mask.appendChild(bg);
-    mask.appendChild(punch);
-    el.parentNode.insertBefore(mask, el);
-  }
-  [[-1, "#00FFFF"], [1, "#FF00FF"]].forEach(([dir, color]) => {
-    const outer = document.createElementNS(ns, "g");
-    outer.setAttribute("class", "bs-chroma-copy");
-    outer.style.pointerEvents = "none";
-    if (maskId) outer.setAttribute("mask", "url(#" + maskId + ")");
-    const g = document.createElementNS(ns, "g");
-    g.setAttribute("transform", "translate(" + (dir * px) + " 0)");
-    g.dataset.dir = String(dir);
-    const node = el.cloneNode(true);
-    node.setAttribute("class", "bs-chroma-ink");
-    if (ghost) {
-      node.setAttribute("fill", color);
-      node.setAttribute("stroke", "none");
-    } else {
-      node.setAttribute("stroke", color);
-    }
-    node.style.filter = "blur(" + blur + ") drop-shadow(0 0 " + glow + " " + color + ")";
-    g.appendChild(node);
-    outer.appendChild(g);
-    el.parentNode.insertBefore(outer, el);
-    groups.push(g);
-    inks.push(node);
-  });
-  return { groups, inks };
-}
-
-// Glitch bars across the shape. Appended next to el so they share its pad/scale space.
-function mountSlices(el, n, ms) {
-  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.setAttribute("class", "bs-slices");
-  g.style.pointerEvents = "none";
-  el.parentNode.appendChild(g);
-  const colors = ["#ffffff", "#7ad7ff", "#ff4d2e", "#ff00ff"];
-  const b = shapeBox(el);
-  const w = b.width || 1920, h = b.height || 1080;
-  const step = () => {
-    g.replaceChildren();
-    for (let i = 0; i < n; i++) {
-      const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      r.setAttribute("x", String(b.x - w * 0.05 + (Math.random() - 0.5) * w * 0.08));
-      r.setAttribute("y", String(b.y + Math.random() * h));
-      r.setAttribute("width", String(w * 1.1));
-      r.setAttribute("height", String(h * (0.005 + Math.random() * 0.025)));
-      r.setAttribute("fill", colors[i % colors.length]);
-      r.setAttribute("opacity", String(0.5 + Math.random() * 0.4));
-      r.style.mixBlendMode = "screen";
-      g.appendChild(r);
-    }
-  };
-  step();
-  // ponytail: one global timer, fine while a single overlay plays one recipe
-  sliceTimer = setInterval(step, Math.max(40, (ms || 500) / 6));
-}
-
-function safeAnimate(el, frames, timing) {
-  try { return el.animate(frames, timing); }
-  catch (e) {
-    // Bad easing string (old custom preset): retry with linear segments.
-    const plain = frames.map(f => Object.assign({}, f, { easing: "linear" }));
-    try { return el.animate(plain, timing); }
-    catch (e2) { return null; }
-  }
-}
-
-function playRecipe(el, design, recipe, once) {
-  const token = ++playToken;
-  if (design) liveDesign = design;
-  const svg = el.ownerSVGElement;
-  el.getAnimations().forEach(a => a.cancel());
-  el.style.visibility = "";
-  clearFx(svg);
-  el.removeAttribute("pathLength");
-  if (!recipe) {
-    el.removeAttribute("stroke-dasharray");
-    return;
-  }
-  if (recipe.dash) el.setAttribute("stroke-dasharray", recipe.dash);
-  else el.removeAttribute("stroke-dasharray");
-  // ponytail: a dash of 1000+ is treated as "draw-on" (wipe) and measured against a 2000-unit perimeter,
-  // so it covers any shape size. Upgrade path: an explicit recipe flag if users want long real dashes.
-  if (parseFloat(recipe.dash) >= 1000) el.setAttribute("pathLength", "2000");
-  const frames = recipeFrames(recipe, design || liveDesign || {});
-  const timing = {
-    duration: Math.max(100, recipe.ms || 600),
-    easing: "linear",
-    iterations: once ? 1 : Infinity,
-    fill: "forwards",
-  };
-  const chroma = fxOf(recipe, "chroma");
-  const ghost = !!chroma && (recipe.id === "chroma" || recipe.id === "chroma-burst");
-  const split = chroma && chroma.px ? (ghost ? chroma.px * seshScale(el) : chroma.px) : 0;
-  const pack = split ? mountChroma(el, split, ghost) : { groups: [], inks: [] };
-  if (ghost) el.style.visibility = "hidden";
-  const slices = fxOf(recipe, "slices");
-  if (slices && slices.n && svg) mountSlices(el, slices.n, recipe.ms);
-  const anim = safeAnimate(el, frames, timing);
-  const copyFrames = frames.map(f => {
-    const o = Object.assign({}, f);
-    delete o.stroke;
-    delete o.filter;
-    return o;
-  });
-  pack.inks.forEach(c => safeAnimate(c, copyFrames, timing));
-  if (split && pack.groups.length) {
-    const a = split;
-    const easing = ghost ? "ease-in-out" : (recipe.ease || "ease");
-    pack.groups.forEach(g => {
-      const dir = Number(g.dataset.dir) || 1;
-      safeAnimate(g, [
-        { transform: "translate(" + (dir * a) + "px, 0px)", easing },
-        { transform: "translate(" + (dir * a * 2.5) + "px, " + (-dir * a * 0.4) + "px)", easing },
-        { transform: "translate(" + (dir * a) + "px, 0px)", easing },
-      ], timing);
-    });
-  }
-  if (once && anim) {
-    anim.onfinish = () => {
-      if (token !== playToken) return;
-      playIdle(el, liveDesign);
-    };
-  }
 }
 
 function recipeBase(recipe) {
@@ -453,23 +239,6 @@ function recipeForMotion(design) {
   const id = motionOf(design);
   if (id === "none") return null;
   return recipeTuned(recipeById(id, true), design.motionTune, true);
-}
-
-function playIdle(el, design) {
-  if (!el) return;
-  playRecipe(el, design, design ? recipeForMotion(design) : null, false);
-}
-
-function styleStroke(el, d) {
-  el.setAttribute("class", "border-path");
-  el.setAttribute("fill", "none");
-  el.setAttribute("stroke", d.stroke || "#e6f350");
-  el.setAttribute("stroke-width", String(d.strokeWidth || 12));
-  el.setAttribute("stroke-linejoin", "round");
-  el.style.setProperty("--sw", (d.strokeWidth || 12) + "px");
-  el.style.setProperty("--glow", (d.glow || 0) + "px");
-  el.style.setProperty("--blur", (d.blur || 0) + "px");
-  el.style.setProperty("--stroke", d.stroke || "#e6f350");
 }
 
 // A group with an empty label puts its options straight in the select (no optgroup header).
@@ -595,6 +364,7 @@ function renderBorder(svg, d, opts) {
     svg.appendChild(g);
     root = g;
   }
+  const ui = (opts && opts.ui) || (handles ? svg : null);
   if (handles) {
     const defs = document.createElementNS(ns, "defs");
     const pat = document.createElementNS(ns, "pattern");
@@ -620,12 +390,13 @@ function renderBorder(svg, d, opts) {
     root.appendChild(hole);
   }
 
-  const path = makeShape(ns, d);
-  styleStroke(path, d);
-  root.appendChild(path);
-  playIdle(path, d);
-
-  if (handles) {
+  if (handles && ui) {
+    let hroot = ui;
+    if (ui !== svg) {
+      ui.setAttribute("viewBox", svg.getAttribute("viewBox"));
+      ui.replaceChildren();
+      hroot = ui;
+    }
     if (kindOf(d) === "polygon") {
       const pts = d.points || [];
       const sp = pts[opts.sel];
@@ -635,7 +406,7 @@ function renderBorder(svg, d, opts) {
           ln.setAttribute("x1", sp.x); ln.setAttribute("y1", sp.y);
           ln.setAttribute("x2", hx); ln.setAttribute("y2", hy);
           ln.setAttribute("class", "arm");
-          root.appendChild(ln);
+          hroot.appendChild(ln);
         });
         [["in", sp.ix, sp.iy], ["out", sp.ox, sp.oy]].forEach(([name, hx, hy]) => {
           const h = document.createElementNS(ns, "circle");
@@ -643,7 +414,7 @@ function renderBorder(svg, d, opts) {
           h.setAttribute("class", "handle bez");
           h.dataset.h = name;
           h.dataset.i = String(opts.sel);
-          root.appendChild(h);
+          hroot.appendChild(h);
         });
       }
       pts.forEach((p, i) => {
@@ -651,7 +422,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("cx", p.x); h.setAttribute("cy", p.y); h.setAttribute("r", 10);
         h.setAttribute("class", "handle" + (p.smooth ? " smooth" : "") + (opts.sel === i ? " sel" : ""));
         h.dataset.i = String(i);
-        root.appendChild(h);
+        hroot.appendChild(h);
       });
     } else {
       const x = d.x, y = d.y, w = d.w, hgt = d.h;
@@ -666,7 +437,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("width", 12); h.setAttribute("height", 12);
         h.setAttribute("class", "handle box " + t);
         h.dataset.t = t;
-        root.appendChild(h);
+        hroot.appendChild(h);
       });
       if (kindOf(d) === "roundrect") {
         const rr = Math.max(0, Math.min(d.r || 0, Math.min(w, hgt) / 2));
@@ -675,7 +446,7 @@ function renderBorder(svg, d, opts) {
         h.setAttribute("r", 8);
         h.setAttribute("class", "handle rad");
         h.dataset.t = "rad";
-        root.appendChild(h);
+        hroot.appendChild(h);
       }
     }
   }
@@ -707,8 +478,8 @@ function maskCanvas(d) {
 }
 
 function fireOverlayAnim(kind, tune) {
-  const el = document.querySelector(".border-path");
-  if (!el) return;
+  const ink = window.overlayInk;
+  if (!ink) return;
   const hit = recipeById(kind, false) || recipeById("pulse", false);
-  playRecipe(el, liveDesign, recipeTuned(hit, tune, false), true);
+  ink.play(recipeTuned(hit, tune, false), true);
 }

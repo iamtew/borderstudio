@@ -18,15 +18,8 @@ body.admin {
 body.overlay { background: #111; overflow: hidden; }
 body.overlay.obs { background: transparent; }
 body.mask { margin: 0; background: #000; overflow: hidden; }
-body.overlay svg, body.overlay canvas, body.mask canvas { width: 100vw; height: 100vh; display: block; }
-body.overlay .border-path { fill: none; }
-.border-path {
-  filter: blur(var(--blur, 0px)) drop-shadow(0 0 var(--glow, 0px) var(--stroke, currentColor));
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.bs-chroma-ink { filter: blur(var(--blur, 0px)); }
-.bs-chroma-copy { transform-box: fill-box; transform-origin: center; }
+body.overlay #stage { position: absolute; inset: 0; }
+body.overlay canvas, body.mask canvas { width: 100vw; height: 100vh; display: block; }
 #down-banner {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0, 0, 0, 0.5);
@@ -85,9 +78,11 @@ body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); 
 }
 body.admin #frame { border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); }
 #frame svg { width: 100%; height: 100%; display: block; }
-#stage { position: relative; }
-#frame #cam-layer { position: absolute; inset: 0; display: none; }
+#frame #cam-layer { position: absolute; inset: 0; z-index: 1; display: none; }
 body.cam-on #frame #cam-layer { display: block; }
+#frame #stage { position: absolute; inset: 0; z-index: 2; }
+#frame #ink { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+#frame #hits { position: absolute; inset: 0; z-index: 4; }
 /* transparent, not none: the hole must stay hit-testable for box-shape drags */
 body.cam-on #stage .checker, body.cam-on #stage .hole { fill: transparent; }
 /* fill, not cover: OBS stretches the camera to the hole aspect the same way */
@@ -123,7 +118,7 @@ body.admin input, body.admin select, body.admin textarea {
 #grid-toggles { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; padding-left: 12px; border-left: 1px solid var(--line); }
 #grid-toggles label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); cursor: pointer; }
 #grid-toggles input { width: auto; }
-#grids { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+#grids { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
 #grids svg { width: 100%; height: 100%; display: block; }
 .bar-overlay { display: flex; align-items: center; gap: 8px; }
 .bar-overlay a, .bar-overlay button { display: inline-flex; align-items: center; gap: 6px; }
@@ -171,7 +166,7 @@ body.ctrl-edit #btn-ctrl-edit { border-color: var(--accent); color: var(--accent
   border-left: 1px solid var(--line); padding: 4px 12px 12px; background: var(--panel);
 }
 #ctrl-tune[hidden] { display: none; }
-#ctrl-stage { width: 100%; height: 108px; background: #111; display: block; margin: 8px 0; }
+#ctrl-ink { position: relative; width: 100%; height: 108px; background: #111; margin: 8px 0; }
 #ctrl-tune button { width: 100%; margin: 0 0 8px; }
 #ctrl-tune .color-field button { width: auto; margin: 0; }
 #ctrl-grid {

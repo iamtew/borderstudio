@@ -130,6 +130,8 @@
               </foreignObject>
             </svg>
             <svg id="stage" viewBox="0 0 1920 1080"></svg>
+            <div id="ink"></div>
+            <svg id="hits" viewBox="0 0 1920 1080"></svg>
             <div id="grids"></div>
           </div>
         </div>
@@ -178,7 +180,7 @@
         <div id="ctrl-grid"></div>
         <aside id="ctrl-tune" hidden>
           <div class="win-title">Animation</div>
-          <svg id="ctrl-stage" viewBox="0 0 1920 1080"></svg>
+          <div id="ctrl-ink"></div>
           <label>Duration (ms) <input id="ctrl-ms" type="number" min="100" max="10000" step="50"></label>
           <label>Easing
             <select id="ctrl-ease">
@@ -207,7 +209,9 @@
     <div id="iro-pal-chips"></div>
   </div>
   <script src="/iro.min.js"></script>
+  <script src="/pixi.min.js"></script>
   <script src="/shared.js"></script>
+  <script src="/ink.js"></script>
   <script src="/composer.js"></script>
 </body>
 </html>

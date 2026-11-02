@@ -13,6 +13,8 @@ const GRIDS = [
 ];
 const shownGrids = new Set();
 const stage = document.getElementById("stage");
+const hits = document.getElementById("hits");
+const frame = document.getElementById("frame");
 const banner = document.getElementById("down-banner");
 const menu = document.getElementById("file-menu");
 const gridsEl = document.getElementById("grids");
@@ -102,7 +104,11 @@ async function pullAnims() {
 
 function paint() {
   stage.setAttribute("viewBox", "0 0 " + d.width + " " + d.height);
-  renderBorder(stage, d, { handles: true, sel });
+  renderBorder(stage, d, { handles: true, sel, ui: hits });
+  if (window.designInk) {
+    window.designInk.setView({ overlayW: d.width, overlayH: d.height });
+    window.designInk.playIdle(d);
+  }
   paintCam();
   paintStrokeWell();
   document.getElementById("in-width").value = d.strokeWidth;
@@ -250,15 +256,16 @@ function paintCtrlTune() {
   document.getElementById("ctrl-color-clear").hidden = !tune.color;
 }
 
-function previewCtrl() {
+async function previewCtrl() {
   const ev = ctrlEvent();
-  const svg = document.getElementById("ctrl-stage");
-  if (!ev || !svg) return;
-  renderBorder(svg, d, { handles: false });
-  const path = svg.querySelector(".border-path");
-  if (!path) return;
+  if (!ev || !d) return;
+  if (!window.ctrlInk) window.ctrlInk = await mountInk(document.getElementById("ctrl-ink"));
+  const ink = window.ctrlInk;
+  if (!ink) return;
+  ink.setView({ overlayW: d.width, overlayH: d.height });
+  ink.playIdle(d);
   const src = recipeById(ev.anim, false) || recipeById("pulse", false);
-  playRecipe(path, d, recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
+  ink.play(recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
 }
 
 let iroPick = null, iroOn = null;
@@ -806,7 +813,7 @@ function applyBox(t, p, orig) {
 
 let drag = null;
 let dragFrom = null;
-stage.addEventListener("pointerdown", ev => {
+frame.addEventListener("pointerdown", ev => {
   // Right-click opens the app menu; it must not insert a point or start a drag.
   if (ev.button !== 0) return;
   const p = svgPoint(ev);
@@ -823,21 +830,21 @@ stage.addEventListener("pointerdown", ev => {
       drag = sel;
       dragFrom = { cx: ev.clientX, cy: ev.clientY, moved: false, pt: Object.assign({}, d.points[sel]) };
     }
-    stage.setPointerCapture(ev.pointerId);
+    frame.setPointerCapture(ev.pointerId);
     paint();
     return;
   }
   if (kindOf(d) !== "polygon") {
-    if (ev.target.closest && ev.target.closest(".hole, .border-path")) {
+    if (ev.target.closest && ev.target.closest(".hole")) {
       pushHist();
       drag = { t: "move", ox: p.x, oy: p.y, x: d.x, y: d.y, w: d.w, h: d.h };
-      stage.setPointerCapture(ev.pointerId);
+      frame.setPointerCapture(ev.pointerId);
     }
     return;
   }
   addPointAt(p);
 });
-stage.addEventListener("pointermove", ev => {
+frame.addEventListener("pointermove", ev => {
   if (drag == null) return;
   if (dragFrom && Math.hypot(ev.clientX - dragFrom.cx, ev.clientY - dragFrom.cy) > 4) dragFrom.moved = true;
   const p = snapPt(svgPoint(ev));
@@ -859,7 +866,7 @@ stage.addEventListener("pointermove", ev => {
   } else applyBox(drag.t, p, drag);
   paint();
 });
-stage.addEventListener("pointerup", () => {
+frame.addEventListener("pointerup", () => {
   const ae = document.activeElement;
   if (ae && ae.matches && ae.matches("input, textarea, select")) ae.blur();
   if (typeof drag === "number" && dragFrom && !dragFrom.moved) {
@@ -967,20 +974,7 @@ function paintTune() {
   document.getElementById("tune-color-clear").hidden = !tune.color;
 }
 function replayMotion() {
-  const path = document.querySelector("#stage .border-path");
-  if (!path) return;
-  const prev = path.getAnimations()[0];
-  const at = prev ? prev.currentTime : 0;
-  playIdle(path, d);
-  const svg = path.ownerSVGElement;
-  if (!svg || !at) return;
-  svg.querySelectorAll(".border-path, .bs-chroma-ink, .bs-chroma-copy").forEach(el => {
-    el.getAnimations().forEach(a => {
-      const dur = a.effect && a.effect.getTiming().duration;
-      if (!dur) return;
-      try { a.currentTime = at % dur; } catch (e) {}
-    });
-  });
+  if (window.designInk) window.designInk.playIdle(d);
 }
 ["tune-ms", "tune-ease", "tune-strength"].forEach(id => {
   const el = document.getElementById(id);
@@ -1366,7 +1360,7 @@ addEventListener("contextmenu", ev => {
   menu.hidden = true;
   ctx.replaceChildren();
   const extra = [];
-  const onStage = ev.target.closest("#stage");
+  const onStage = ev.target.closest("#stage, #hits, #ink");
   if (document.body.classList.contains("view-design") && d && kindOf(d) === "polygon" && onStage) {
     const vert = ev.target.closest(".handle[data-i]:not([data-h])");
     if (vert) {
@@ -1451,6 +1445,8 @@ async function boot() {
   await loadPalettes();
   await loadAnims();
   pushHist();
+  paint();
+  window.designInk = await mountInk(document.getElementById("ink"));
   paint();
   if (location.pathname === "/control") setView("control");
   const es = new EventSource("/api/events?admin=1");
