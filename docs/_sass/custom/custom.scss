@@ -1,12 +1,33 @@
-.site-title::before {
-  content: "";
-  display: inline-block;
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/geist/Geist-wght.woff2") format("woff2");
+}
+
+body {
+  font-family: Geist, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.site-title,
+.nav-list .nav-list-item .nav-list-link {
+  font-family: Geist, system-ui, sans-serif;
+}
+
+.site-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.site-title-icon {
   width: 1.75rem;
   height: 1.75rem;
-  margin-right: 0.5rem;
-  vertical-align: -0.35em;
-  background: url("../icon.png") center / contain no-repeat;
+  flex: none;
 }
+
 .ti {
   display: inline-block;
   width: 1.1em;
@@ -17,12 +38,30 @@
   -webkit-mask: var(--ti) center / contain no-repeat;
   mask: var(--ti) center / contain no-repeat;
 }
+
+.ti-arrow-back-up { --ti: url("../icons/arrow-back-up.svg"); }
+.ti-arrow-forward-up { --ti: url("../icons/arrow-forward-up.svg"); }
 .ti-border-corners { --ti: url("../icons/border-corners.svg"); }
 .ti-broadcast { --ti: url("../icons/broadcast.svg"); }
+.ti-browser-x { --ti: url("../icons/browser-x.svg"); }
+.ti-check { --ti: url("../icons/check.svg"); }
+.ti-copy { --ti: url("../icons/copy.svg"); }
+.ti-device-floppy { --ti: url("../icons/device-floppy.svg"); }
 .ti-download { --ti: url("../icons/download.svg"); }
+.ti-info-circle { --ti: url("../icons/info-circle.svg"); }
 .ti-layout-grid { --ti: url("../icons/layout-grid.svg"); }
 .ti-mask { --ti: url("../icons/mask.svg"); }
+.ti-palette { --ti: url("../icons/palette.svg"); }
 .ti-pencil { --ti: url("../icons/pencil.svg"); }
+.ti-player-play { --ti: url("../icons/player-play.svg"); }
+.ti-plug { --ti: url("../icons/plug.svg"); }
+.ti-plug-off { --ti: url("../icons/plug-off.svg"); }
+.ti-plus { --ti: url("../icons/plus.svg"); }
+.ti-power { --ti: url("../icons/power.svg"); }
 .ti-settings { --ti: url("../icons/settings.svg"); }
 .ti-sparkles { --ti: url("../icons/sparkles.svg"); }
+.ti-stack-2 { --ti: url("../icons/stack-2.svg"); }
+.ti-tool { --ti: url("../icons/tool.svg"); }
+.ti-trash { --ti: url("../icons/trash.svg"); }
 .ti-video { --ti: url("../icons/video.svg"); }
+.ti-x { --ti: url("../icons/x.svg"); }
