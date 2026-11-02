@@ -4,9 +4,6 @@
   <meta charset="utf-8">
   <title>Border Studio</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/css/fontawesome.min.css">
-  <link rel="stylesheet" href="/css/solid.min.css">
-  <link rel="stylesheet" href="/css/regular.min.css">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="admin view-design">
@@ -17,13 +14,13 @@
     <div id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="settings-head">
         <span id="settings-title">Settings</span>
-        <button type="button" id="settings-close" aria-label="Close settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <button type="button" id="settings-close" aria-label="Close settings"><span class="ti ti-x" aria-hidden="true"></span></button>
       </div>
       <div class="settings-body">
         <nav class="settings-nav" aria-label="Settings">
-          <button type="button" data-set="obs" class="sel">OBS</button>
-          <button type="button" data-set="mode">Mode</button>
-          <button type="button" data-set="palettes">Color palettes</button>
+          <button type="button" data-set="obs" class="sel"><span class="ti ti-broadcast" aria-hidden="true"></span> OBS</button>
+          <button type="button" data-set="mode"><span class="ti ti-video" aria-hidden="true"></span> Mode</button>
+          <button type="button" data-set="palettes"><span class="ti ti-palette" aria-hidden="true"></span> Color palettes</button>
         </nav>
         <div class="settings-main">
           <section id="set-obs">
@@ -33,8 +30,8 @@
             <label>Password <input id="obs-pass" type="password" autocomplete="off" spellcheck="false"></label>
             <p id="obs-status" class="settings-hint">Disconnected</p>
             <div class="settings-pal-actions">
-              <button type="button" id="obs-connect"><i class="fa-solid fa-plug" aria-hidden="true"></i> Connect</button>
-              <button type="button" id="obs-disconnect"><i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i> Disconnect</button>
+              <button type="button" id="obs-connect"><span class="ti ti-plug" aria-hidden="true"></span> Connect</button>
+              <button type="button" id="obs-disconnect"><span class="ti ti-plug-off" aria-hidden="true"></span> Disconnect</button>
             </div>
             <label>Camera
               <select id="obs-camera"></select>
@@ -43,7 +40,7 @@
               <select id="obs-device"></select>
             </label>
             <div class="settings-pal-actions">
-              <button type="button" id="obs-scene"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Create / Repair scene</button>
+              <button type="button" id="obs-scene"><span class="ti ti-stack-2" aria-hidden="true"></span> Create / Repair scene</button>
             </div>
             <p id="obs-msg" class="settings-hint"></p>
           </section>
@@ -59,14 +56,14 @@
           <section id="set-palettes" hidden>
             <p class="settings-hint">Built-in palettes cannot be edited. Custom palettes are listed below.</p>
             <div id="set-pal-list"></div>
-            <button type="button" id="set-pal-new"><i class="fa-solid fa-plus" aria-hidden="true"></i> New palette</button>
+            <button type="button" id="set-pal-new"><span class="ti ti-plus" aria-hidden="true"></span> New palette</button>
             <div id="set-pal-form">
               <label>Name <input id="set-pal-name" type="text" autocomplete="off" spellcheck="false"></label>
               <p class="settings-hint">One hex per line or separated by spaces/commas.</p>
               <textarea id="set-pal-import" rows="8" placeholder="#ffd700"></textarea>
               <div class="settings-pal-actions">
-                <button type="button" id="set-pal-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
-                <button type="button" id="set-pal-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
+                <button type="button" id="set-pal-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
+                <button type="button" id="set-pal-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete</button>
               </div>
             </div>
           </section>
@@ -83,30 +80,30 @@
             <span class="bar-brand">Border Studio</span>
           </button>
           <div id="file-menu" hidden>
-            <button type="button" id="file-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save</button>
-            <button type="button" id="file-reset" class="design-only"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
-            <button type="button" id="btn-mask"><i class="fa-solid fa-download" aria-hidden="true"></i> Download mask</button>
+            <button type="button" id="file-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
+            <button type="button" id="file-reset" class="design-only"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset</button>
+            <button type="button" id="btn-mask"><span class="ti ti-download" aria-hidden="true"></span> Download mask</button>
             <div class="file-sep">
-              <button type="button" id="file-settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</button>
+              <button type="button" id="file-settings"><span class="ti ti-settings" aria-hidden="true"></span> Settings</button>
             </div>
             <div class="file-sep">
-              <button type="button" id="file-close"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
-              <button type="button" id="file-quit"><i class="fa-solid fa-power-off" aria-hidden="true"></i> Quit</button>
+              <button type="button" id="file-close"><span class="ti ti-x" aria-hidden="true"></span> Close</button>
+              <button type="button" id="file-quit"><span class="ti ti-power" aria-hidden="true"></span> Quit</button>
             </div>
             <div id="file-version"></div>
           </div>
         </div>
         <div class="bar-views">
-          <button type="button" id="view-design" class="sel">Designer</button>
-          <button type="button" id="view-control">Controller</button>
+          <button type="button" id="view-design" class="sel"><span class="ti ti-pencil" aria-hidden="true"></span> Designer</button>
+          <button type="button" id="view-control"><span class="ti ti-layout-grid" aria-hidden="true"></span> Controller</button>
         </div>
         <div id="grid-toggles" class="design-only"><span>Grid:</span></div>
       </div>
       <div class="bar-overlay">
         <button type="button" id="obs-pill" title="OBS connection settings"><span class="dot" aria-hidden="true"></span> <span id="obs-pill-text">OBS offline</span></button>
         <div id="mode-switch" role="radiogroup" aria-label="Mode">
-          <button type="button" id="mode-obs" role="radio" aria-checked="true" class="sel"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> OBS mode</button>
-          <button type="button" id="mode-design" role="radio" aria-checked="false"><i class="fa-solid fa-video" aria-hidden="true"></i> Designer mode</button>
+          <button type="button" id="mode-obs" role="radio" aria-checked="true" class="sel"><span class="ti ti-broadcast" aria-hidden="true"></span> OBS mode</button>
+          <button type="button" id="mode-design" role="radio" aria-checked="false"><span class="ti ti-video" aria-hidden="true"></span> Designer mode</button>
         </div>
       </div>
     </div>
@@ -124,10 +121,10 @@
           </label>
           <p class="hint poly-only">Drag vertices. Click a vertex to smooth it into a curve, then drag its handles. Click an edge to add a point. Delete removes the selected vertex. Ctrl+Z undoes.</p>
           <p class="hint box-only">Drag the hole to move. Drag handles to resize. Ctrl+Z undoes.</p>
-          <button type="button" id="btn-add" class="poly-only"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add point</button>
-          <button type="button" id="btn-del" class="poly-only"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete point</button>
+          <button type="button" id="btn-add" class="poly-only"><span class="ti ti-plus" aria-hidden="true"></span> Add point</button>
+          <button type="button" id="btn-del" class="poly-only"><span class="ti ti-trash" aria-hidden="true"></span> Delete point</button>
           <label id="radius-row" class="roundrect-only">Corner radius <input id="in-radius" type="number" min="0" step="1"></label>
-          <button type="button" id="btn-reset"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset</button>
+          <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset</button>
         </div>
       </aside>
       <div id="stage-wrap" class="win">
@@ -167,11 +164,11 @@
                 <option value="steps(2, end)">Steps 2</option>
               </select>
             </label>
-            <label>Tint <span class="color-field"><button type="button" id="tune-color" class="swatch" title="Motion color"></button><input id="tune-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="tune-color-clear" hidden aria-label="Use stroke color"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></label>
+            <label>Tint <span class="color-field"><button type="button" id="tune-color" class="swatch" title="Motion color"></button><input id="tune-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="tune-color-clear" hidden aria-label="Use stroke color"><span class="ti ti-x" aria-hidden="true"></span></button></span></label>
             <label>Strength <input id="tune-strength" type="number" min="0" max="3" step="0.1"></label>
             <label>Preset name <input id="tune-name" type="text" autocomplete="off" spellcheck="false" placeholder="My motion"></label>
-            <button type="button" id="tune-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save as preset</button>
-            <button type="button" id="tune-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete preset</button>
+            <button type="button" id="tune-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save as preset</button>
+            <button type="button" id="tune-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete preset</button>
           </div>
           <div class="win-title">Mask</div>
           <p class="hint">This size is the camera hole. Stroke and glow can sit outside it in the OBS scene.</p>
@@ -183,8 +180,8 @@
     </div>
     <div id="ctrl-view">
       <div id="ctrl-bar">
-        <button type="button" id="btn-ctrl-edit"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</button>
-        <button type="button" id="btn-ev-add" hidden><i class="fa-solid fa-plus" aria-hidden="true"></i> Add event</button>
+        <button type="button" id="btn-ctrl-edit"><span class="ti ti-pencil" aria-hidden="true"></span> Edit</button>
+        <button type="button" id="btn-ev-add" hidden><span class="ti ti-plus" aria-hidden="true"></span> Add event</button>
       </div>
       <div id="ctrl-main">
         <div id="ctrl-grid"></div>
@@ -203,11 +200,11 @@
               <option value="steps(2, end)">Steps 2</option>
             </select>
           </label>
-          <label>Tint <span class="color-field"><button type="button" id="ctrl-color" class="swatch" title="Animation color"></button><input id="ctrl-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="ctrl-color-clear" hidden aria-label="Use stroke color"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></span></label>
+          <label>Tint <span class="color-field"><button type="button" id="ctrl-color" class="swatch" title="Animation color"></button><input id="ctrl-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke"><button type="button" id="ctrl-color-clear" hidden aria-label="Use stroke color"><span class="ti ti-x" aria-hidden="true"></span></button></span></label>
           <label>Strength <input id="ctrl-strength" type="number" min="0" max="3" step="0.1"></label>
           <label>Preset name <input id="ctrl-name" type="text" autocomplete="off" spellcheck="false" placeholder="My animation"></label>
-          <button type="button" id="ctrl-save"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save as preset</button>
-          <button type="button" id="ctrl-del" hidden><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete preset</button>
+          <button type="button" id="ctrl-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save as preset</button>
+          <button type="button" id="ctrl-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete preset</button>
         </aside>
       </div>
     </div>

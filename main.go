@@ -39,6 +39,7 @@ var (
 //go:embed all:web
 //go:embed assets/icon.ico
 //go:embed assets/icon.png
+//go:embed assets/tray
 var assets embed.FS
 
 type hub struct {
@@ -259,6 +260,11 @@ func clearBrowserData() {
 		return
 	}
 	trayToast("Border Studio", "Browser data cleared.")
+}
+
+func trayIcon(name string) []byte {
+	b, _ := assets.ReadFile("assets/tray/" + name + ".png")
+	return b
 }
 
 func trayToast(title, body string) {
@@ -659,19 +665,19 @@ func main() {
 	tray.SetIcon(png)
 	tray.SetTooltip("Border Studio")
 	menu := wailsApp.Menu.New()
-	menu.Add("Designer").OnClick(func(_ *application.Context) { openDesigner() })
-	menu.Add("Controller").OnClick(func(_ *application.Context) { openController() })
-	menu.Add("Overlay").OnClick(func(_ *application.Context) { openURL(overlayURL()) })
-	menu.Add("Copy URL").OnClick(func(_ *application.Context) { copyText(overlayURL()) })
+	menu.Add("Designer").SetBitmap(trayIcon("pencil")).OnClick(func(_ *application.Context) { openDesigner() })
+	menu.Add("Controller").SetBitmap(trayIcon("layout-grid")).OnClick(func(_ *application.Context) { openController() })
+	menu.Add("Overlay").SetBitmap(trayIcon("border-corners")).OnClick(func(_ *application.Context) { openURL(overlayURL()) })
+	menu.Add("Copy URL").SetBitmap(trayIcon("copy")).OnClick(func(_ *application.Context) { copyText(overlayURL()) })
 	menu.AddSeparator()
-	menu.Add("Clear browser data").OnClick(func(_ *application.Context) {
+	menu.Add("Clear browser data").SetBitmap(trayIcon("browser-x")).OnClick(func(_ *application.Context) {
 		if !confirm("Border Studio", "Close Designer, Controller, and About and delete saved WebView data?") {
 			return
 		}
 		clearBrowserData()
 	})
-	menu.Add("About").OnClick(func(_ *application.Context) { openAbout() })
-	menu.Add("Quit").OnClick(func(_ *application.Context) {
+	menu.Add("About").SetBitmap(trayIcon("info-circle")).OnClick(func(_ *application.Context) { openAbout() })
+	menu.Add("Quit").SetBitmap(trayIcon("power")).OnClick(func(_ *application.Context) {
 		closeAppWindows()
 		_ = srv.Close()
 		wailsApp.Quit()

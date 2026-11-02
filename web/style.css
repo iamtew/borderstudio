@@ -40,8 +40,38 @@ body.view-control #wrap, body.view-design #ctrl-view { display: none; }
 body.view-control #ctrl-view { display: flex; flex: 1; min-height: 0; flex-direction: column; background: var(--panel); }
 body.view-control .design-only { display: none !important; }
 .bar-views { display: flex; gap: 6px; }
-.bar-views button { padding: 6px 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: var(--muted); }
+.bar-views button { padding: 6px 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 .bar-views button.sel { color: var(--accent); border-color: var(--accent); }
+.ti {
+  display: inline-block; width: 1.1em; height: 1.1em; flex: none;
+  background: currentColor; vertical-align: -0.15em;
+  -webkit-mask: var(--ti) center / contain no-repeat;
+  mask: var(--ti) center / contain no-repeat;
+}
+.ti-arrow-back-up { --ti: url(/icons/arrow-back-up.svg); }
+.ti-arrow-forward-up { --ti: url(/icons/arrow-forward-up.svg); }
+.ti-border-corners { --ti: url(/icons/border-corners.svg); }
+.ti-broadcast { --ti: url(/icons/broadcast.svg); }
+.ti-browser-x { --ti: url(/icons/browser-x.svg); }
+.ti-check { --ti: url(/icons/check.svg); }
+.ti-copy { --ti: url(/icons/copy.svg); }
+.ti-device-floppy { --ti: url(/icons/device-floppy.svg); }
+.ti-download { --ti: url(/icons/download.svg); }
+.ti-info-circle { --ti: url(/icons/info-circle.svg); }
+.ti-layout-grid { --ti: url(/icons/layout-grid.svg); }
+.ti-mask { --ti: url(/icons/mask.svg); }
+.ti-palette { --ti: url(/icons/palette.svg); }
+.ti-pencil { --ti: url(/icons/pencil.svg); }
+.ti-plug { --ti: url(/icons/plug.svg); }
+.ti-plug-off { --ti: url(/icons/plug-off.svg); }
+.ti-plus { --ti: url(/icons/plus.svg); }
+.ti-power { --ti: url(/icons/power.svg); }
+.ti-settings { --ti: url(/icons/settings.svg); }
+.ti-sparkles { --ti: url(/icons/sparkles.svg); }
+.ti-stack-2 { --ti: url(/icons/stack-2.svg); }
+.ti-trash { --ti: url(/icons/trash.svg); }
+.ti-video { --ti: url(/icons/video.svg); }
+.ti-x { --ti: url(/icons/x.svg); }
 body.admin .win { display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
 body.admin .win-title {
   flex: none; padding: 12px 14px 4px; color: var(--accent);
@@ -151,7 +181,7 @@ body.about { display: block; text-align: center; overflow: hidden; }
 .about-card img { width: 64px; height: 64px; object-fit: contain; display: block; margin: 0 auto 12px; }
 .about-card h1 { margin: 0 0 8px; font-size: 18px; }
 .about-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; word-break: break-all; }
-.about-card button { min-width: 88px; padding: 8px 16px; }
+.about-card button { min-width: 88px; padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
 #mask-prev { width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; border-radius: var(--r); margin: 8px 0; }
 #ctrl-bar {
@@ -225,7 +255,7 @@ body.admin .event-row input, body.admin .event-row select {
   border-right: 1px solid var(--line); overflow: auto;
 }
 .settings-nav button {
-  display: block; width: 100%; margin: 0 0 4px; padding: 8px 10px;
+  display: inline-flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 4px; padding: 8px 10px;
   text-align: left; font: inherit; font-size: 12px; color: var(--muted);
 }
 .settings-nav button.sel { color: var(--accent); border-color: var(--accent); }

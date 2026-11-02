@@ -5,6 +5,8 @@ default:
 
 icon:
     magick assets/icon.png -define icon:auto-resize=256,128,64,48,32,16 assets/icon.ico
+    New-Item -ItemType Directory -Force assets/tray | Out-Null
+    foreach ($n in @("pencil","layout-grid","border-corners","copy","browser-x","info-circle","power")) { $svg = (Get-Content ("web/icons/" + $n + ".svg") -Raw) -replace "currentColor", "#F0EDE4"; $tmp = Join-Path $env:TEMP ("borderstudio-" + $n + ".svg"); [System.IO.File]::WriteAllText($tmp, $svg); magick -background none -density 384 $tmp -resize 16x16 ("assets/tray/" + $n + ".png") }
 
 [private]
 git-version:

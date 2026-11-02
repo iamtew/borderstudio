@@ -13,9 +13,9 @@ Border Studio is written by **Mikael 'tew'**. Licensed under the [MIT License](h
 | --- | --- | --- |
 | [PixiJS](https://pixijs.com/) | MIT | Overlay ink (WebGL). Vendored as `web/pixi.min.js`. |
 | [iro.js](https://iro.js.org/) | MPL-2.0 | Color picker. Vendored as `web/iro.min.js`. |
-| [Font Awesome Free](https://fontawesome.com/license/free) | Icons CC BY 4.0, fonts SIL OFL 1.1, code MIT | UI icons. |
+| [Tabler Icons](https://tabler.io/icons) | MIT | UI and tray icons. Outline SVGs in `web/icons/`. |
 
-Full texts sit next to those files (`web/pixi.LICENSE.txt`, `web/webfonts/LICENSE.txt`).
+Full texts sit next to those files (`web/pixi.LICENSE.txt`, `web/icons/LICENSE.txt`).
 
 ## Go modules
 

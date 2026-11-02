@@ -143,8 +143,8 @@ function paintCtrl() {
   document.body.classList.toggle("ctrl-edit", ctrlEdit);
   add.hidden = !ctrlEdit;
   edit.innerHTML = ctrlEdit
-    ? '<i class="fa-solid fa-check" aria-hidden="true"></i> Done'
-    : '<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit';
+    ? '<span class="ti ti-check" aria-hidden="true"></span> Done'
+    : '<span class="ti ti-pencil" aria-hidden="true"></span> Edit';
   grid.replaceChildren();
   const events = d.events || [];
   if (ctrlSel >= events.length) ctrlSel = Math.max(0, events.length - 1);
@@ -194,7 +194,7 @@ function paintCtrl() {
     const del = document.createElement("button");
     del.type = "button";
     del.setAttribute("aria-label", "Delete");
-    del.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+    del.innerHTML = '<span class="ti ti-trash" aria-hidden="true"></span>';
     del.onclick = () => delEvent(i);
     row.dataset.i = String(i);
     row.addEventListener("pointerdown", () => pickCtrl(i));
@@ -390,7 +390,7 @@ function palSwatches(colors) {
   const wrap = document.createElement("span");
   wrap.className = "set-pal-swatches";
   for (const hex of colors || []) {
-    const i = document.createElement("i");
+    const i = document.createElement("span");
     i.style.background = hex;
     wrap.append(i);
   }
@@ -1430,8 +1430,8 @@ function addCtxBtn(label, icon, run, disabled, title) {
   b.type = "button";
   b.disabled = !!disabled;
   if (title) b.title = title;
-  const i = document.createElement("i");
-  i.className = "fa-solid " + icon;
+  const i = document.createElement("span");
+  i.className = "ti ti-" + icon;
   i.setAttribute("aria-hidden", "true");
   b.append(i, document.createTextNode(label));
   if (!b.disabled) b.onclick = () => { closeCtx(); run(); };
@@ -1453,24 +1453,24 @@ addEventListener("contextmenu", ev => {
     if (vert) {
       const i = Number(vert.dataset.i);
       const floor = d.points.length <= 3;
-      extra.push(["Delete point", "fa-trash", () => { sel = i; delPoint(); }, floor, floor ? "A polygon needs 3 points" : ""]);
+      extra.push(["Delete point", "trash", () => { sel = i; delPoint(); }, floor, floor ? "A polygon needs 3 points" : ""]);
     } else {
       const p = svgPoint(ev);
-      extra.push(["Add point here", "fa-plus", () => addPointAt(p)]);
+      extra.push(["Add point here", "plus", () => addPointAt(p)]);
     }
   }
   const row = ev.target.closest("#ctrl-grid .event-row");
-  if (row && ctrlEdit) extra.push(["Delete button", "fa-trash", () => delEvent(Number(row.dataset.i))]);
+  if (row && ctrlEdit) extra.push(["Delete button", "trash", () => delEvent(Number(row.dataset.i))]);
   extra.forEach(it => addCtxBtn(it[0], it[1], it[2], it[3], it[4]));
   if (extra.length) {
     const sep = document.createElement("div");
     sep.className = "file-sep";
     ctx.appendChild(sep);
   }
-  addCtxBtn("Undo", "fa-rotate-left", undo, idx <= 0);
-  addCtxBtn("Redo", "fa-rotate-right", redo, idx >= stack.length - 1);
-  addCtxBtn("Save", "fa-floppy-disk", () => save());
-  addCtxBtn("Settings", "fa-gear", openSettings);
+  addCtxBtn("Undo", "arrow-back-up", undo, idx <= 0);
+  addCtxBtn("Redo", "arrow-forward-up", redo, idx >= stack.length - 1);
+  addCtxBtn("Save", "device-floppy", () => save());
+  addCtxBtn("Settings", "settings", openSettings);
   ctx.hidden = false;
   ctx.style.left = "0px";
   ctx.style.top = "0px";
