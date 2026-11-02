@@ -1,0 +1,15 @@
+title: Border Studio
+description: Camera border + mask for OBS
+url: https://iamtew.github.io
+baseurl: /borderstudio
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
+favicon_ico: "/assets/icon.png"
+aux_links:
+  GitHub: https://github.com/iamtew/borderstudio
+aux_links_new_tab: true
+heading_anchors: true
+search_enabled: true
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag

@@ -18,7 +18,7 @@ build: icon
     $v = (just git-version).Trim(); go run github.com/tc-hib/go-winres@latest simply --arch amd64 --manifest none --icon assets/icon.ico --product-name='Border Studio' --file-description='Border Studio' --original-filename=borderstudio.exe --product-version=$v --file-version=$v; go build "-ldflags=-H=windowsgui -X main.version=$v" -o dist/borderstudio.exe .
 
 package: build
-    Compress-Archive -Force -Path dist/borderstudio.exe, README.md -DestinationPath dist/borderstudio.zip
+    Compress-Archive -Force -Path dist/borderstudio.exe, README.md, LICENSE -DestinationPath dist/borderstudio.zip
 
 # Quit Border Studio first. A running Edge locks these folders.
 reset-browsers:
