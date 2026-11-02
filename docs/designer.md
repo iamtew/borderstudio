@@ -21,4 +21,4 @@ The composer stage is a dark checkerboard (transparent). Glow and blur read agai
 
 **Border → Motion** is the idle loop on the border (dash, comet, breathe, hue, rainbow, aurora, fire, neon-swap, orbit, chroma, and more). Easing applies per keyframe segment, so `steps` holds each key and dash loops wrap seamlessly. The same panel sets duration, easing, tint, and strength for the selected motion, and **Save as preset** stores that setup under Motion. Reset on Motion returns to a solid stroke (None).
 
-Chroma (idle or burst) hides the solid stroke and draws cyan/magenta copies offset 2→5px like SeshHub’s PFP ring, scaled to the shape so the editor and overlay match. Glitch keeps the stroke and adds the same split plus slice bars. Designer tint does not recolor the C/M copies.
+Chroma (idle or burst) hides the solid stroke and draws cyan/magenta stroke copies offset 2→5px, scaled to the shape so the editor and overlay match. Glitch keeps the stroke and adds the same split plus slice bars. Designer tint does not recolor the C/M copies.

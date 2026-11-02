@@ -527,22 +527,9 @@ async function mountInk(host) {
 
     if (split) {
       [[-1, "#00FFFF"], [1, "#FF00FF"]].forEach(([dir, col]) => {
-        const off = poly.pts.map(p => ({ x: p.x + dir * split, y: p.y }));
-        if (ghost) {
-          try {
-            fx.poly(off, true);
-            fx.fill({ color: colorNum(col), alpha: alpha * 0.9 });
-            fx.poly(poly.pts, true);
-            fx.cut();
-          } catch (e) {
-            drawPath(fx, { pts: off.map((p, i) => Object.assign({ s: poly.pts[i].s }, p)), length: poly.length }, "", 0, 0, poly.length);
-            fx.stroke(strokeStyle(sw * 1.4, col, alpha * 0.85));
-          }
-        } else {
-          const op = { pts: off.map((p, i) => Object.assign({ s: poly.pts[i].s }, p)), length: poly.length };
-          drawPath(fx, op, recipe && recipe.dash, pose.offset, 0, poly.length);
-          fx.stroke(strokeStyle(sw, col, alpha * 0.85));
-        }
+        const op = { pts: poly.pts.map(p => ({ x: p.x + dir * split, y: p.y, s: p.s })), length: poly.length };
+        drawPath(fx, op, ghost ? "" : (recipe && recipe.dash), pose.offset, 0, poly.length);
+        fx.stroke(strokeStyle(ghost ? sw * 1.4 : sw, col, alpha * 0.85));
       });
     }
 
