@@ -1144,6 +1144,7 @@ function fxRecipe() {
 onReset("ctrl-ms-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { ms: src.ms }); previewCtrl(); });
 onReset("ctrl-ease-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { ease: src.ease || "ease" }); previewCtrl(); });
 onReset("ctrl-strength-reset", () => { const ev = ctrlEvent(); const src = fxRecipe(); if (ev && src) ev.tune = Object.assign(readCtrlTune(), { strength: src.strength != null ? src.strength : 1 }); previewCtrl(); });
+document.getElementById("fx-play").onclick = () => { const ev = ctrlEvent(); if (ev) fireFx(ev); };
 document.getElementById("fx-back").onclick = closeFx;
 document.getElementById("fx-label").addEventListener("focus", pushHist);
 document.getElementById("fx-label").onchange = () => {
