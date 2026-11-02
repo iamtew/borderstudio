@@ -6,7 +6,7 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body class="admin view-design">
+<body class="admin view-design tab-mask">
   <div id="down-banner" hidden>
     <div id="down-msg" role="status">Error: Border Studio application not running!</div>
   </div>
@@ -109,8 +109,12 @@
     </div>
     <div id="wrap">
       <aside id="sidebar" class="win">
-        <div class="win-title">Shape</div>
-        <div class="win-body">
+        <div class="side-tabs" role="tablist" aria-label="Designer">
+          <button type="button" id="tab-mask" role="tab" aria-selected="true" class="sel"><span class="ti ti-mask" aria-hidden="true"></span> Mask</button>
+          <button type="button" id="tab-border" role="tab" aria-selected="false"><span class="ti ti-border-corners" aria-hidden="true"></span> Border</button>
+        </div>
+        <div class="win-body pane-mask">
+          <div class="win-title">Shape</div>
           <label>Kind
             <select id="in-kind">
               <option value="polygon">Polygon</option>
@@ -125,31 +129,20 @@
           <button type="button" id="btn-del" class="poly-only"><span class="ti ti-trash" aria-hidden="true"></span> Delete point</button>
           <label id="radius-row" class="roundrect-only">Corner radius <input id="in-radius" type="number" min="0" step="1"></label>
           <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset</button>
+          <div class="win-title">Size</div>
+          <p class="hint">This size is the camera hole. Stroke and glow can sit outside it in the OBS scene.</p>
+          <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
+          <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
+          <div class="win-title">Preview</div>
+          <img id="mask-prev" alt="Mask preview">
         </div>
-      </aside>
-      <div id="stage-wrap" class="win">
-        <div class="win-body">
-          <div id="frame">
-            <svg id="cam-layer" viewBox="0 0 1920 1080">
-              <defs><clipPath id="cam-clip"></clipPath></defs>
-              <foreignObject id="cam-fo" width="1920" height="1080" clip-path="url(#cam-clip)">
-                <video id="cam-video" autoplay muted playsinline></video>
-              </foreignObject>
-            </svg>
-            <svg id="stage" viewBox="0 0 1920 1080"></svg>
-            <div id="ink"></div>
-            <svg id="hits" viewBox="0 0 1920 1080"></svg>
-            <div id="grids"></div>
-          </div>
-        </div>
-      </div>
-      <aside id="inspector-pane" class="win">
-        <div class="win-title">Look</div>
-        <div class="win-body" id="inspector">
+        <div class="win-body pane-border" id="inspector">
+          <div class="win-title">Stroke</div>
           <label>Stroke <span class="color-field"><button type="button" id="in-stroke" class="swatch"></button><input id="in-stroke-hex" type="text" spellcheck="false" autocomplete="off"></span></label>
           <label>Thickness <input id="in-width" type="number" min="1" step="1"></label>
           <label>Glow <input id="in-glow" type="number" min="0" step="1"></label>
           <label>Blur <input id="in-blur" type="number" min="0" step="1"></label>
+          <div class="win-title">Motion</div>
           <label>Motion <select id="in-motion"></select></label>
           <div id="motion-tune" hidden>
             <label>Duration (ms) <input id="tune-ms" type="number" min="100" max="10000" step="50"></label>
@@ -170,13 +163,24 @@
             <button type="button" id="tune-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save as preset</button>
             <button type="button" id="tune-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete preset</button>
           </div>
-          <div class="win-title">Mask</div>
-          <p class="hint">This size is the camera hole. Stroke and glow can sit outside it in the OBS scene.</p>
-          <img id="mask-prev" alt="Mask preview">
-          <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
-          <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
         </div>
       </aside>
+      <div id="stage-wrap" class="win">
+        <div class="win-body">
+          <div id="frame">
+            <svg id="cam-layer" viewBox="0 0 1920 1080">
+              <defs><clipPath id="cam-clip"></clipPath></defs>
+              <foreignObject id="cam-fo" width="1920" height="1080" clip-path="url(#cam-clip)">
+                <video id="cam-video" autoplay muted playsinline></video>
+              </foreignObject>
+            </svg>
+            <svg id="stage" viewBox="0 0 1920 1080"></svg>
+            <div id="ink"></div>
+            <svg id="hits" viewBox="0 0 1920 1080"></svg>
+            <div id="grids"></div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="ctrl-view">
       <div id="ctrl-bar">

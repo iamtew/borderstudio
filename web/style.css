@@ -78,9 +78,18 @@ body.admin .win-title {
   font-weight: 700; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
 }
 body.admin .win-body { flex: 1; min-height: 0; overflow: auto; padding: 8px 12px 12px; }
-#sidebar, #inspector-pane { width: 240px; }
-#sidebar { border-right: 1px solid var(--line); }
-#inspector-pane { border-left: 1px solid var(--line); }
+#sidebar { width: 240px; border-right: 1px solid var(--line); }
+#sidebar .side-tabs {
+  display: flex; gap: 6px; flex: none; padding: 10px 12px 0;
+}
+#sidebar .side-tabs button {
+  flex: 1; width: auto; margin: 0; padding: 6px 8px;
+  font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px;
+  color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+#sidebar .side-tabs button.sel { color: var(--accent); border-color: var(--accent); }
+body.tab-mask .pane-border, body.tab-border .pane-mask { display: none !important; }
+body.admin .win-body .win-title { padding: 12px 0 4px; }
 body.admin button, body.admin #bar a {
   background: var(--lift); color: var(--text); border: 1px solid var(--line);
   border-radius: var(--r); cursor: pointer;
@@ -98,8 +107,7 @@ body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); 
 #bar #mode-switch button.sel {
   background: linear-gradient(to bottom right, var(--accent), var(--accent2)); color: #282828;
 }
-#sidebar button, #inspector button { display: block; width: 100%; margin: 0 0 8px; padding: 8px; }
-#sidebar button, #inspector button { display: inline-flex; align-items: center; gap: 6px; }
+#sidebar button, #inspector button { display: inline-flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 8px; padding: 8px; }
 #stage-wrap { flex: 1; min-width: 0; background: #1a1a1a; }
 #stage-wrap .win-body { display: flex; align-items: center; justify-content: center; }
 #frame {
@@ -280,7 +288,7 @@ body.admin .event-row input, body.admin .event-row select {
 #set-pal-import { width: 100%; min-height: 140px; font-family: consolas, monospace; font-size: 12px; }
 .settings-pal-actions { display: flex; gap: 8px; margin-top: 10px; }
 .settings-pal-actions button { width: auto; margin: 0; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
-#inspector .color-field button { width: auto; margin: 0; }
+#sidebar .color-field button, #inspector .color-field button { width: auto; margin: 0; }
 #tune-color-clear { padding: 4px 8px; }
 .check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
 .check-row input { width: auto; }

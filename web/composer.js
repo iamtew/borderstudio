@@ -390,7 +390,7 @@ function palSwatches(colors) {
   const wrap = document.createElement("span");
   wrap.className = "set-pal-swatches";
   for (const hex of colors || []) {
-    const i = document.createElement("span");
+    const i = document.createElement("i");
     i.style.background = hex;
     wrap.append(i);
   }
@@ -1195,6 +1195,19 @@ function setView(name) {
 
 document.getElementById("view-design").onclick = () => setView("design");
 document.getElementById("view-control").onclick = () => setView("control");
+
+function setSideTab(name) {
+  document.body.classList.toggle("tab-mask", name === "mask");
+  document.body.classList.toggle("tab-border", name === "border");
+  const mask = document.getElementById("tab-mask");
+  const border = document.getElementById("tab-border");
+  mask.classList.toggle("sel", name === "mask");
+  border.classList.toggle("sel", name === "border");
+  mask.setAttribute("aria-selected", name === "mask");
+  border.setAttribute("aria-selected", name === "border");
+}
+document.getElementById("tab-mask").onclick = () => setSideTab("mask");
+document.getElementById("tab-border").onclick = () => setSideTab("border");
 
 document.getElementById("btn-file").onclick = () => { closeCtx(); menu.hidden = !menu.hidden; };
 document.getElementById("file-save").onclick = () => { menu.hidden = true; save(); };
