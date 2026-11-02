@@ -4,7 +4,7 @@ url: https://iamtew.github.io
 baseurl: /borderstudio
 remote_theme: just-the-docs/just-the-docs
 color_scheme: dark
-favicon_ico: "/assets/icon.png"
+favicon_ico: "/favicon.ico"
 aux_links:
   GitHub: https://github.com/iamtew/borderstudio
 aux_links_new_tab: true

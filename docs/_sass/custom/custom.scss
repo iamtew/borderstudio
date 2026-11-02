@@ -1,3 +1,12 @@
+.site-title::before {
+  content: "";
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.5rem;
+  vertical-align: -0.35em;
+  background: url("../icon.png") center / contain no-repeat;
+}
 .ti {
   display: inline-block;
   width: 1.1em;
