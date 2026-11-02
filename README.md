@@ -6,6 +6,6 @@ Local Windows tray app: draw a camera hole, ship a colored overlay and a black/w
 just run
 ```
 
-Docs: [site](https://iamtew.github.io/borderstudio/) · [source](docs/)
+Docs: [site](https://iamtew.github.io/borderstudio/) · [source](docs/). Preview: `python -m http.server` in `docs/`.
 
 MIT — Mikael 'tew'. See [LICENSE](LICENSE).
