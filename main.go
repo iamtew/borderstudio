@@ -18,23 +18,23 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getlantern/systray"
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 const addr = "127.0.0.1:8505"
+const webviewDirName = "webview"
 
 var version = "dev"
 var runID = strconv.FormatInt(time.Now().UnixNano(), 10)
 
 var (
-	appMu      sync.Mutex
-	designer   *exec.Cmd
-	controller *exec.Cmd
-	about      *exec.Cmd
+	appMu       sync.Mutex
+	wailsApp    *application.App
+	designerW   *application.WebviewWindow
+	controllerW *application.WebviewWindow
+	aboutW      *application.WebviewWindow
 )
-
-// Edge --app profiles. Same names in Justfile reset-browsers.
-var chromeProfiles = []string{"designer-chrome", "controller-chrome", "about-chrome"}
 
 //go:embed all:web
 //go:embed assets/icon.ico
@@ -160,129 +160,105 @@ func handleVersion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"version": version, "run": runID})
 }
 
-func browserPath() string {
-	for _, p := range []string{
-		filepath.Join(os.Getenv("ProgramFiles(x86)"), `Microsoft\Edge\Application\msedge.exe`),
-		filepath.Join(os.Getenv("ProgramFiles"), `Microsoft\Edge\Application\msedge.exe`),
-		filepath.Join(os.Getenv("ProgramFiles"), `Google\Chrome\Application\chrome.exe`),
-		filepath.Join(os.Getenv("LocalAppData"), `Google\Chrome\Application\chrome.exe`),
-	} {
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
-	}
-	return ""
+func webviewPath(root string) string {
+	return filepath.Join(root, webviewDirName)
 }
 
-func openApp(u, size string, extra ...string) *exec.Cmd {
-	p := browserPath()
-	if p == "" {
-		openURL(u)
-		return nil
+func camPerm() map[application.PermissionType]application.Permission {
+	return map[application.PermissionType]application.Permission{
+		application.PermissionCamera: application.PermissionAllow,
 	}
-	args := append(append([]string{}, extra...), "--window-size="+size, "--new-window", "--app="+u)
-	cmd := exec.Command(p, args...)
-	if err := cmd.Start(); err != nil {
-		openURL(u)
-		return nil
-	}
-	go cmd.Wait()
-	return cmd
 }
 
-func processAlive(cmd *exec.Cmd) bool {
-	return cmd != nil && cmd.Process != nil && cmd.ProcessState == nil
-}
-
-func openChrome(slot **exec.Cmd, profile, path, size string) {
-	appMu.Lock()
-	defer appMu.Unlock()
-	if processAlive(*slot) {
+func showOrCreate(slot **application.WebviewWindow, opts application.WebviewWindowOptions) {
+	if wailsApp == nil {
 		return
 	}
-	dir := filepath.Join(dataDir(), profile)
-	_ = os.MkdirAll(dir, 0755)
-	// ponytail: isolated profile so Kill on quit does not take down the user's Edge/Chrome
-	*slot = openApp("http://"+addr+path, size, "--user-data-dir="+dir)
+	appMu.Lock()
+	w := *slot
+	appMu.Unlock()
+	if w != nil {
+		w.Show()
+		w.Focus()
+		return
+	}
+	w = wailsApp.Window.NewWithOptions(opts)
+	w.OnWindowEvent(events.Common.WindowClosing, func(_ *application.WindowEvent) {
+		appMu.Lock()
+		*slot = nil
+		appMu.Unlock()
+	})
+	appMu.Lock()
+	*slot = w
+	appMu.Unlock()
 }
 
 func openDesigner() {
-	openChrome(&designer, "designer-chrome", "/admin", "1280,800")
+	showOrCreate(&designerW, application.WebviewWindowOptions{
+		Title:       "Border Studio",
+		Width:       1280,
+		Height:      800,
+		URL:         "http://" + addr + "/admin",
+		Permissions: camPerm(),
+	})
 }
 
 func openController() {
-	openChrome(&controller, "controller-chrome", "/control", "1280,800")
+	showOrCreate(&controllerW, application.WebviewWindowOptions{
+		Title:       "Controller",
+		Width:       1280,
+		Height:      800,
+		URL:         "http://" + addr + "/control",
+		Permissions: camPerm(),
+	})
 }
 
 func openAbout() {
-	openChrome(&about, "about-chrome", "/about", "360,280")
+	showOrCreate(&aboutW, application.WebviewWindowOptions{
+		Title:  "About",
+		Width:  360,
+		Height: 280,
+		URL:    "http://" + addr + "/about",
+	})
 }
 
-func killTree(cmd *exec.Cmd) {
-	if cmd == nil || cmd.Process == nil {
-		return
+func closeSlot(slot **application.WebviewWindow) {
+	appMu.Lock()
+	w := *slot
+	*slot = nil
+	appMu.Unlock()
+	if w != nil {
+		w.Close()
 	}
-	_ = runHidden("taskkill", "/F", "/T", "/PID", strconv.Itoa(cmd.Process.Pid)).Run()
 }
 
-func killProfile(name string) {
-	// ponytail: Chromium window is a child; Kill() on the launcher PID leaves it up
-	_ = runHidden("wmic", "process", "where", "CommandLine like '%"+name+"%'", "delete").Run()
-}
-
-func closeDesignerWindow() {
-	appMu.Lock()
-	defer appMu.Unlock()
-	killTree(designer)
-	killProfile("designer-chrome")
-	designer = nil
-}
-
-func closeControllerWindow() {
-	appMu.Lock()
-	defer appMu.Unlock()
-	killTree(controller)
-	killProfile("controller-chrome")
-	controller = nil
-}
+func closeDesignerWindow()   { closeSlot(&designerW) }
+func closeControllerWindow() { closeSlot(&controllerW) }
 
 func closeAppWindows() {
-	appMu.Lock()
-	defer appMu.Unlock()
-	killTree(designer)
-	killTree(controller)
-	killTree(about)
-	for _, name := range chromeProfiles {
-		killProfile(name)
-	}
-	designer, controller, about = nil, nil, nil
+	closeDesignerWindow()
+	closeControllerWindow()
+	closeSlot(&aboutW)
 }
 
-// removeChromeProfiles deletes the Edge profiles under root. Missing dirs are fine.
-// ponytail: one retry after a failed delete; Edge still holds cache files briefly after taskkill.
-func removeChromeProfiles(root string) error {
-	var errs []error
-	for _, name := range chromeProfiles {
-		dir := filepath.Join(root, name)
-		err := os.RemoveAll(dir)
-		if err != nil {
-			time.Sleep(400 * time.Millisecond)
-			err = os.RemoveAll(dir)
-		}
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%s: %w", name, err))
-		}
+// removeWebviewData deletes the WebView2 user-data dir under root. Missing is fine.
+// ponytail: one retry after a failed delete; WebView2 can hold cache files briefly after Close.
+func removeWebviewData(root string) error {
+	err := os.RemoveAll(webviewPath(root))
+	if err != nil {
+		time.Sleep(400 * time.Millisecond)
+		err = os.RemoveAll(webviewPath(root))
 	}
-	return errors.Join(errs...)
+	return err
 }
 
 func clearBrowserData() {
 	closeAppWindows()
-	if err := removeChromeProfiles(dataDir()); err != nil {
+	if err := removeWebviewData(dataDir()); err != nil {
 		alert("Border Studio", "Could not clear browser data: "+err.Error())
 		return
 	}
-	trayToast("Border Studio", "Browser data cleared. Open Designer to allow the camera again.")
+	trayToast("Border Studio", "Browser data cleared.")
 }
 
 func trayToast(title, body string) {
@@ -665,58 +641,54 @@ func main() {
 			fatal(err)
 		}
 	}()
-	go func() {
-		// ponytail: wait for an existing admin EventSource to reconnect; open Designer if none does
-		time.Sleep(500 * time.Millisecond)
-		if !h.hasAdmin() {
-			openDesigner()
-		}
-	}()
+	wvDir := webviewPath(dataDir())
+	if err := os.MkdirAll(wvDir, 0755); err != nil {
+		fatal(fmt.Errorf("webview data dir %s: %w", wvDir, err))
+	}
 
-	systray.Run(func() {
-		ico, _ := assets.ReadFile("assets/icon.ico")
-		systray.SetIcon(ico)
-		systray.SetTitle("Border Studio")
-		systray.SetTooltip("Border Studio")
-		admin := systray.AddMenuItem("Designer", "Open Border Studio Designer")
-		ctrl := systray.AddMenuItem("Controller", "Open Controller")
-		overlay := systray.AddMenuItem("Overlay", "Open overlay")
-		copyOverlay := systray.AddMenuItem("Copy URL", "Copy overlay URL")
-		systray.AddSeparator()
-		clearBrowsers := systray.AddMenuItem("Clear browser data", "Delete Edge profiles for this copy")
-		aboutItem := systray.AddMenuItem("About", "About Border Studio")
-		quit := systray.AddMenuItem("Quit", "Quit")
-		go func() {
-			doQuit := func() {
-				closeAppWindows()
-				_ = srv.Close()
-				systray.Quit()
-			}
-			for {
-				select {
-				case <-admin.ClickedCh:
-					openDesigner()
-				case <-ctrl.ClickedCh:
-					openController()
-				case <-overlay.ClickedCh:
-					openURL(overlayURL())
-				case <-copyOverlay.ClickedCh:
-					copyText(overlayURL())
-				case <-clearBrowsers.ClickedCh:
-					if !confirm("Border Studio", "Close Designer, Controller, and About and delete their saved browser data, including the camera block?") {
-						continue
-					}
-					clearBrowserData()
-				case <-aboutItem.ClickedCh:
-					openAbout()
-				case <-quit.ClickedCh:
-					doQuit()
-					return
-				case <-quitReq:
-					doQuit()
-					return
-				}
-			}
-		}()
-	}, func() {})
+	wailsApp = application.New(application.Options{
+		Name: "Border Studio",
+		Windows: application.WindowsOptions{
+			DisableQuitOnLastWindowClosed: true,
+			WebviewUserDataPath:           wvDir,
+		},
+	})
+	png, _ := assets.ReadFile("assets/icon.png")
+	wailsApp.SetIcon(png)
+	tray := wailsApp.SystemTray.New()
+	tray.SetIcon(png)
+	tray.SetTooltip("Border Studio")
+	menu := wailsApp.Menu.New()
+	menu.Add("Designer").OnClick(func(_ *application.Context) { openDesigner() })
+	menu.Add("Controller").OnClick(func(_ *application.Context) { openController() })
+	menu.Add("Overlay").OnClick(func(_ *application.Context) { openURL(overlayURL()) })
+	menu.Add("Copy URL").OnClick(func(_ *application.Context) { copyText(overlayURL()) })
+	menu.AddSeparator()
+	menu.Add("Clear browser data").OnClick(func(_ *application.Context) {
+		if !confirm("Border Studio", "Close Designer, Controller, and About and delete saved WebView data?") {
+			return
+		}
+		clearBrowserData()
+	})
+	menu.Add("About").OnClick(func(_ *application.Context) { openAbout() })
+	menu.Add("Quit").OnClick(func(_ *application.Context) {
+		closeAppWindows()
+		_ = srv.Close()
+		wailsApp.Quit()
+	})
+	tray.SetMenu(menu)
+
+	go func() {
+		<-quitReq
+		closeAppWindows()
+		_ = srv.Close()
+		wailsApp.Quit()
+	}()
+	wailsApp.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(_ *application.ApplicationEvent) {
+		openDesigner()
+	})
+
+	if err := wailsApp.Run(); err != nil {
+		fatal(err)
+	}
 }

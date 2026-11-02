@@ -358,28 +358,24 @@ func TestHostGuard(t *testing.T) {
 	}
 }
 
-func TestRemoveChromeProfiles(t *testing.T) {
+func TestRemoveWebviewData(t *testing.T) {
 	root := t.TempDir()
 	keep := filepath.Join(root, "border.db")
 	if err := os.WriteFile(keep, []byte("x"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range chromeProfiles {
-		dir := filepath.Join(root, name)
-		if err := os.Mkdir(dir, 0755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, "Preferences"), []byte("{}"), 0644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := removeChromeProfiles(root); err != nil {
+	dir := webviewPath(root)
+	if err := os.Mkdir(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range chromeProfiles {
-		if _, err := os.Stat(filepath.Join(root, name)); !os.IsNotExist(err) {
-			t.Fatalf("%s still there: %v", name, err)
-		}
+	if err := os.WriteFile(filepath.Join(dir, "Preferences"), []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeWebviewData(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("webview still there: %v", err)
 	}
 	if _, err := os.Stat(keep); err != nil {
 		t.Fatal(err)
