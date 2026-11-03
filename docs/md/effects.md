@@ -34,15 +34,15 @@ Right-click an effect row for **Delete effect** as well.
 
 | Group | One-shots |
 | --- | --- |
-| Pulse | Pulse soft, Pulse, Pulse hard, Pulse double, Heartbeat, Swell, Snap, Shockwave |
-| Flash | Flash, Flash white, Flash hot, Flash cold, Rainbow burst, Whiteout, Boom, Lightning |
+| Pulse | Pulse, Pulse double, Heartbeat |
+| Flash | Flash, Rainbow burst, Boom |
 | Status | Success, Warn, Alert |
-| Blink | Blink, Flicker, Strobe |
-| Move | Jolt, Shake |
-| Sweep | Wipe, Reverse wipe, Spark |
+| Blink | Strobe |
+| Move | Shake |
+| Sweep | Wipe, Spark |
 | Glitch | Chroma burst, Glitch |
 
-Chroma burst hides the solid stroke and draws soft cyan and magenta copies that thicken as they split. Glitch tears the stroke into chunks along the path. Shockwave sends a ring outward; the border itself only flares a little. See [Designer](designer.md) for idle Chroma, Fire, and Glitch notes.
+Chroma burst hides the solid stroke and draws soft cyan and magenta copies that thicken as they split. Glitch tears the stroke into chunks along the path. Boom sends a ring outward while the stroke flares. See [Designer](designer.md) for idle Chroma, Fire, and Glitch notes.
 
 Fire a button while OBS is on the `Border Studio` scene (or any scene that nests it) to see it on stream. The overlay URL must stay alive: leave **Shutdown source when not visible** off on the browser source.
 

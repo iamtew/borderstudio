@@ -88,10 +88,10 @@ Easing applies per keyframe segment, so **Steps** holds each key and dash loops 
 
 | Group | Loops |
 | --- | --- |
-| Dash | Dash, Dash reverse, Dash fast, Dots, Long dash, Flow |
-| Travel | Scan, Comet, Orbit |
-| Glow | Breathe, Glow pulse, Heartbeat, Shimmer, Neon |
-| Color | Hue, Rainbow, Aurora, Neon swap, Fire, Chroma |
+| Dash | Dash |
+| Travel | Comet |
+| Glow | Breathe, Heartbeat, Neon |
+| Color | Hue, Aurora, Fire, Chroma |
 
 Chroma (idle or burst) hides the solid stroke and draws soft cyan and magenta copies of it. The copies thicken as they split, and the offset scales with the shape so the editor and the overlay match. Glitch keeps the stroke and tears it into chunks along the path, with a few bands flashing cyan or magenta. Fire puts tongues along the stroke instead of pulsing the whole border. Designer tint does not recolor the cyan and magenta copies.
 

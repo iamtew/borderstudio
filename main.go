@@ -400,6 +400,7 @@ func main() {
 			return
 		}
 		next.Feather = clamp(next.Feather, 0, 64)
+		next.Motion = canonAnim(next.Motion)
 		next.MotionTune = normalizeMotionTune(next.MotionTune)
 		normalizeEvents(next.Events)
 		mu.Lock()

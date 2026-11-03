@@ -80,8 +80,30 @@ func TestStoreRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Motion != "rainbow" || !got.Dash {
-		t.Fatalf("motion roundtrip %+v", got)
+	if got.Motion != "hue" || !got.Dash {
+		t.Fatalf("motion alias rainbow %+v", got)
+	}
+	d.Motion = "dash-fast"
+	if err := st.save(d); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Motion != "dash" {
+		t.Fatalf("motion alias dash-fast %+v", got)
+	}
+	d.Events[0].Anim = "shockwave"
+	if err := st.save(d); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Events) == 0 || got.Events[0].Anim != "boom" {
+		t.Fatalf("event alias %+v", got.Events)
 	}
 	d.MotionTune = &motionTune{Ms: 50, Ease: "nope", Color: "ff00ff", Strength: 9}
 	if err := st.save(d); err != nil {

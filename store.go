@@ -141,6 +141,7 @@ func (st *store) load() (design, error) {
 		return d, st.save(d)
 	}
 	d.Feather = clamp(d.Feather, 0, 64)
+	d.Motion = canonAnim(d.Motion)
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
 	normalizeEvents(d.Events)
 	return d, nil
@@ -150,6 +151,7 @@ func (st *store) save(d design) error {
 	if err := validateDesign(d); err != nil {
 		return err
 	}
+	d.Motion = canonAnim(d.Motion)
 	normalizeEvents(d.Events)
 	raw, err := json.Marshal(d)
 	if err != nil {
@@ -318,6 +320,7 @@ func normalizeDesignBody(raw json.RawMessage) (json.RawMessage, error) {
 	}
 	d.Events = nil
 	d.Feather = clamp(d.Feather, 0, 64)
+	d.Motion = canonAnim(d.Motion)
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
 	if err := validateDesign(d); err != nil {
 		return nil, err
@@ -440,7 +443,7 @@ func resetEvents(cur design) design {
 	return cur
 }
 
-// Ids reserved by RECIPES in web/shared.js. A custom preset cannot take one.
+// Ids reserved by RECIPES in web/shared.js, plus dropped ids. A custom preset cannot take one.
 var builtinAnimIDs = map[string]bool{
 	"none": true, "dash": true, "dash-rev": true, "dash-fast": true, "dots": true,
 	"long-dash": true, "flow": true, "scan": true, "breathe": true, "heartbeat": true,
@@ -452,6 +455,26 @@ var builtinAnimIDs = map[string]bool{
 	"alert": true, "success": true, "warn": true, "strobe": true, "blink": true, "flicker": true,
 	"shake": true, "jolt": true, "swell": true, "snap": true, "wipe": true, "reverse-wipe": true,
 	"rainbow-burst": true, "glitch": true, "chroma-burst": true, "spark": true, "boom": true,
+}
+
+// Dropped recipes still play as the nearest keeper. Same map as ANIM_ALIAS in web/shared.js.
+var animAlias = map[string]string{
+	"dash-rev": "dash", "dash-fast": "dash", "dots": "dash", "long-dash": "dash", "flow": "dash",
+	"scan": "comet", "orbit": "comet", "shimmer": "comet",
+	"glow-pulse": "breathe", "rainbow": "hue", "neon-swap": "hue",
+	"pulse-soft": "pulse", "pulse-hard": "pulse", "swell": "pulse", "snap": "pulse",
+	"shockwave": "boom",
+	"flash-white": "flash", "flash-hot": "flash", "flash-cold": "flash", "whiteout": "flash", "lightning": "flash",
+	"blink": "strobe", "flicker": "strobe",
+	"jolt": "shake",
+	"reverse-wipe": "wipe",
+}
+
+func canonAnim(id string) string {
+	if next, ok := animAlias[id]; ok {
+		return next
+	}
+	return id
 }
 
 var animEases = map[string]bool{
@@ -526,7 +549,7 @@ func normalizeEvents(evs []ctrlEvent) {
 	for i := range evs {
 		evs[i].ID = clipText(evs[i].ID, 42)
 		evs[i].Label = clipText(evs[i].Label, 60)
-		evs[i].Anim = clipText(evs[i].Anim, 42)
+		evs[i].Anim = canonAnim(clipText(evs[i].Anim, 42))
 		evs[i].Tune = normalizeMotionTune(evs[i].Tune)
 		evs[i].Btn = clampFxBtn(evs[i].Btn)
 	}
