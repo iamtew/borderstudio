@@ -26,8 +26,9 @@
     });
     document.querySelector(".about-card img").addEventListener("load", fit);
     addEventListener("load", fit);
-    document.getElementById("close").onclick = () => close();
-    addEventListener("keydown", ev => { if (ev.key === "Escape") close(); });
+    const hide = () => fetch("/api/about/close", { method: "POST" });
+    document.getElementById("close").onclick = hide;
+    addEventListener("keydown", ev => { if (ev.key === "Escape") hide(); });
   </script>
 </body>
 </html>

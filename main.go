@@ -371,6 +371,11 @@ func main() {
 		trayToast("Border Studio", "Still running in the system tray.")
 		w.WriteHeader(204)
 	})
+	mux.HandleFunc("POST /api/about/close", func(w http.ResponseWriter, r *http.Request) {
+		closeSlot(&aboutW)
+		trayToast("Border Studio", "Still running in the system tray.")
+		w.WriteHeader(204)
+	})
 	mux.HandleFunc("POST /api/controller/close", func(w http.ResponseWriter, r *http.Request) {
 		closeControllerWindow()
 		trayToast("Border Studio", "Still running in the system tray.")
