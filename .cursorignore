@@ -1,0 +1,13 @@
+# Runtime junk Cursor should not index. Mirrors .gitignore plus vendor min.js.
+dist/
+border.db
+webview/
+designer-chrome/
+controller-chrome/
+about-chrome/
+*.exe
+*.syso
+*.af~lock~
+
+# Third-party bundles. We don't edit these.
+**/*.min.js
