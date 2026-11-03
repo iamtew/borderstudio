@@ -542,6 +542,13 @@ func TestClampFxBtn(t *testing.T) {
 	if clampFxBtn(strings.ToUpper(want)) != want {
 		t.Fatal("case")
 	}
+	if len(fxBtnColors) != 30 {
+		t.Fatalf("palette %d", len(fxBtnColors))
+	}
+	last := fxBtnColors[len(fxBtnColors)-1]
+	if clampFxBtn(last) != last {
+		t.Fatal("expanded")
+	}
 }
 
 func TestFireGET(t *testing.T) {

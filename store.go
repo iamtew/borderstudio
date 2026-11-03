@@ -502,6 +502,10 @@ type animsDoc struct {
 var fxBtnColors = []string{
 	"#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e",
 	"#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72",
+	"#3e464e", "#8a96a3", "#4d5c6b", "#8fa0b0", "#7a2c2c",
+	"#c45c5c", "#8a4420", "#d07848", "#7a6220", "#c9a44a",
+	"#35563a", "#6fa06a", "#1f5555", "#4a9a9a", "#354478",
+	"#6b7fc4", "#5a365e", "#a070b0", "#7a4054", "#c47a90",
 }
 
 func fxBtnAt(i int) string {

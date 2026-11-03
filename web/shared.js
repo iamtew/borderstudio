@@ -176,7 +176,7 @@ const RECIPES = [
 const MOTION_KINDS = RECIPES.filter(r => r.loop).map(r => ({ id: r.id, label: r.label, group: r.group }));
 const EVENT_ANIMS = RECIPES.filter(r => !r.loop).map(r => ({ id: r.id, label: r.label, ms: r.ms, group: r.group }));
 // Same list as fxBtnColors in store.go. Unknown/empty → first chip.
-const FX_BTN_COLORS = ["#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e", "#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72"];
+const FX_BTN_COLORS = ["#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e", "#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72", "#3e464e", "#8a96a3", "#4d5c6b", "#8fa0b0", "#7a2c2c", "#c45c5c", "#8a4420", "#d07848", "#7a6220", "#c9a44a", "#35563a", "#6fa06a", "#1f5555", "#4a9a9a", "#354478", "#6b7fc4", "#5a365e", "#a070b0", "#7a4054", "#c47a90"];
 
 function fxBtnColor(hex) {
   const h = String(hex || "").toLowerCase();
