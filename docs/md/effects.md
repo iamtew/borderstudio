@@ -2,9 +2,9 @@
 
 Idle motion lives on **Border → Motion** and loops forever. **Effects** are one-shots: click a button, the overlay plays it once, and the Designer stage previews the same burst.
 
-The **Effects** tab lists those buttons beside the stage. Drag the grip to reorder. The wrench (`Edit effect`) opens that effect’s panel. **Add effect** is at the bottom of the list.
+The **Effects** tab lists those buttons beside the stage. Grip and wrench sit on the colored button itself. Drag the grip to reorder. The wrench (`Edit effect`) opens that effect’s panel. **Add effect** is at the bottom of the list.
 
-The pad at `http://127.0.0.1:8505/effects` is a grid of the same buttons, in that order. Open it in a small window, on a phone, or as a dock. **Show URLs** overlays each button’s trigger URL so you can copy it onto a Stream Deck.
+The pad at `http://127.0.0.1:8505/effects` is a grid of the same buttons, in that order. Open it in a small window, on a phone, or as a dock. The eye in the bottom-right corner shows a URL field and copy button on each tile and disables firing.
 
 **Boards**, at the top of the list, are separate from the design. A board is only the effect buttons. Click a name to load that set. The hole and the border stay. **Save** stores the current buttons under **Name** (same name overwrites). **Delete** removes the selected board. **Reset** puts the stock buttons back and leaves saved boards alone. The control window opens on this tab, so you switch boards there without touching the look.
 
@@ -21,12 +21,12 @@ The wrench opens:
 - **Back** — return to the button list.
 - **Play** — audition on overlay and stage (same as clicking the button).
 - **Name** — label on the button.
-- **Button** — muted color chip for the list and the pad (gradient to a darker shade). Not the animation tint.
-- **Trigger URL** — `http://127.0.0.1:8505/fx/<id>`. GET fires that button. Copy it for Stream Deck.
 - **Animation** — which recipe to play (table below).
 - **Duration**, **Easing**, **Tint**, **Strength** — same controls as idle motion; sliders have a reset.
 - **Preset name** / **Save as preset** / **Delete preset** — custom recipes only; built-in ids cannot be stolen. Motion presets and effect presets share one store, split by whether they loop.
 - **Delete effect** — remove this button.
+- **Button** — muted color chip for the list and the pad (gradient to a darker shade). Not the animation tint.
+- **Trigger URL** — `http://127.0.0.1:8505/fx/<id>`. GET fires that button. Copy it for Stream Deck.
 
 Right-click an effect row for **Delete effect** as well.
 

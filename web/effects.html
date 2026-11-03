@@ -10,46 +10,63 @@
 <body class="pad">
   <div class="pad-bar">
     <h1>Effects</h1>
-    <button type="button" id="pad-urls">Show URLs</button>
   </div>
   <div id="pad-grid"></div>
   <p id="pad-empty" hidden>No effects. Add them in the Designer.</p>
+  <button type="button" id="pad-urls" aria-label="Show URLs" title="Show URLs"><span class="ti ti-eye" aria-hidden="true"></span></button>
   <script src="/shared.js"></script>
   <script>
     let showUrls = false;
     const grid = document.getElementById("pad-grid");
     const empty = document.getElementById("pad-empty");
     const tog = document.getElementById("pad-urls");
-    tog.onclick = () => {
-      showUrls = !showUrls;
-      document.body.classList.toggle("show-urls", showUrls);
-      tog.classList.toggle("on", showUrls);
-      tog.textContent = showUrls ? "Hide URLs" : "Show URLs";
-    };
+    function setUrlMode(on) {
+      showUrls = on;
+      document.body.classList.toggle("show-urls", on);
+      tog.classList.toggle("on", on);
+      tog.setAttribute("aria-label", on ? "Hide URLs" : "Show URLs");
+      tog.title = on ? "Hide URLs" : "Show URLs";
+      tog.innerHTML = on
+        ? '<span class="ti ti-eye-off" aria-hidden="true"></span>'
+        : '<span class="ti ti-eye" aria-hidden="true"></span>';
+      grid.querySelectorAll(".fx-btn").forEach((b) => { b.disabled = on; });
+    }
+    tog.onclick = () => setUrlMode(!showUrls);
     function paint(events) {
       grid.replaceChildren();
       empty.hidden = !!(events && events.length);
       (events || []).forEach((ev) => {
+        const cell = document.createElement("div");
+        cell.className = "pad-cell";
         const b = document.createElement("button");
         b.type = "button";
         b.className = "fx-btn";
+        b.textContent = ev.label || ev.id;
         paintFxBtn(b, ev.btn);
-        const lab = document.createElement("span");
-        lab.textContent = ev.label || ev.id;
         const url = fxFireUrl(ev.id);
-        const overlay = document.createElement("span");
-        overlay.className = "fx-url";
-        overlay.textContent = url;
-        b.append(lab, overlay);
-        b.onclick = () => {
-          if (showUrls) {
-            navigator.clipboard.writeText(url).catch(() => {});
-            return;
-          }
-          fetch(url);
+        b.onclick = () => { if (!showUrls) fetch(url); };
+        const row = document.createElement("div");
+        row.className = "pad-url-row";
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.readOnly = true;
+        inp.spellcheck = false;
+        inp.value = url;
+        inp.onclick = function () { this.select(); };
+        const copy = document.createElement("button");
+        copy.type = "button";
+        copy.title = "Copy";
+        copy.setAttribute("aria-label", "Copy URL");
+        copy.innerHTML = '<span class="ti ti-copy" aria-hidden="true"></span>';
+        copy.onclick = () => {
+          inp.select();
+          navigator.clipboard.writeText(url).catch(() => {});
         };
-        grid.append(b);
+        row.append(inp, copy);
+        cell.append(b, row);
+        grid.append(cell);
       });
+      [...grid.querySelectorAll(".fx-btn")].forEach((b) => { b.disabled = showUrls; });
     }
     async function load() {
       try {
