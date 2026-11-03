@@ -36,6 +36,6 @@ Right-click an effect row for **Delete effect** as well.
 | Sweep | Wipe, Reverse wipe, Spark |
 | Glitch | Chroma burst, Glitch |
 
-Chroma burst hides the solid stroke and splits it into red, green, and blue fringes. Glitch keeps the stroke, adds that split, and tears the ribbon into bands. See [Designer](designer.md) for idle Chroma / Glitch notes.
+Chroma burst hides the solid stroke and draws soft cyan and magenta copies. Glitch keeps the stroke, adds those copies, and tears the ribbon into bands. See [Designer](designer.md) for idle Chroma / Glitch notes.
 
 Fire a button while OBS is on the `Border Studio` scene (or any scene that nests it) to see it on stream. The overlay URL must stay alive: leave **Shutdown source when not visible** off on the browser source.

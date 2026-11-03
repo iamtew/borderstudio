@@ -553,6 +553,7 @@ async function mountInk(host) {
   const useGL = app.renderer.type !== 4;
   const Blur = PIXI.BlurFilter;
   const blur = useGL && Blur ? new Blur({ strength: 0, quality: 2 }) : null;
+  const chromaBlur = useGL && Blur ? new Blur({ strength: 6, quality: 3 }) : null;
 
   function blankGeom() {
     const g = new PIXI.Geometry();
@@ -609,6 +610,7 @@ async function mountInk(host) {
   }
   inkRoot.addChild(boltG);
   const ribbonRoot = new PIXI.Container();
+  const chromaRoot = new PIXI.Container();
   inkRoot.addChildAt(ribbonRoot, 0);
 
   if (useGL && PIXI.compileHighShaderGlProgram && PIXI.Shader) {
@@ -625,12 +627,12 @@ async function mountInk(host) {
           bits: [PIXI.localUniformBit, PIXI.roundPixelsBit, inkBitGpu],
         });
       } catch (e) { gpuProgram = null; }
-      function makePass(blend) {
+      function makePass(blend, parent) {
         const shader = new PIXI.Shader({ glProgram, gpuProgram, resources: { inkUniforms: inkGroup() } });
         const mesh = new PIXI.Mesh({ geometry: geom, shader });
         mesh.blendMode = blend;
         mesh.visible = false;
-        ribbonRoot.addChild(mesh);
+        (parent || ribbonRoot).addChild(mesh);
         return { mesh, shader };
       }
       passes = {
@@ -638,10 +640,11 @@ async function mountInk(host) {
         core: makePass("normal"),
         hot: makePass("add"),
         ring: makePass("add"),
-        cr: makePass("add"),
-        cg: makePass("add"),
-        cb: makePass("add"),
+        cr: makePass("add", chromaRoot),
+        cg: makePass("add", chromaRoot),
+        cb: makePass("add", chromaRoot),
       };
+      ribbonRoot.addChild(chromaRoot);
       ribbon = true;
       canvasRoot.visible = false;
     } catch (e) {
@@ -810,11 +813,28 @@ async function mountInk(host) {
         width: sw * (1 + boom * 5),
         rgb: [1, 1, 1],
       }, shared));
-      const split = Math.hypot(sx, sy) > 0.2;
+      const split = Math.hypot(sx, sy) > 0.2 && show;
       const ca = ghost ? Math.min(1, alpha) : alpha * 0.55;
-      pushPass(passes.cr, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [rgb[0], 0, 0], x: sx, y: sy }, shared));
-      pushPass(passes.cg, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [0, rgb[1], 0] }, shared));
-      pushPass(passes.cb, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [0, 0, rgb[2]], x: -sx, y: -sy }, shared));
+      const fringe = !!(chroma && chroma.px);
+      if (fringe) {
+        pushPass(passes.cr, Object.assign({ on: split, alpha: ca, width: sw, rgb: [0, 1, 1], x: sx, y: sy }, shared));
+        pushPass(passes.cg, Object.assign({ on: false, alpha: 0, width: sw, rgb: [0, 0, 0] }, shared));
+        pushPass(passes.cb, Object.assign({ on: split, alpha: ca, width: sw, rgb: [1, 0, 1], x: -sx, y: -sy }, shared));
+      } else {
+        pushPass(passes.cr, Object.assign({ on: split, alpha: ca, width: sw, rgb: [rgb[0], 0, 0], x: sx, y: sy }, shared));
+        pushPass(passes.cg, Object.assign({ on: split, alpha: ca, width: sw, rgb: [0, rgb[1], 0] }, shared));
+        pushPass(passes.cb, Object.assign({ on: split, alpha: ca, width: sw, rgb: [0, 0, rgb[2]], x: -sx, y: -sy }, shared));
+      }
+      if (chromaBlur) {
+        const soft = fringe && split;
+        chromaRoot.filters = soft ? [chromaBlur] : null;
+        if (soft) {
+          const bs = Math.max(2.5, sw * 0.22);
+          chromaBlur.strength = bs;
+          chromaBlur.blur = bs;
+          chromaBlur.padding = Math.ceil(bs + 8);
+        }
+      }
     } else {
       drawCanvas(poly, recipe, pose, sw, glowPx, alpha, color, ghost, sx, sy, reveal);
     }
@@ -890,14 +910,21 @@ async function mountInk(host) {
     if (!ghost && glowPx > 0) stroke(haloG, 0, 0, sw + glowPx * 1.6, color, Math.min(0.55, alpha * 0.5));
     if (!ghost) stroke(coreG, 0, 0, sw, color, alpha);
     if (Math.hypot(sx, sy) > 0.2) {
-      const rgb = rgb01(color);
       const ca = ghost ? alpha : alpha * 0.55;
-      const cols = [
-        [sx, sy, rgbHex(rgb[0] * 255, 0, 0)],
-        [0, 0, rgbHex(0, rgb[1] * 255, 0)],
-        [-sx, -sy, rgbHex(0, 0, rgb[2] * 255)],
-      ];
-      cols.forEach(([dx, dy, col]) => stroke(fxG, dx, dy, sw, col, ca));
+      const fringe = recipe && fxOf(recipe, "chroma");
+      if (fringe && fringe.px) {
+        [[sx, sy, "#00ffff"], [-sx, -sy, "#ff00ff"]].forEach(([dx, dy, col]) => {
+          stroke(fxG, dx, dy, sw + 14, col, ca * 0.35);
+          stroke(fxG, dx, dy, sw, col, ca);
+        });
+      } else {
+        const rgb = rgb01(color);
+        [
+          [sx, sy, rgbHex(rgb[0] * 255, 0, 0)],
+          [0, 0, rgbHex(0, rgb[1] * 255, 0)],
+          [-sx, -sy, rgbHex(0, 0, rgb[2] * 255)],
+        ].forEach(([dx, dy, col]) => stroke(fxG, dx, dy, sw, col, ca));
+      }
     }
   }
 
