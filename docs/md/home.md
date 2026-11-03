@@ -21,7 +21,7 @@ A normal session looks like this:
 7. In OBS, nest the `Border Studio` scene into the scene you actually stream. Do not rename `Border Studio`, `BS Camera`, `BS Mask`, or `BS Overlay`.
 8. Close the Designer when you are done editing. The tray keeps the local server up. **Quit** from the file menu or the tray is how the app actually exits.
 
-Edits auto-save. **File → Reset** restores the whole default design (hole and stock effects), not only the shape.
+Edits auto-save. **File → Reset** restores the default hole and border and leaves the effect buttons. **Mask → Reset all** restores only the hole.
 
 The tray also has **Effects** (a second Designer already on that tab), **Overlay** (opens the live border URL in a browser), **Copy URL** (overlay only), **Clear browser data**, **About**, and **Quit**.
 

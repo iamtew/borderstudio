@@ -6,14 +6,18 @@ The Designer is the app. One window: logo + **Border Studio** file menu on the l
 
 Ctrl+Z / Ctrl+Y (or Shift+Z) undo and redo. History caps at 80 steps. Numeric fields use a slider, a typed number, and a reset to that field’s default.
 
-Edits auto-save about a quarter-second after you stop moving. **File → Save** is still there if you want to force it.
+Edits auto-save about a quarter-second after you stop moving. **File → Save** stores a named copy of the hole and the border. It does not store the effect buttons.
 
 ## Chrome
 
 Click the hex mark and **Border Studio** for:
 
-- **Save** — write the design now (auto-save already does this).
-- **Reset** — restore the **whole** default design: chamfered polygon hole, default stroke/glow, and the stock one-shot effects. Not “reset this hole only.”
+- **Name** and the list above it — saved designs. Click a name to load that hole and border. Effect buttons stay.
+- **Save** — store the current hole and border under **Name**. The same name overwrites. An empty name does nothing.
+- **Delete** — remove the selected design.
+- **Export** — download `borderstudio-designs.json` (every saved design, effect buttons left out).
+- **Import** — merge that file by name. A file that is not this export, or a shape the app rejects, is ignored and the list stays as it was.
+- **Reset** — default hole and default stroke, glow, and motion. Effect buttons stay. The selected design name clears.
 - **Download mask** — PNG `border-mask.png` (white = visible camera, black = cut). Used if you ever fall back to Image Mask/Blend.
 - **Settings** — OBS, Mode, Color palettes.
 - **Help** — opens the docs Home (`docs.html`) in your browser.
@@ -22,7 +26,7 @@ Click the hex mark and **Border Studio** for:
 
 Version sits at the bottom of that menu.
 
-Right-click on the stage (not in a text field) opens the same kind of menu: **Undo**, **Redo**, **Save**, **Settings**, plus **Delete point** / **Add point here** on a polygon, or **Delete effect** on an effect row.
+Right-click on the stage (not in a text field) opens **Undo**, **Redo**, **Save**, **Settings**, plus **Delete point** / **Add point here** on a polygon, or **Delete effect** on an effect row. That **Save** writes the live design now. The named copy is **File → Save**.
 
 ![File menu](../assets/screens/designer-file.png)
 
@@ -50,7 +54,9 @@ The header pill shows **OBS connected** or **OBS offline** (click it for OBS set
 - **Rounded rect:** **Corner radius** 0–512, plus an on-stage radius handle.
 - **Circle / oval:** drag the hole; eight box handles resize it.
 
-**Feather** (0–64) blurs the hole edge (soft mask). **Size** is the hole: 720p (1280×720), 1080p (1920×1080), or Custom (width/height, min 16). Stroke and glow can extend outside the hole; the OBS overlay pads for that. **Preview** shows the black/white mask PNG. **Reset all** on this tab is the same full default as **File → Reset**.
+**Shapes**, at the top of this tab, stores holes. Click a name to use that hole and canvas size. The border and the effect buttons stay. **Save** stores the current hole under **Name** (same name overwrites). **Delete** removes the selected hole.
+
+**Feather** (0–64) blurs the hole edge (soft mask). **Size** is the hole: 720p (1280×720), 1080p (1920×1080), or Custom (width/height, min 16). Stroke and glow can extend outside the hole; the OBS overlay pads for that. **Preview** shows the black/white mask PNG. **Reset all** puts back the default chamfer and 1920×1080. Stroke, motion, and effect buttons stay.
 
 **Border** is the overlay decoration: stroke, thickness, glow (halo), blur (softens the stroke), and motion.
 

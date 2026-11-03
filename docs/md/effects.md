@@ -4,11 +4,13 @@ Idle motion lives on **Border → Motion** and loops forever. **Effects** are on
 
 The **Effects** tab lists those buttons beside the stage. The wrench (`Edit effect`) opens that effect’s panel. **Add effect** is at the bottom of the list.
 
+**Boards**, at the top of the list, are separate from the design. A board is only the effect buttons. Click a name to load that set. The hole and the border stay. **Save** stores the current buttons under **Name** (same name overwrites). **Delete** removes the selected board. **Reset** puts the stock buttons back and leaves saved boards alone. The control window opens on this tab, so you switch boards there without touching the look.
+
 ![Designer Effects tab](../assets/screens/designer-effects.png)
 
 A new install already has buttons: Pulse, Double pulse, Heartbeat, Flash, Rainbow, Boom, Success, Warn, Alert, Strobe, Shake, Wipe, Spark, Chroma burst, Glitch. **Add effect** names the new button `Group-Label` (for example `Pulse-Pulse`) until you rename it.
 
-The tray **Effects** item opens a second Designer window already on this tab. Same app, same design, same overlay. File **Close** on that window only closes the extra window.
+The tray **Effects** item opens a second window already on this tab. Same app, same overlay, same effect buttons. File **Close** on that window only closes the extra window.
 
 ## Edit panel
 
