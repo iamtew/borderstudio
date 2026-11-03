@@ -408,15 +408,20 @@ body.pad {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px; align-content: start;
 }
-.pad-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pad-cell { position: relative; min-width: 0; }
 #pad-grid .fx-btn {
-  min-height: 72px; margin: 0; padding: 12px 10px;
+  width: 100%; min-height: 72px; margin: 0; padding: 12px 10px;
   border-radius: var(--r); cursor: pointer; font: inherit; font-weight: 700;
   display: flex; align-items: center; justify-content: center; text-align: center;
 }
+body.pad.show-urls #pad-grid .fx-btn {
+  min-height: 108px; align-items: flex-start; padding-bottom: 44px;
+}
 #pad-grid .fx-btn:disabled { cursor: default; filter: none; opacity: 0.85; }
 .pad-url-row { display: none; gap: 6px; align-items: stretch; }
-body.pad.show-urls .pad-url-row { display: flex; }
+body.pad.show-urls .pad-url-row {
+  display: flex; position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 1;
+}
 .pad-url-row input {
   flex: 1; min-width: 0; background: #1a1a1a; color: var(--text);
   border: 1px solid var(--line); border-radius: var(--r); padding: 6px 8px;
