@@ -321,6 +321,12 @@ function inkSmooth(e0, e1, x) {
   return t * t * (3 - 2 * t);
 }
 
+// Signed-normal expand ±width/2 plus inward bias width/2. Outer (vUV.y=-1) stays on the path.
+function innerAlong(vUVy, width) {
+  const half = width * 0.5;
+  return vUVy * half + half;
+}
+
 // vUV.y -1 = mask edge, +1 = inner. Opaque through solid, fade over blur. Outer stays 1.
 function innerEdgeCover(vUVy, solid, width) {
   const t = (vUVy + 1) * 0.5;
@@ -463,7 +469,7 @@ const inkBitGl = {
             }
             if (uInk3.w > 2.0) position += aNormal * vUV.y * uInk3.w;
             position += aNormal * (uInk0.x * 0.5 * wScale);
-            if (inkBit(uInk0.y, 8.0) > 0.5) position += aNormal * vUV.y * (uInk0.x * 0.5 * wScale);
+            position += aNormal * vUV.y * uRgb.a;
         `,
   },
   fragment: {
@@ -579,9 +585,7 @@ const inkBitGpu = {
                 position = position + aNormal * vUV.y * inkUniforms.uInk3.w;
             }
             position = position + aNormal * (inkUniforms.uInk0.x * 0.5 * wScale);
-            if (inkBit(inkUniforms.uInk0.y, 8.0) > 0.5) {
-                position = position + aNormal * vUV.y * (inkUniforms.uInk0.x * 0.5 * wScale);
-            }
+            position = position + aNormal * vUV.y * inkUniforms.uRgb.a;
         `,
   },
   fragment: {
@@ -868,7 +872,7 @@ async function mountInk(host) {
     b[0] = o.period; b[1] = o.dashOn; b[2] = o.off; b[3] = o.len;
     c[0] = o.sliceA; c[1] = o.sliceN; c[2] = o.sliceT; c[3] = o.cap;
     d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = o.extra || 0;
-    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = 1;
+    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = o.bias || 0;
     g.update();
     pass.mesh.visible = o.on;
     pass.mesh.alpha = o.alpha;
@@ -966,6 +970,7 @@ async function mountInk(host) {
         extra: 0,
         sliceA: 0,
         sliceN: 0,
+        bias: band ? band.width * 0.5 : 0,
       }));
       pushPass(passes.halo, Object.assign({ on: show && !ghost && glowPx > 0, alpha: Math.min(0.55, alpha * 0.5), width: sw + glowPx * 1.6, rgb }, shared));
       pushPass(passes.core, Object.assign({ on: show && !ghost, alpha, width: sw, rgb }, shared));
@@ -1202,6 +1207,8 @@ async function mountInk(host) {
   if (innerBand({ innerStrokeWidth: 0, innerBlur: 8 })) throw new Error("ink inner off");
   const band = innerBand({ innerStrokeWidth: 12, innerBlur: 12 });
   if (!band || band.width !== 24) throw new Error("ink inner band");
+  if (Math.abs(innerAlong(-1, 24)) > 1e-9) throw new Error("ink inner centered");
+  if (Math.abs(innerAlong(1, 24) - 24) > 1e-9) throw new Error("ink inner width");
   if (Math.abs(innerEdgeCover(-1, 12, 24) - 1) > 1e-6) throw new Error("ink inner outer");
   if (innerEdgeCover(1, 12, 24) > 0.01) throw new Error("ink inner fade");
   const box = sampleDesign({ kind: "roundrect", x: 0, y: 0, w: 200, h: 100, r: 0 });
