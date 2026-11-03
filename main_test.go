@@ -188,6 +188,8 @@ func TestAnimsRoundtrip(t *testing.T) {
 				{ID: "ring"},
 				{ID: "bolts", N: 4},
 				{ID: "slices", N: 5},
+				{ID: "fire"},
+				{ID: "wave"},
 			},
 		},
 	}})
@@ -218,7 +220,7 @@ func TestAnimsRoundtrip(t *testing.T) {
 		t.Fatalf("reload %+v", again)
 	}
 	keep := again.Custom[1]
-	if keep.ID != "fxkeep" || len(keep.Fx) != 5 {
+	if keep.ID != "fxkeep" || len(keep.Fx) != 7 {
 		t.Fatalf("fx keep %+v", keep.Fx)
 	}
 	if keep.Fx[0].ID != "chroma" || keep.Fx[0].N != 1 || keep.Fx[0].Px != 3 {
@@ -229,6 +231,9 @@ func TestAnimsRoundtrip(t *testing.T) {
 	}
 	if keep.Fx[3].ID != "ring" || keep.Fx[4].ID != "bolts" || keep.Fx[4].N != 4 {
 		t.Fatalf("fx tail %+v", keep.Fx)
+	}
+	if keep.Fx[5].ID != "fire" || keep.Fx[6].ID != "wave" {
+		t.Fatalf("fx mode %+v", keep.Fx)
 	}
 }
 

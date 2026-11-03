@@ -590,6 +590,8 @@ func normAnimFx(fx []animFx) []animFx {
 	var head *animFx
 	var ring *animFx
 	var bolts *animFx
+	var fire *animFx
+	var wave *animFx
 	for _, f := range fx {
 		switch strings.TrimSpace(f.ID) {
 		case "chroma":
@@ -636,6 +638,12 @@ func normAnimFx(fx []animFx) []animFx {
 			}
 			b := animFx{ID: "bolts", N: n}
 			bolts = &b
+		case "fire":
+			ff := animFx{ID: "fire"}
+			fire = &ff
+		case "wave":
+			w := animFx{ID: "wave"}
+			wave = &w
 		}
 	}
 	out := []animFx{}
@@ -653,6 +661,12 @@ func normAnimFx(fx []animFx) []animFx {
 	}
 	if bolts != nil {
 		out = append(out, *bolts)
+	}
+	if fire != nil {
+		out = append(out, *fire)
+	}
+	if wave != nil {
+		out = append(out, *wave)
 	}
 	return out
 }

@@ -324,6 +324,10 @@ function chromaGhost(recipe) {
   return !!(f && f.n >= 1);
 }
 
+function chromaWidth(sw, env) {
+  return sw * (1 + 0.9 * Math.max(0, env || 0));
+}
+
 function fxScale(recipe) {
   const s = recipe && recipe.strength;
   return s == null || s !== s ? 1 : s;
@@ -382,6 +386,12 @@ vec3 inkHue(vec3 color, float hue) {
 float inkWrap(float a, float m) {
     return mod(mod(a, m) + m, m);
 }
+float inkBit(float flags, float bit) {
+    return mod(floor((flags + 0.001) / bit), 2.0);
+}
+float inkHash(float n) {
+    return fract(sin(n) * 43758.5453);
+}
 `;
 
 const inkBitGl = {
@@ -391,12 +401,29 @@ const inkBitGl = {
     main: `
             float amp = uInk2.x;
             float bands = uInk2.y;
+            float wScale = 1.0;
+            float alongS = vUV.x * uInk1.w;
             if (amp > 0.5 && bands > 0.5) {
-                float h = max(8.0, uInk1.w / bands);
-                float n = fract(sin(floor(aPosition.y / h) * 12.9898 + uInk2.z) * 43758.5453);
-                position.x += (n - 0.5) * 2.0 * amp;
+                float bid = floor(vUV.x * bands);
+                float n = inkHash(bid * 12.9898 + uInk2.z);
+                float n2 = inkHash(bid * 78.233 + uInk2.z);
+                position += aNormal * vUV.y * (n - 0.5) * 2.0 * amp;
+                wScale *= 0.4 + n2 * 1.4;
             }
-            position += aNormal * (uInk0.x * 0.5);
+            if (inkBit(uInk0.y, 2.0) > 0.5) {
+                float n = inkHash(alongS * 0.07 + uInk3.w * 6.2831853);
+                float n2 = inkHash(alongS * 0.31 + uInk3.w * 12.0);
+                wScale *= 0.55 + 0.85 * n * n2;
+            }
+            float period = uInk1.x;
+            float on = uInk1.y;
+            if (period > 1.0 && on < period - 0.01 && uInk3.y > 1.0) {
+                float du = inkWrap(alongS + uInk1.z, period);
+                float edge = uInk3.z < 0.0 ? (on - du) : du;
+                wScale *= mix(0.22, 1.0, 1.0 - clamp(edge / max(on, 1.0), 0.0, 1.0));
+            }
+            if (uInk3.w > 2.0) position += aNormal * vUV.y * uInk3.w;
+            position += aNormal * (uInk0.x * 0.5 * wScale);
         `,
   },
   fragment: {
@@ -423,8 +450,25 @@ const inkBitGl = {
                 float ds = inkWrap(uInk3.z < 0.0 ? alongS - uInk3.x : uInk3.x - alongS, max(uInk1.w, 1.0));
                 if (ds < tail) col += (1.0 - ds / tail) * 0.45;
             }
+            float amp = uInk2.x;
+            float bands = uInk2.y;
+            if (amp > 0.5 && bands > 0.5) {
+                float bid = floor(vUV.x * bands);
+                float n = inkHash(bid * 12.9898 + uInk2.z);
+                if (n < 0.16) cover = 0.0;
+                else if (n > 0.84) col = mix(col, vec3(0.0, 1.0, 1.0), 0.75);
+                else if (n > 0.72) col = mix(col, vec3(1.0, 0.0, 1.0), 0.75);
+            }
             if (cover < 0.02) discard;
-            if (uInk0.y > 0.5) col = inkHue(col, vUV.x * 6.2831853);
+            if (inkBit(uInk0.y, 1.0) > 0.5) col = inkHue(col, vUV.x * 6.2831853);
+            if (inkBit(uInk0.y, 2.0) > 0.5) {
+                float n = inkHash(alongS * 0.11 + uInk3.w * 20.0);
+                col = mix(col * 0.32, col, 0.4 + 0.6 * n);
+                col = mix(col, vec3(1.0, 0.92, 0.5), n * n * 0.55);
+            }
+            if (inkBit(uInk0.y, 4.0) > 0.5) {
+                col *= 0.65 + 0.55 * sin(alongS * 0.04 + uInk3.w * 6.2831853);
+            }
             float a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
             outColor = vec4(col * a, a);
         `,
@@ -449,6 +493,12 @@ fn inkHue(color: vec3<f32>, hue: f32) -> vec3<f32> {
 fn inkWrap(a: f32, m: f32) -> f32 {
     return ((a % m) + m) % m;
 }
+fn inkBit(flags: f32, bit: f32) -> f32 {
+    return floor((flags + 0.001) / bit) % 2.0;
+}
+fn inkHash(n: f32) -> f32 {
+    return fract(sin(n) * 43758.5453);
+}
 `;
 
 const inkBitGpu = {
@@ -458,12 +508,31 @@ const inkBitGpu = {
     main: `
             let amp = inkUniforms.uInk2.x;
             let bands = inkUniforms.uInk2.y;
+            var wScale = 1.0;
+            let alongS = vUV.x * inkUniforms.uInk1.w;
             if (amp > 0.5 && bands > 0.5) {
-                let h = max(8.0, inkUniforms.uInk1.w / bands);
-                let n = fract(sin(floor(aPosition.y / h) * 12.9898 + inkUniforms.uInk2.z) * 43758.5453);
-                position.x = position.x + (n - 0.5) * 2.0 * amp;
+                let bid = floor(vUV.x * bands);
+                let n = inkHash(bid * 12.9898 + inkUniforms.uInk2.z);
+                let n2 = inkHash(bid * 78.233 + inkUniforms.uInk2.z);
+                position = position + aNormal * vUV.y * (n - 0.5) * 2.0 * amp;
+                wScale = wScale * (0.4 + n2 * 1.4);
             }
-            position = position + aNormal * (inkUniforms.uInk0.x * 0.5);
+            if (inkBit(inkUniforms.uInk0.y, 2.0) > 0.5) {
+                let n = inkHash(alongS * 0.07 + inkUniforms.uInk3.w * 6.2831853);
+                let n2 = inkHash(alongS * 0.31 + inkUniforms.uInk3.w * 12.0);
+                wScale = wScale * (0.55 + 0.85 * n * n2);
+            }
+            let period = inkUniforms.uInk1.x;
+            let on = inkUniforms.uInk1.y;
+            if (period > 1.0 && on < period - 0.01 && inkUniforms.uInk3.y > 1.0) {
+                let du = inkWrap(alongS + inkUniforms.uInk1.z, period);
+                let edge = select(du, on - du, inkUniforms.uInk3.z < 0.0);
+                wScale = wScale * mix(0.22, 1.0, 1.0 - clamp(edge / max(on, 1.0), 0.0, 1.0));
+            }
+            if (inkUniforms.uInk3.w > 2.0) {
+                position = position + aNormal * vUV.y * inkUniforms.uInk3.w;
+            }
+            position = position + aNormal * (inkUniforms.uInk0.x * 0.5 * wScale);
         `,
   },
   fragment: {
@@ -494,8 +563,25 @@ const inkBitGpu = {
                 let ds = inkWrap(select(inkUniforms.uInk3.x - alongS, alongS - inkUniforms.uInk3.x, inkUniforms.uInk3.z < 0.0), max(inkUniforms.uInk1.w, 1.0));
                 if (ds < tail) { col = col + vec3<f32>(1.0 - ds / tail) * 0.45; }
             }
+            let amp = inkUniforms.uInk2.x;
+            let bands = inkUniforms.uInk2.y;
+            if (amp > 0.5 && bands > 0.5) {
+                let bid = floor(vUV.x * bands);
+                let n = inkHash(bid * 12.9898 + inkUniforms.uInk2.z);
+                if (n < 0.16) { cover = 0.0; }
+                else if (n > 0.84) { col = mix(col, vec3<f32>(0.0, 1.0, 1.0), 0.75); }
+                else if (n > 0.72) { col = mix(col, vec3<f32>(1.0, 0.0, 1.0), 0.75); }
+            }
             if (cover < 0.02) { discard; }
-            if (inkUniforms.uInk0.y > 0.5) { col = inkHue(col, vUV.x * 6.2831853); }
+            if (inkBit(inkUniforms.uInk0.y, 1.0) > 0.5) { col = inkHue(col, vUV.x * 6.2831853); }
+            if (inkBit(inkUniforms.uInk0.y, 2.0) > 0.5) {
+                let n = inkHash(alongS * 0.11 + inkUniforms.uInk3.w * 20.0);
+                col = mix(col * 0.32, col, 0.4 + 0.6 * n);
+                col = mix(col, vec3<f32>(1.0, 0.92, 0.5), n * n * 0.55);
+            }
+            if (inkBit(inkUniforms.uInk0.y, 4.0) > 0.5) {
+                col = col * (0.65 + 0.55 * sin(alongS * 0.04 + inkUniforms.uInk3.w * 6.2831853));
+            }
             let a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
             outColor = vec4<f32>(col * a, a);
         `,
@@ -722,7 +808,7 @@ async function mountInk(host) {
     a[0] = o.width; a[1] = o.along; a[2] = o.r0; a[3] = o.r1;
     b[0] = o.period; b[1] = o.dashOn; b[2] = o.off; b[3] = o.len;
     c[0] = o.sliceA; c[1] = o.sliceN; c[2] = o.sliceT; c[3] = o.cap;
-    d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = 0;
+    d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = o.extra || 0;
     r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = 1;
     g.update();
     pass.mesh.visible = o.on;
@@ -764,11 +850,11 @@ async function mountInk(host) {
     const scale = fxScale(recipe);
     const ghost = chromaGhost(recipe);
     const chroma = recipe && fxOf(recipe, "chroma");
-    let sx = 0, sy = 0;
+    let sx = 0, sy = 0, env = 0;
     if (chroma && chroma.px) {
       let px = chroma.px * scale;
       if (ghost) px *= poly.maxDim / 192;
-      const env = recipe.loop ? (0.65 + 0.35 * Math.sin(u * Math.PI * 2)) : Math.sin(Math.min(1, Math.max(0, u)) * Math.PI);
+      env = recipe.loop ? (0.65 + 0.35 * Math.sin(u * Math.PI * 2)) : Math.sin(Math.min(1, Math.max(0, u)) * Math.PI);
       sx = px * env;
     }
     const mv = Math.hypot(pose.x || 0, pose.y || 0);
@@ -778,25 +864,28 @@ async function mountInk(host) {
     const dash = recipe && !reveal ? dashParts(recipe.dash) : null;
     const slices = recipe && fxOf(recipe, "slices");
     const head = recipe && fxOf(recipe, "head");
+    const fire = recipe && fxOf(recipe, "fire");
+    const wave = recipe && fxOf(recipe, "wave");
     const sign = travelSign(recipe);
     const hasOff = !!((recipe && recipe.keys) || []).some(k => k.offset != null && k.offset !== "");
     const headS = head ? (hasOff ? -pose.offset : u * poly.length) : 0;
     const tail = head ? (head.px || 0) * scale : 0;
     const shared = {
-      along: alongStroke(recipe) ? 1 : 0,
+      along: (alongStroke(recipe) ? 1 : 0) + (fire ? 2 : 0) + (wave ? 4 : 0),
       r0: reveal ? reveal[0] : 0,
       r1: reveal ? reveal[1] : 1,
       period: dash ? dash.period : 0,
       dashOn: dash ? dash.on : 0,
       off: pose.offset || 0,
       len: poly.length,
-      sliceA: slices ? 8 * scale : 0,
+      sliceA: slices ? Math.max(12, sw) * scale : 0,
       sliceN: slices ? slices.n : 0,
       sliceT: Math.floor(ink.tMs / 80),
       cap: dash ? Math.max(3, sw * 0.45) : 0,
       headS: headS,
       tail: tail,
       sign: sign,
+      extra: (fire || wave) ? u : 0,
     };
 
     if (ribbon) {
@@ -807,19 +896,21 @@ async function mountInk(host) {
       pushPass(passes.hot, Object.assign({ on: hot, alpha: Math.min(0.5, (pose.width - 1) * 0.35) * alpha, width: sw * 0.45, rgb: [1, 1, 1] }, shared));
       const ring = recipe && fxOf(recipe, "ring");
       const boom = Math.min(1, u / 0.45);
-      pushPass(passes.ring, Object.assign({
+      pushPass(passes.ring, Object.assign({}, shared, {
         on: !!(ring && show),
         alpha: ring ? 0.55 * (1 - boom) * alpha : 0,
-        width: sw * (1 + boom * 5),
+        width: sw,
         rgb: [1, 1, 1],
-      }, shared));
+        extra: boom * Math.max(28, sw * 4),
+      }));
       const split = Math.hypot(sx, sy) > 0.2 && show;
       const ca = ghost ? Math.min(1, alpha) : alpha * 0.55;
       const fringe = !!(chroma && chroma.px);
+      const cw = chromaWidth(sw, env);
       if (fringe) {
-        pushPass(passes.cr, Object.assign({ on: split, alpha: ca, width: sw, rgb: [0, 1, 1], x: sx, y: sy }, shared));
-        pushPass(passes.cg, Object.assign({ on: false, alpha: 0, width: sw, rgb: [0, 0, 0] }, shared));
-        pushPass(passes.cb, Object.assign({ on: split, alpha: ca, width: sw, rgb: [1, 0, 1], x: -sx, y: -sy }, shared));
+        pushPass(passes.cr, Object.assign({ on: split, alpha: ca, width: cw, rgb: [0, 1, 1], x: sx, y: sy }, shared));
+        pushPass(passes.cg, Object.assign({ on: false, alpha: 0, width: cw, rgb: [0, 0, 0] }, shared));
+        pushPass(passes.cb, Object.assign({ on: split, alpha: ca, width: cw, rgb: [1, 0, 1], x: -sx, y: -sy }, shared));
       } else {
         pushPass(passes.cr, Object.assign({ on: split, alpha: ca, width: sw, rgb: [rgb[0], 0, 0], x: sx, y: sy }, shared));
         pushPass(passes.cg, Object.assign({ on: split, alpha: ca, width: sw, rgb: [0, rgb[1], 0] }, shared));
@@ -829,7 +920,7 @@ async function mountInk(host) {
         const soft = fringe && split;
         chromaRoot.filters = soft ? [chromaBlur] : null;
         if (soft) {
-          const bs = Math.max(2.5, sw * 0.22);
+          const bs = Math.max(2.5, cw * 0.22) * (0.55 + env);
           chromaBlur.strength = bs;
           chromaBlur.blur = bs;
           chromaBlur.padding = Math.ceil(bs + 8);
@@ -885,8 +976,12 @@ async function mountInk(host) {
       for (let i = 0; i < n; i++) {
         const p = atLen(poly, (seed * 97 + i * 211) % poly.length);
         const len = 18 + ((seed + i * 3) % 24);
+        const nx = -p.ty, ny = p.tx;
+        const j1 = ((seed + i) % 7) - 3, j2 = ((seed + i * 5) % 9) - 4;
         boltG.moveTo(p.x, p.y);
-        boltG.lineTo(p.x - p.ty * len, p.y + p.tx * len);
+        boltG.lineTo(p.x + nx * len * 0.35 + p.tx * j1, p.y + ny * len * 0.35 + p.ty * j1);
+        boltG.lineTo(p.x + nx * len * 0.7 + p.tx * j2, p.y + ny * len * 0.7 + p.ty * j2);
+        boltG.lineTo(p.x + nx * len, p.y + ny * len);
         boltG.stroke(strokeStyle(2, "#fff", 0.8 * alpha));
       }
     }
@@ -913,9 +1008,10 @@ async function mountInk(host) {
       const ca = ghost ? alpha : alpha * 0.55;
       const fringe = recipe && fxOf(recipe, "chroma");
       if (fringe && fringe.px) {
+        const cw = chromaWidth(sw, Math.hypot(sx, sy) / Math.max(fringe.px, 1));
         [[sx, sy, "#00ffff"], [-sx, -sy, "#ff00ff"]].forEach(([dx, dy, col]) => {
-          stroke(fxG, dx, dy, sw + 14, col, ca * 0.35);
-          stroke(fxG, dx, dy, sw, col, ca);
+          stroke(fxG, dx, dy, cw + 14, col, ca * 0.35);
+          stroke(fxG, dx, dy, cw, col, ca);
         });
       } else {
         const rgb = rgb01(color);
@@ -1004,4 +1100,5 @@ async function mountInk(host) {
   if (!rOpen || Math.abs(rOpen[0]) > 1e-6 || Math.abs(rOpen[1] - 1) > 1e-6) throw new Error("ink reveal rev open");
   if (!chromaGhost({ fx: [{ id: "chroma", px: 2, n: 1 }] })) throw new Error("ink chroma ghost");
   if (chromaGhost({ fx: [{ id: "chroma", px: 6 }] })) throw new Error("ink chroma solid");
+  if (Math.abs(chromaWidth(10, 1) - 19) > 1e-9) throw new Error("ink chroma width");
 })();
