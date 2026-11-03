@@ -170,8 +170,9 @@ function paintCtrl() {
   grid.replaceChildren();
   events.forEach((ev, i) => {
     const row = document.createElement("div");
-    row.className = "fx-row";
+    row.className = "fx-row fx-btn";
     row.dataset.i = String(i);
+    paintFxBtn(row, ev.btn);
     const grip = document.createElement("button");
     grip.type = "button";
     grip.className = "fx-grip";
@@ -181,9 +182,8 @@ function paintCtrl() {
     grip.addEventListener("pointerdown", () => { row.draggable = true; });
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "fx-btn";
+    b.className = "fx-fire";
     b.textContent = ev.label || ev.id;
-    paintFxBtn(b, ev.btn);
     b.onclick = () => fireFx(ev);
     const wrench = document.createElement("button");
     wrench.type = "button";
