@@ -975,12 +975,22 @@ function fillPair(numId, rangeId, v) {
   } else if (ae === num && range) range.value = num.value;
   else if (ae === range) num.value = range.value;
 }
+function clampPair(num, range) {
+  if (!range) return;
+  const lo = Number(range.min), hi = Number(range.max);
+  let v = Number(num.value);
+  if (!Number.isFinite(v)) v = lo;
+  if (Number.isFinite(lo) && v < lo) v = lo;
+  if (Number.isFinite(hi) && v > hi) v = hi;
+  num.value = v;
+  range.value = v;
+}
 function bindPair(numId, rangeId, fn) {
   const num = document.getElementById(numId);
   const range = document.getElementById(rangeId);
   const run = (src) => {
     if (src === range) num.value = range.value;
-    else if (range) range.value = num.value;
+    else clampPair(num, range);
     fn();
   };
   lookInput(num, () => run(num));
@@ -1072,7 +1082,7 @@ function bindTunePair(numId, rangeId) {
   const range = document.getElementById(rangeId);
   const go = (src) => {
     if (src === range) num.value = range.value;
-    else range.value = num.value;
+    else clampPair(num, range);
     applyTune();
   };
   [num, range].forEach(el => {
@@ -1210,7 +1220,7 @@ function applyCtrlTune() {
   [["ctrl-ms", "ctrl-ms-r"], ["ctrl-strength", "ctrl-strength-r"]].forEach(([n, r]) => {
     const num = document.getElementById(n), range = document.getElementById(r);
     if (ae === range) num.value = range.value;
-    else if (ae === num) range.value = num.value;
+    else if (ae === num) clampPair(num, range);
   });
   ev.tune = readCtrlTune();
   previewCtrl();
