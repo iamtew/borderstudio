@@ -178,11 +178,23 @@ func TestAnimsRoundtrip(t *testing.T) {
 			Fx:   []animFx{{ID: "explode", Px: 4}, {ID: "chroma", Px: pxTooBig}},
 		},
 		{ID: "mine", Label: "", Ms: 400, Keys: []animKey{{T: 0}}},
+		{
+			ID: "fxkeep", Label: "Keep", Ms: 400,
+			Keys: []animKey{{T: 0}},
+			Fx: []animFx{
+				{ID: "explode", Px: 4},
+				{ID: "chroma", Px: 3, N: 2},
+				{ID: "head", N: 2, Px: 40},
+				{ID: "ring"},
+				{ID: "bolts", N: 4},
+				{ID: "slices", N: 5},
+			},
+		},
 	}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(saved.Custom) != 1 {
+	if len(saved.Custom) != 2 {
 		t.Fatalf("saved %+v", saved.Custom)
 	}
 	r := saved.Custom[0]
@@ -202,8 +214,21 @@ func TestAnimsRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(again.Custom) != 1 || again.Custom[0].ID != "u-pulse" {
+	if len(again.Custom) != 2 || again.Custom[0].ID != "u-pulse" {
 		t.Fatalf("reload %+v", again)
+	}
+	keep := again.Custom[1]
+	if keep.ID != "fxkeep" || len(keep.Fx) != 5 {
+		t.Fatalf("fx keep %+v", keep.Fx)
+	}
+	if keep.Fx[0].ID != "chroma" || keep.Fx[0].N != 1 || keep.Fx[0].Px != 3 {
+		t.Fatalf("chroma %+v", keep.Fx[0])
+	}
+	if keep.Fx[1].ID != "slices" || keep.Fx[1].N != 5 || keep.Fx[2].ID != "head" || keep.Fx[2].N != 2 || keep.Fx[2].Px != 40 {
+		t.Fatalf("fx %+v", keep.Fx)
+	}
+	if keep.Fx[3].ID != "ring" || keep.Fx[4].ID != "bolts" || keep.Fx[4].N != 4 {
+		t.Fatalf("fx tail %+v", keep.Fx)
 	}
 }
 

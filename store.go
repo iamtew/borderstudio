@@ -383,6 +383,9 @@ func normAnimKeys(keys []animKey) []animKey {
 func normAnimFx(fx []animFx) []animFx {
 	var chroma *animFx
 	var slices *animFx
+	var head *animFx
+	var ring *animFx
+	var bolts *animFx
 	for _, f := range fx {
 		switch strings.TrimSpace(f.ID) {
 		case "chroma":
@@ -390,7 +393,11 @@ func normAnimFx(fx []animFx) []animFx {
 			if px == 0 {
 				continue
 			}
-			c := animFx{ID: "chroma", Px: px}
+			n := 0
+			if f.N > 0 {
+				n = 1
+			}
+			c := animFx{ID: "chroma", Px: px, N: n}
 			chroma = &c
 		case "slices":
 			n := f.N
@@ -402,6 +409,29 @@ func normAnimFx(fx []animFx) []animFx {
 			}
 			s := animFx{ID: "slices", N: n}
 			slices = &s
+		case "head":
+			n := f.N
+			if n < 1 {
+				n = 1
+			}
+			if n > 8 {
+				n = 8
+			}
+			h := animFx{ID: "head", N: n, Px: clamp(f.Px, 0, 400)}
+			head = &h
+		case "ring":
+			r := animFx{ID: "ring"}
+			ring = &r
+		case "bolts":
+			n := f.N
+			if n < 1 {
+				n = 1
+			}
+			if n > 12 {
+				n = 12
+			}
+			b := animFx{ID: "bolts", N: n}
+			bolts = &b
 		}
 	}
 	out := []animFx{}
@@ -410,6 +440,15 @@ func normAnimFx(fx []animFx) []animFx {
 	}
 	if slices != nil {
 		out = append(out, *slices)
+	}
+	if head != nil {
+		out = append(out, *head)
+	}
+	if ring != nil {
+		out = append(out, *ring)
+	}
+	if bolts != nil {
+		out = append(out, *bolts)
 	}
 	return out
 }
