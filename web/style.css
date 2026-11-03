@@ -51,6 +51,7 @@ body.admin #shell {
 .ti-copy { --ti: url(/icons/copy.svg); }
 .ti-device-floppy { --ti: url(/icons/device-floppy.svg); }
 .ti-download { --ti: url(/icons/download.svg); }
+.ti-grip-vertical { --ti: url(/icons/grip-vertical.svg); }
 .ti-info-circle { --ti: url(/icons/info-circle.svg); }
 .ti-layout-grid { --ti: url(/icons/layout-grid.svg); }
 .ti-mask { --ti: url(/icons/mask.svg); }
@@ -165,9 +166,9 @@ body.admin button:hover, body.admin #bar a:hover { border-color: var(--accent); 
 #size-menu #size-custom-fields label { margin: 0; }
 #size-custom-fields { display: flex; gap: 6px; }
 #size-custom-fields label { flex: 1; min-width: 0; margin: 0 0 8px; }
-#sidebar .num-row button, #sidebar .color-field button, #sidebar .fx-wrench { width: auto; margin: 0; }
+#sidebar .num-row button, #sidebar .color-field button, #sidebar .fx-wrench, #sidebar .fx-grip { width: auto; margin: 0; }
 #sidebar .fx-row > button { width: auto; margin: 0; }
-#sidebar .fx-row > button:first-child { flex: 1; }
+#sidebar .fx-row .fx-btn { flex: 1; }
 #stage-wrap { flex: 1; min-width: 0; background: #1a1a1a; }
 #stage-wrap .win-body { display: flex; align-items: center; justify-content: center; }
 #frame {
@@ -278,8 +279,25 @@ body.about { display: block; text-align: center; overflow: hidden; }
 #ctrl-tune .color-field button { width: auto; margin: 0; }
 #ctrl-grid { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; }
 .fx-row { display: flex; gap: 6px; align-items: stretch; }
-.fx-row > button:first-child { flex: 1; width: auto; margin: 0; font-weight: 700; }
-.fx-row .fx-wrench { width: auto; margin: 0; padding: 8px; flex: none; }
+.fx-row .fx-btn { flex: 1; width: auto; margin: 0; font-weight: 700; }
+.fx-row .fx-wrench, .fx-row .fx-grip { width: auto; margin: 0; padding: 8px; flex: none; }
+.fx-grip { cursor: grab; color: var(--muted); }
+.fx-grip:active { cursor: grabbing; }
+.fx-btn {
+  --fx: #5c6570;
+  background: linear-gradient(180deg, var(--fx), color-mix(in srgb, var(--fx) 55%, #000)) !important;
+  color: #fff !important;
+  border-color: color-mix(in srgb, var(--fx) 70%, #000) !important;
+  text-shadow: 0 1px 2px #0008;
+}
+.fx-btn:hover { filter: brightness(1.08); }
+.fx-btn-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.fx-btn-chips button {
+  width: 28px !important; height: 22px; margin: 0 !important; padding: 0 !important;
+  border-radius: var(--r);
+}
+.fx-btn-chips button.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+#fx-url { font-family: consolas, monospace; font-size: 11px; }
 .color-field { display: flex; gap: 6px; align-items: center; }
 .color-field input { flex: 1; min-width: 0; font-family: consolas, monospace; }
 .swatch { width: 40px !important; height: 32px; padding: 0 !important; margin: 0 !important; display: inline-block !important; vertical-align: middle; cursor: pointer; flex: none; }
@@ -355,3 +373,42 @@ body.about { display: block; text-align: center; overflow: hidden; }
 #tune-color-clear { padding: 4px 8px; }
 .check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
 .check-row input { width: auto; }
+body.pad {
+  --text: #e6e6e6;
+  --muted: #9a9a9a;
+  --line: #3a3a3a;
+  --r: 6px;
+  display: flex; flex-direction: column;
+  color: var(--text);
+  background: linear-gradient(180deg, #1a1a1a, #111);
+}
+.pad-bar {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 16px; border-bottom: 1px solid #2a2a2a;
+}
+.pad-bar h1 { margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #c8c8c8; }
+.pad-bar button {
+  background: #2a2a2a; color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 6px 10px; cursor: pointer; font: inherit; font-size: 12px;
+}
+.pad-bar button.on { border-color: #e6f350; color: #e6f350; }
+#pad-grid {
+  flex: 1; overflow: auto; padding: 16px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px; align-content: start;
+}
+#pad-grid .fx-btn {
+  position: relative; min-height: 72px; margin: 0; padding: 12px 10px;
+  border-radius: var(--r); cursor: pointer; font: inherit; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+body.pad.show-urls #pad-grid .fx-btn .fx-url {
+  display: block;
+}
+#pad-grid .fx-btn .fx-url {
+  display: none; position: absolute; inset: auto 6px 6px; font-size: 9px;
+  font-weight: 400; font-family: consolas, monospace; color: #fff;
+  background: #000a; border-radius: 3px; padding: 3px 4px;
+  word-break: break-all; text-shadow: none; line-height: 1.2;
+}
+#pad-empty { padding: 32px 16px; color: var(--muted); text-align: center; }

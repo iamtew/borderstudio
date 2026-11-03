@@ -146,6 +146,25 @@ function tuneOfRecipe(src) {
   return { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
 }
 
+function nextFxBtn() {
+  const used = new Set((d.events || []).map((e) => fxBtnColor(e.btn)));
+  return FX_BTN_COLORS.find((c) => !used.has(c)) || FX_BTN_COLORS[(d.events || []).length % FX_BTN_COLORS.length];
+}
+
+function moveEvent(from, to) {
+  if (from === to || from < 0 || to < 0) return;
+  const events = d.events || [];
+  if (from >= events.length || to >= events.length) return;
+  pushHist();
+  const ev = events.splice(from, 1)[0];
+  events.splice(to, 0, ev);
+  if (ctrlSel === from) ctrlSel = to;
+  else if (from < ctrlSel && to >= ctrlSel) ctrlSel--;
+  else if (from > ctrlSel && to <= ctrlSel) ctrlSel++;
+  paintCtrl();
+  scheduleSave();
+}
+
 function paintCtrl() {
   const grid = document.getElementById("ctrl-grid");
   const list = document.getElementById("fx-list");
@@ -158,9 +177,18 @@ function paintCtrl() {
     const row = document.createElement("div");
     row.className = "fx-row";
     row.dataset.i = String(i);
+    const grip = document.createElement("button");
+    grip.type = "button";
+    grip.className = "fx-grip";
+    grip.title = "Reorder";
+    grip.setAttribute("aria-label", "Reorder " + (ev.label || ev.id));
+    grip.innerHTML = '<span class="ti ti-grip-vertical" aria-hidden="true"></span>';
+    grip.addEventListener("pointerdown", () => { row.draggable = true; });
     const b = document.createElement("button");
     b.type = "button";
+    b.className = "fx-btn";
     b.textContent = ev.label || ev.id;
+    paintFxBtn(b, ev.btn);
     b.onclick = () => fireFx(ev);
     const wrench = document.createElement("button");
     wrench.type = "button";
@@ -169,7 +197,17 @@ function paintCtrl() {
     wrench.setAttribute("aria-label", "Edit " + (ev.label || ev.id));
     wrench.innerHTML = '<span class="ti ti-tool" aria-hidden="true"></span>';
     wrench.onclick = () => openFx(i);
-    row.append(b, wrench);
+    row.append(grip, b, wrench);
+    row.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", String(i));
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => { row.draggable = false; });
+    row.addEventListener("dragover", (e) => { e.preventDefault(); });
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      moveEvent(Number(e.dataTransfer.getData("text/plain")), i);
+    });
     grid.appendChild(row);
   });
   paintCtrlTune();
@@ -231,6 +269,25 @@ function paintCtrlTune() {
   const ease = document.getElementById("ctrl-ease");
   const hex = document.getElementById("ctrl-color-hex");
   if (document.activeElement !== lab) lab.value = ev.label || "";
+  const url = document.getElementById("fx-url");
+  if (document.activeElement !== url) url.value = fxFireUrl(ev.id);
+  const chips = document.getElementById("fx-btn-chips");
+  chips.replaceChildren();
+  const cur = fxBtnColor(ev.btn);
+  FX_BTN_COLORS.forEach((c) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.title = c;
+    chip.className = "fx-btn" + (c === cur ? " sel" : "");
+    paintFxBtn(chip, c);
+    chip.onclick = () => {
+      pushHist();
+      ev.btn = c;
+      paintCtrl();
+      scheduleSave();
+    };
+    chips.append(chip);
+  });
   fillEventAnimSelect(anim, ev.anim);
   fillPair("ctrl-ms", "ctrl-ms-r", tune.ms);
   if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
@@ -1250,7 +1307,14 @@ document.getElementById("fx-label").onchange = () => {
   if (!ev) return;
   ev.label = document.getElementById("fx-label").value;
   ev.id = slug(ev.label) || ev.id;
+  document.getElementById("fx-url").value = fxFireUrl(ev.id);
   scheduleSave();
+};
+document.getElementById("fx-url").onclick = function () { this.select(); };
+document.getElementById("fx-url-copy").onclick = () => {
+  const url = document.getElementById("fx-url");
+  url.select();
+  navigator.clipboard.writeText(url.value).catch(() => {});
 };
 document.getElementById("fx-anim").onchange = () => {
   const ev = ctrlEvent();
@@ -1329,7 +1393,7 @@ document.getElementById("btn-ev-add").onclick = () => {
   d.events = d.events || [];
   const used = new Set(d.events.map(e => e.anim));
   const a = eventCatalog().find(x => !used.has(x.id)) || EVENT_ANIMS[0];
-  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id, tune: tuneOfRecipe(a) });
+  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id, tune: tuneOfRecipe(a), btn: nextFxBtn() });
   ctrlSel = d.events.length - 1;
   paintCtrl();
   scheduleSave();
