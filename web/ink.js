@@ -1021,22 +1021,20 @@ async function mountInk(host) {
     const band = innerBand(d);
     if (!band || poly.pts.length < 3) return;
     const color = colorNum(d.innerStroke || "#333333");
-    function ring(outer, inner, alpha) {
-      if (alpha < 0.02 || !inner || inner.pts.length < 3) return;
-      innerG.poly(outer.pts.map(p => ({ x: p.x, y: p.y })), true);
-      innerG.fill({ color, alpha });
-      innerG.poly(inner.pts.map(p => ({ x: p.x, y: p.y })), true);
-      innerG.cut();
-    }
-    ring(poly, insetPoly(poly, band.solid), 1);
+    const xy = p => ({ x: p.x, y: p.y });
+    innerG.poly(poly.pts.map(xy), true);
+    innerG.fill({ color, alpha: 1 });
+    innerG.poly(insetPoly(poly, band.solid).pts.map(xy), true);
+    innerG.cut();
     if (band.blur <= 0) return;
+    // fill+cut of inset rings paints the hole; stroke the inner edge instead
     const steps = Math.max(4, Math.min(12, Math.round(band.blur / 3) || 4));
+    const step = band.blur / steps;
     for (let i = 1; i <= steps; i++) {
-      ring(
-        insetPoly(poly, band.solid + band.blur * (i - 1) / steps),
-        insetPoly(poly, band.solid + band.blur * i / steps),
-        1 - i / (steps + 0.5)
-      );
+      const fade = insetPoly(poly, band.solid + (i - 0.5) * step);
+      if (fade.pts.length < 3) continue;
+      innerG.poly(fade.pts.map(xy), true);
+      innerG.stroke({ width: step * 1.2, color, alpha: 1 - i / (steps + 1), cap: "round", join: "round" });
     }
   }
 
