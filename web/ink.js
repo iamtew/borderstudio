@@ -656,6 +656,12 @@ async function mountInk(host) {
   boltG.blendMode = "add";
   const innerRoot = new PIXI.Container();
   const innerG = new PIXI.Graphics();
+  const innerFade = [];
+  for (let i = 0; i < 12; i++) {
+    const g = new PIXI.Graphics();
+    innerRoot.addChild(g);
+    innerFade.push(g);
+  }
   innerRoot.addChild(innerG);
   canvasRoot.addChild(haloG, coreG, fxG, boltG);
   pad.addChild(innerRoot, inkRoot);
@@ -1018,23 +1024,30 @@ async function mountInk(host) {
 
   function drawInner(poly, d) {
     innerG.clear();
+    innerFade.forEach(g => g.clear());
     const band = innerBand(d);
     if (!band || poly.pts.length < 3) return;
     const color = colorNum(d.innerStroke || "#333333");
     const xy = p => ({ x: p.x, y: p.y });
-    innerG.poly(poly.pts.map(xy), true);
-    innerG.fill({ color, alpha: 1 });
-    innerG.poly(insetPoly(poly, band.solid).pts.map(xy), true);
-    innerG.cut();
+    function bandFill(g, outer, inner, alpha) {
+      if (alpha < 0.02 || !inner || inner.pts.length < 3) return;
+      g.poly(outer.pts.map(xy), true);
+      g.fill({ color, alpha });
+      g.poly(inner.pts.map(xy), true);
+      g.cut();
+    }
+    bandFill(innerG, poly, insetPoly(poly, band.solid), 1);
     if (band.blur <= 0) return;
-    // fill+cut of inset rings paints the hole; stroke the inner edge instead
-    const steps = Math.max(4, Math.min(12, Math.round(band.blur / 3) || 4));
+    // one Graphics per ring: another fill+cut on the same mesh paints the hole
+    const steps = Math.max(4, Math.min(innerFade.length, Math.round(band.blur / 3) || 4));
     const step = band.blur / steps;
     for (let i = 1; i <= steps; i++) {
-      const fade = insetPoly(poly, band.solid + (i - 0.5) * step);
-      if (fade.pts.length < 3) continue;
-      innerG.poly(fade.pts.map(xy), true);
-      innerG.stroke({ width: step * 1.2, color, alpha: 1 - i / (steps + 1), cap: "round", join: "round" });
+      bandFill(
+        innerFade[i - 1],
+        insetPoly(poly, band.solid + (i - 1) * step),
+        insetPoly(poly, band.solid + i * step),
+        1 - i / (steps + 1)
+      );
     }
   }
 
