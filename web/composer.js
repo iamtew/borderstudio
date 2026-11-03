@@ -143,7 +143,12 @@ let ctrlSel = 0;
 
 function tuneOfRecipe(src) {
   if (!src) return null;
-  return { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
+  return Object.assign({
+    ms: src.ms,
+    ease: src.ease || "ease",
+    color: src.color || "",
+    strength: src.strength != null ? src.strength : 1,
+  }, recipeExtras(src));
 }
 
 function moveEvent(from, to) {
@@ -1081,7 +1086,7 @@ lookInput(document.getElementById("in-motion"), () => {
   d.motion = document.getElementById("in-motion").value;
   d.dash = d.motion === "dash";
   const src = recipeById(d.motion, true);
-  d.motionTune = src ? { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 } : null;
+  d.motionTune = tuneOfRecipe(src);
   document.getElementById("tune-name").value = src ? src.label + " copy" : "";
 });
 onReset("in-width-reset", () => { d.strokeWidth = 12; });
@@ -1095,12 +1100,21 @@ onReset("in-inner-blur-reset", () => { d.innerBlur = 0; });
 onReset("in-motion-reset", () => { d.motion = "none"; d.dash = false; d.motionTune = null; });
 onReset("in-radius-reset", () => { d.r = 0; });
 function readTune() {
-  return {
+  const src = motionRecipe();
+  const extras = src ? recipeExtras(src) : {};
+  const t = {
     ms: Number(document.getElementById("tune-ms").value),
     ease: document.getElementById("tune-ease").value,
-    color: parseHex(document.getElementById("tune-color-hex").value),
+    color: tintOk(src) ? parseHex(document.getElementById("tune-color-hex").value) : "",
     strength: Number(document.getElementById("tune-strength").value),
   };
+  if (extras.dashOn && extras.dashOff) {
+    t.dashOn = Number(document.getElementById("tune-dash-on").value);
+    t.dashOff = Number(document.getElementById("tune-dash-off").value);
+  }
+  if (extras.head != null) t.head = Number(document.getElementById("tune-head").value);
+  if (extras.split != null) t.split = Number(document.getElementById("tune-split").value);
+  return t;
 }
 function paintTune() {
   const box = document.getElementById("motion-tune");
@@ -1110,14 +1124,27 @@ function paintTune() {
   const del = document.getElementById("tune-del");
   const mine = !!(src && (customAnims || []).some(r => r.loop && r.id === src.id));
   del.hidden = !mine;
+  const extras = src ? recipeExtras(src) : {};
+  const dash = !!(extras.dashOn && extras.dashOff);
+  document.getElementById("tune-dash-on-wrap").hidden = !dash;
+  document.getElementById("tune-dash-off-wrap").hidden = !dash;
+  document.getElementById("tune-head-wrap").hidden = extras.head == null;
+  document.getElementById("tune-split-wrap").hidden = extras.split == null;
+  document.getElementById("tune-color-wrap").hidden = !tintOk(src);
   if (!src) return;
-  const tune = d.motionTune || { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
+  const tune = Object.assign(tuneOfRecipe(src), d.motionTune || {});
   const ease = document.getElementById("tune-ease");
   const hex = document.getElementById("tune-color-hex");
   fillPair("tune-ms", "tune-ms-r", tune.ms);
   if (document.activeElement !== ease) ease.value = [...ease.options].some(o => o.value === tune.ease) ? tune.ease : "ease";
   if (document.activeElement !== hex) hex.value = tune.color || "";
   fillPair("tune-strength", "tune-strength-r", tune.strength != null ? tune.strength : 1);
+  if (dash) {
+    fillPair("tune-dash-on", "tune-dash-on-r", tune.dashOn);
+    fillPair("tune-dash-off", "tune-dash-off-r", tune.dashOff);
+  }
+  if (extras.head != null) fillPair("tune-head", "tune-head-r", tune.head);
+  if (extras.split != null) fillPair("tune-split", "tune-split-r", tune.split);
   const btn = document.getElementById("tune-color");
   const shown = tune.color || d.stroke || "#e6f350";
   btn.style.background = shown;
@@ -1144,12 +1171,20 @@ function bindTunePair(numId, rangeId) {
 }
 bindTunePair("tune-ms", "tune-ms-r");
 bindTunePair("tune-strength", "tune-strength-r");
+bindTunePair("tune-dash-on", "tune-dash-on-r");
+bindTunePair("tune-dash-off", "tune-dash-off-r");
+bindTunePair("tune-head", "tune-head-r");
+bindTunePair("tune-split", "tune-split-r");
 document.getElementById("tune-ease").addEventListener("focus", pushHist);
 document.getElementById("tune-ease").addEventListener("change", applyTune);
 function motionRecipe() { return recipeById(motionOf(d), true); }
 onReset("tune-ms-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { ms: src ? src.ms : 1000 }); });
 onReset("tune-ease-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { ease: (src && src.ease) || "ease" }); });
 onReset("tune-strength-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { strength: src && src.strength != null ? src.strength : 1 }); });
+onReset("tune-dash-on-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { dashOn: recipeExtras(src).dashOn }); });
+onReset("tune-dash-off-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { dashOff: recipeExtras(src).dashOff }); });
+onReset("tune-head-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { head: recipeExtras(src).head }); });
+onReset("tune-split-reset", () => { const src = motionRecipe(); d.motionTune = Object.assign(readTune(), { split: recipeExtras(src).split }); });
 document.getElementById("tune-color").onclick = (ev) => {
   ev.stopPropagation();
   pushHist();
@@ -1195,7 +1230,7 @@ document.getElementById("tune-save").onclick = () => {
   animsDoc.custom.push(Object.assign({ id: id }, baked));
   d.motion = id;
   d.dash = false;
-  d.motionTune = { ms: baked.ms, ease: baked.ease, color: baked.color || "", strength: baked.strength };
+  d.motionTune = tuneOfRecipe(baked);
   document.getElementById("tune-name").value = name + " copy";
   persistAnims();
   scheduleSave();

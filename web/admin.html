@@ -270,7 +270,35 @@
                 <button type="button" id="tune-ease-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
               </span>
             </label>
-            <label>Tint
+            <label id="tune-dash-on-wrap" hidden>Mark
+              <span class="num-row">
+                <input id="tune-dash-on-r" type="range" min="1" max="2000" step="1">
+                <input id="tune-dash-on" type="number" min="1" max="2000" step="1">
+                <button type="button" id="tune-dash-on-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
+              </span>
+            </label>
+            <label id="tune-dash-off-wrap" hidden>Gap
+              <span class="num-row">
+                <input id="tune-dash-off-r" type="range" min="1" max="2000" step="1">
+                <input id="tune-dash-off" type="number" min="1" max="2000" step="1">
+                <button type="button" id="tune-dash-off-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
+              </span>
+            </label>
+            <label id="tune-head-wrap" hidden>Head
+              <span class="num-row">
+                <input id="tune-head-r" type="range" min="0" max="400" step="1">
+                <input id="tune-head" type="number" min="0" max="400" step="1">
+                <button type="button" id="tune-head-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
+              </span>
+            </label>
+            <label id="tune-split-wrap" hidden>Split
+              <span class="num-row">
+                <input id="tune-split-r" type="range" min="0" max="40" step="1">
+                <input id="tune-split" type="number" min="0" max="40" step="1">
+                <button type="button" id="tune-split-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
+              </span>
+            </label>
+            <label id="tune-color-wrap">Tint
               <span class="color-field">
                 <button type="button" id="tune-color" class="swatch" title="Motion color"></button>
                 <input id="tune-color-hex" type="text" spellcheck="false" autocomplete="off" placeholder="stroke">
