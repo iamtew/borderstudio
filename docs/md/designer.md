@@ -58,7 +58,7 @@ The header pill shows **OBS connected** or **OBS offline** (click it for OBS set
 - **Rounded rect:** **Corner radius** 0–512, plus an on-stage radius handle.
 - **Circle / oval:** drag the hole; eight box handles resize it.
 
-**Feather** (0–64) blurs the hole edge (soft mask). **Size** is the hole: 720p (1280×720), 1080p (1920×1080), or Custom (width/height, min 16). Stroke and glow can extend outside the hole; the OBS overlay pads for that. **Preview** shows the black/white mask PNG. **Reset all** puts back the default chamfer and 1920×1080. Stroke, motion, and effect buttons stay.
+**Feather** (0–64) softens the hole edge inward (soft mask); it does not grow the hole. **Size** is the hole: 720p (1280×720), 1080p (1920×1080), or Custom (width/height, min 16). Stroke and glow can extend outside the hole; the OBS overlay pads for that. **Preview** shows the black/white mask PNG. **Reset all** puts back the default chamfer and 1920×1080. Stroke, motion, and effect buttons stay.
 
 **Border** is the overlay decoration: stroke, thickness, glow (halo), blur (softens the stroke), and motion.
 

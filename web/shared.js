@@ -442,17 +442,7 @@ function renderBorder(svg, d, opts) {
   }
 }
 
-// Mask: full-frame black, white filled hole. OBS Image Mask. feather blurs the hole edge.
-function maskCanvas(d) {
-  const c = document.createElement("canvas");
-  c.width = d.width;
-  c.height = d.height;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, c.width, c.height);
-  const feather = Math.max(0, d.feather || 0);
-  if (feather) ctx.filter = "blur(" + feather + "px)";
-  ctx.fillStyle = "#fff";
+function holePath(ctx, d) {
   ctx.beginPath();
   const k = kindOf(d);
   if (k === "circle") {
@@ -465,10 +455,41 @@ function maskCanvas(d) {
   } else {
     tracePoly(ctx, d.points);
   }
+}
+
+// Mask: full-frame black, white filled hole. OBS Image Mask.
+// Feather blurs the hole edge inward; clip keeps white inside the path.
+function maskCanvas(d) {
+  const c = document.createElement("canvas");
+  c.width = d.width;
+  c.height = d.height;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, c.width, c.height);
+  const feather = Math.max(0, d.feather || 0);
+  if (feather) ctx.filter = "blur(" + feather + "px)";
+  ctx.fillStyle = "#fff";
+  holePath(ctx, d);
   ctx.fill("nonzero");
   ctx.filter = "none";
+  if (feather) {
+    ctx.globalCompositeOperation = "destination-in";
+    holePath(ctx, d);
+    ctx.fill("nonzero");
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.globalCompositeOperation = "source-over";
+  }
   return c;
 }
+
+(function maskCheck() {
+  const c = maskCanvas({ kind: "roundrect", width: 80, height: 80, x: 20, y: 20, w: 40, h: 40, r: 0, feather: 8 });
+  const ctx = c.getContext("2d");
+  if (ctx.getImageData(10, 40, 1, 1).data[0] > 2) throw new Error("mask feather spill");
+  if (ctx.getImageData(40, 40, 1, 1).data[0] < 250) throw new Error("mask hole");
+})();
 
 function fireOverlayAnim(kind, tune) {
   const ink = window.overlayInk;
