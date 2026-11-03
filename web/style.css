@@ -94,6 +94,21 @@ body.tab-mask .pane-border, body.tab-mask .pane-effects,
 body.tab-border .pane-mask, body.tab-border .pane-effects,
 body.tab-effects .pane-mask, body.tab-effects .pane-border { display: none !important; }
 body.admin .win-body .win-title { padding: 12px 0 4px; }
+body.admin .fold > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 6px;
+}
+body.admin .fold > summary::-webkit-details-marker { display: none; }
+body.admin .fold > summary::before {
+  content: ""; width: 0; height: 0;
+  border: 4px solid transparent; border-left-color: currentColor;
+  transform: translateX(2px);
+}
+body.admin .fold[open] > summary::before {
+  transform: translateY(2px) rotate(90deg);
+}
+/* display on labels otherwise punches through closed <details> */
+body.admin .fold:not([open]) > :not(summary) { display: none !important; }
 body.admin button, body.admin #bar a {
   background: var(--lift); color: var(--text); border: 1px solid var(--line);
   border-radius: var(--r); cursor: pointer;

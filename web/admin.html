@@ -152,7 +152,8 @@
           <img id="mask-prev" alt="Mask preview">
         </div>
         <div class="win-body pane-border" id="inspector">
-          <div class="win-title">Stroke</div>
+          <details class="fold" open>
+          <summary class="win-title">Stroke</summary>
           <label>Stroke
             <span class="color-field">
               <button type="button" id="in-stroke" class="swatch"></button>
@@ -181,7 +182,9 @@
               <button type="button" id="in-blur-reset" title="Reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span></button>
             </span>
           </label>
-          <div class="win-title">Motion</div>
+          </details>
+          <details class="fold">
+          <summary class="win-title">Motion</summary>
           <label>Motion
             <span class="num-row">
               <select id="in-motion"></select>
@@ -228,6 +231,7 @@
             <button type="button" id="tune-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save as preset</button>
             <button type="button" id="tune-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete preset</button>
           </div>
+          </details>
         </div>
         <div class="win-body pane-effects">
           <div id="fx-list">
