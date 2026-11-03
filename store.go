@@ -58,10 +58,14 @@ type design struct {
 }
 
 type motionTune struct {
-	Ms       float64 `json:"ms"`
-	Ease     string  `json:"ease"`
-	Color    string  `json:"color,omitempty"`
-	Strength float64 `json:"strength"`
+	Ms       float64  `json:"ms"`
+	Ease     string   `json:"ease"`
+	Color    string   `json:"color,omitempty"`
+	Strength float64  `json:"strength"`
+	DashOn   float64  `json:"dashOn,omitempty"`
+	DashOff  float64  `json:"dashOff,omitempty"`
+	Head     *float64 `json:"head,omitempty"`
+	Split    *float64 `json:"split,omitempty"`
 }
 
 type colorPalette struct {
@@ -567,9 +571,24 @@ func normalizeMotionTune(t *motionTune) *motionTune {
 	if t.Color != "" {
 		color = validHex(t.Color)
 	}
-	return &motionTune{
+	out := &motionTune{
 		Ms: clamp(t.Ms, 100, 10000), Ease: ease, Color: color, Strength: clamp(t.Strength, 0, 4),
 	}
+	if t.DashOn > 0 {
+		out.DashOn = clamp(t.DashOn, 1, 2000)
+	}
+	if t.DashOff > 0 {
+		out.DashOff = clamp(t.DashOff, 1, 2000)
+	}
+	if t.Head != nil {
+		h := clamp(*t.Head, 0, 400)
+		out.Head = &h
+	}
+	if t.Split != nil {
+		s := clamp(*t.Split, 0, 40)
+		out.Split = &s
+	}
+	return out
 }
 
 func clamp(v, lo, hi float64) float64 {

@@ -116,6 +116,19 @@ func TestStoreRoundtrip(t *testing.T) {
 	if got.MotionTune == nil || got.MotionTune.Ms != 100 || got.MotionTune.Ease != "ease" || got.MotionTune.Color != "#ff00ff" || got.MotionTune.Strength != 4 {
 		t.Fatalf("tune %+v", got.MotionTune)
 	}
+	head, split := 500.0, -1.0
+	d.MotionTune = &motionTune{Ms: 1200, Ease: "linear", Strength: 1, DashOn: 18, DashOff: 3000, Head: &head, Split: &split}
+	if err := st.save(d); err != nil {
+		t.Fatal(err)
+	}
+	got, err = st.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t0 := got.MotionTune
+	if t0 == nil || t0.DashOn != 18 || t0.DashOff != 2000 || t0.Head == nil || *t0.Head != 400 || t0.Split == nil || *t0.Split != 0 {
+		t.Fatalf("tune extras %+v", t0)
+	}
 	d.Events[0].Tune = &motionTune{Ms: 40, Ease: "linear", Color: "00ff00", Strength: 1}
 	if err := st.save(d); err != nil {
 		t.Fatal(err)
