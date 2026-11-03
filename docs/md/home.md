@@ -23,7 +23,7 @@ A normal session looks like this:
 
 Edits auto-save. **File → Reset** restores the default hole and border and leaves the effect buttons. **Mask → Reset all** restores only the hole.
 
-The tray also has **Effects** (a second Designer already on that tab), **Overlay** (opens the live border URL in a browser), **Copy URL** (overlay only), **Clear browser data**, **About**, and **Quit**. The effects pad is `http://127.0.0.1:8505/effects`.
+The tray also has **Effects** (the button pad), **Copy effects URL** (same pad, for an OBS dock), **Clear browser data**, **About**, and **Quit**. The pad is `http://127.0.0.1:8505/effects`.
 
 ## Next
 

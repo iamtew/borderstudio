@@ -6,13 +6,13 @@ The **Effects** tab lists those buttons beside the stage. Grip and wrench sit on
 
 The pad at `http://127.0.0.1:8505/effects` is a grid of the same buttons, in that order. Open it in a small window, on a phone, or as a dock. The eye in the bottom-right corner shows a URL field and copy button on each tile and disables firing.
 
-**Boards**, at the top of the list, are separate from the design. A board is only the effect buttons. Click a name to load that set. The hole and the border stay. **Save** stores the current buttons under **Name** (same name overwrites). **Delete** removes the selected board. **Reset** puts the stock buttons back and leaves saved boards alone. The control window opens on this tab, so you switch boards there without touching the look.
+**Boards**, at the top of the list, are separate from the design. A board is only the effect buttons. Click a name to load that set. The hole and the border stay. **Save** stores the current buttons under **Name** (same name overwrites). **Delete** removes the selected board. **Reset** puts the stock buttons back and leaves saved boards alone. Switch boards in the Designer Effects tab without touching the look.
 
 ![Designer Effects tab](../assets/screens/designer-effects.png)
 
 A new install already has buttons: Pulse, Double pulse, Heartbeat, Flash, Rainbow, Boom, Success, Warn, Alert, Strobe, Shake, Wipe, Spark, Chroma burst, Glitch. **Add effect** names the new button `Group-Label` (for example `Pulse-Pulse`) until you rename it.
 
-The tray **Effects** item opens a second window already on this tab. Same app, same overlay, same effect buttons. File **Close** on that window only closes the extra window.
+The tray **Effects** item opens that pad in a WebView window. **Copy effects URL** puts `http://127.0.0.1:8505/effects` on the clipboard for an OBS Custom Browser Dock.
 
 ## Edit panel
 

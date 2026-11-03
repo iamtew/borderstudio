@@ -33,7 +33,7 @@ Do not rename these sources:
 The header pill shows whether OBS is connected (click it for OBS settings). The switch next to it is **OBS mode** (left) and **Designer mode** (right):
 
 - **Designer mode** deactivates the Border Studio camera in OBS and shows that webcam inside the hole on the Designer stage, masked exactly like OBS will. The mask, overlay, and OBS scene still update live. If the browser cannot open the camera, you get an alert and it falls back to OBS mode.
-- **OBS mode** releases the webcam back to OBS. **Stream in OBS mode.** Closing the last Designer or Effects window hands the camera back to OBS automatically, even if the header still said Designer mode.
+- **OBS mode** releases the webcam back to OBS. **Stream in OBS mode.** Closing the last Designer window hands the camera back to OBS automatically, even if the header still said Designer mode.
 
 **Border Studio → Settings → Mode** sets the default when a window opens, whether to switch when OBS goes offline (Designer) or comes online (OBS mode), and a **Grace (seconds)** so a brief blip does not flip the camera. Auto-switch only follows OBS going online or offline; it does not override a manual click while OBS stays in the same state. New installs default to OBS mode, both auto-switches on, grace 0.
 
