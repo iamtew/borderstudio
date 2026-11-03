@@ -30,18 +30,19 @@ type ctrlEvent struct {
 	Label string      `json:"label"`
 	Anim  string      `json:"anim"` // named one-shot from overlay catalog
 	Tune  *motionTune `json:"tune,omitempty"`
+	Btn   string      `json:"btn,omitempty"` // pad/list button color, clamped to fxBtnColors
 }
 
 type design struct {
-	Width       int         `json:"width"`
-	Height      int         `json:"height"`
-	Kind        string      `json:"kind,omitempty"` // polygon | roundrect | circle | oval
-	Points      []point     `json:"points,omitempty"`
-	X           float64     `json:"x,omitempty"`
-	Y           float64     `json:"y,omitempty"`
-	W           float64     `json:"w,omitempty"`
-	H           float64     `json:"h,omitempty"`
-	R           float64     `json:"r,omitempty"` // roundrect corner radius
+	Width            int         `json:"width"`
+	Height           int         `json:"height"`
+	Kind             string      `json:"kind,omitempty"` // polygon | roundrect | circle | oval
+	Points           []point     `json:"points,omitempty"`
+	X                float64     `json:"x,omitempty"`
+	Y                float64     `json:"y,omitempty"`
+	W                float64     `json:"w,omitempty"`
+	H                float64     `json:"h,omitempty"`
+	R                float64     `json:"r,omitempty"` // roundrect corner radius
 	Stroke           string      `json:"stroke"`
 	StrokeWidth      float64     `json:"strokeWidth"`
 	Glow             float64     `json:"glow"`
@@ -49,11 +50,11 @@ type design struct {
 	InnerStroke      string      `json:"innerStroke"`
 	InnerStrokeWidth float64     `json:"innerStrokeWidth"`
 	InnerBlur        float64     `json:"innerBlur"`
-	Feather     float64     `json:"feather"`
-	Dash        bool        `json:"dash"`
-	Motion      string      `json:"motion,omitempty"`
-	MotionTune  *motionTune `json:"motionTune,omitempty"`
-	Events      []ctrlEvent `json:"events"`
+	Feather          float64     `json:"feather"`
+	Dash             bool        `json:"dash"`
+	Motion           string      `json:"motion,omitempty"`
+	MotionTune       *motionTune `json:"motionTune,omitempty"`
+	Events           []ctrlEvent `json:"events"`
 }
 
 type motionTune struct {
@@ -141,9 +142,7 @@ func (st *store) load() (design, error) {
 	}
 	d.Feather = clamp(d.Feather, 0, 64)
 	d.MotionTune = normalizeMotionTune(d.MotionTune)
-	for i := range d.Events {
-		d.Events[i].Tune = normalizeMotionTune(d.Events[i].Tune)
-	}
+	normalizeEvents(d.Events)
 	return d, nil
 }
 
@@ -151,6 +150,7 @@ func (st *store) save(d design) error {
 	if err := validateDesign(d); err != nil {
 		return err
 	}
+	normalizeEvents(d.Events)
 	raw, err := json.Marshal(d)
 	if err != nil {
 		return err
@@ -373,12 +373,7 @@ func normalizeBoardBody(raw json.RawMessage) (json.RawMessage, error) {
 	if len(evs) > 64 {
 		return nil, fmt.Errorf("too many events")
 	}
-	for i := range evs {
-		evs[i].ID = clipText(evs[i].ID, 42)
-		evs[i].Label = clipText(evs[i].Label, 60)
-		evs[i].Anim = clipText(evs[i].Anim, 42)
-		evs[i].Tune = normalizeMotionTune(evs[i].Tune)
-	}
+	normalizeEvents(evs)
 	if evs == nil {
 		evs = []ctrlEvent{}
 	}
@@ -501,6 +496,36 @@ type animRecipe struct {
 
 type animsDoc struct {
 	Custom []animRecipe `json:"custom"`
+}
+
+// Muted pad colors. Unknown or empty btn falls back to the first chip.
+var fxBtnColors = []string{
+	"#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e",
+	"#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72",
+}
+
+func fxBtnAt(i int) string {
+	return fxBtnColors[i%len(fxBtnColors)]
+}
+
+func clampFxBtn(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	for _, c := range fxBtnColors {
+		if s == c {
+			return c
+		}
+	}
+	return fxBtnColors[0]
+}
+
+func normalizeEvents(evs []ctrlEvent) {
+	for i := range evs {
+		evs[i].ID = clipText(evs[i].ID, 42)
+		evs[i].Label = clipText(evs[i].Label, 60)
+		evs[i].Anim = clipText(evs[i].Anim, 42)
+		evs[i].Tune = normalizeMotionTune(evs[i].Tune)
+		evs[i].Btn = clampFxBtn(evs[i].Btn)
+	}
 }
 
 func normalizeMotionTune(t *motionTune) *motionTune {
@@ -752,37 +777,37 @@ func defaultDesign() design {
 	// Chamfered rect in 1920x1080 — default hole. Other kinds: roundrect / circle / oval.
 	const w, h, m, r = 1920.0, 1080.0, 80.0, 48.0
 	return design{
-		Width:       1920,
-		Height:      1080,
-		Kind:        "polygon",
+		Width:            1920,
+		Height:           1080,
+		Kind:             "polygon",
 		Stroke:           "#e6f350",
 		StrokeWidth:      12,
 		Glow:             8,
 		InnerStroke:      "#333333",
 		InnerStrokeWidth: 0,
 		InnerBlur:        0,
-		Dash:        false,
+		Dash:             false,
 		Points: []point{
 			{X: m + r, Y: m}, {X: w - m - r, Y: m}, {X: w - m, Y: m + r}, {X: w - m, Y: h - m - r},
 			{X: w - m - r, Y: h - m}, {X: m + r, Y: h - m}, {X: m, Y: h - m - r}, {X: m, Y: m + r},
 		},
 		// Same segment order as the one-shot RECIPES in web/shared.js.
 		Events: []ctrlEvent{
-			{ID: "pulse", Label: "Pulse", Anim: "pulse"},
-			{ID: "double", Label: "Double pulse", Anim: "pulse-double"},
-			{ID: "heartbeat", Label: "Heartbeat", Anim: "heartbeat"},
-			{ID: "flash", Label: "Flash", Anim: "flash"},
-			{ID: "rainbow", Label: "Rainbow", Anim: "rainbow-burst"},
-			{ID: "boom", Label: "Boom", Anim: "boom"},
-			{ID: "success", Label: "Success", Anim: "success"},
-			{ID: "warn", Label: "Warn", Anim: "warn"},
-			{ID: "alert", Label: "Alert", Anim: "alert"},
-			{ID: "strobe", Label: "Strobe", Anim: "strobe"},
-			{ID: "shake", Label: "Shake", Anim: "shake"},
-			{ID: "wipe", Label: "Wipe", Anim: "wipe"},
-			{ID: "spark", Label: "Spark", Anim: "spark"},
-			{ID: "chroma-burst", Label: "Chroma burst", Anim: "chroma-burst"},
-			{ID: "glitch", Label: "Glitch", Anim: "glitch"},
+			{ID: "pulse", Label: "Pulse", Anim: "pulse", Btn: fxBtnAt(0)},
+			{ID: "double", Label: "Double pulse", Anim: "pulse-double", Btn: fxBtnAt(1)},
+			{ID: "heartbeat", Label: "Heartbeat", Anim: "heartbeat", Btn: fxBtnAt(2)},
+			{ID: "flash", Label: "Flash", Anim: "flash", Btn: fxBtnAt(3)},
+			{ID: "rainbow", Label: "Rainbow", Anim: "rainbow-burst", Btn: fxBtnAt(4)},
+			{ID: "boom", Label: "Boom", Anim: "boom", Btn: fxBtnAt(5)},
+			{ID: "success", Label: "Success", Anim: "success", Btn: fxBtnAt(6)},
+			{ID: "warn", Label: "Warn", Anim: "warn", Btn: fxBtnAt(7)},
+			{ID: "alert", Label: "Alert", Anim: "alert", Btn: fxBtnAt(8)},
+			{ID: "strobe", Label: "Strobe", Anim: "strobe", Btn: fxBtnAt(9)},
+			{ID: "shake", Label: "Shake", Anim: "shake", Btn: fxBtnAt(0)},
+			{ID: "wipe", Label: "Wipe", Anim: "wipe", Btn: fxBtnAt(1)},
+			{ID: "spark", Label: "Spark", Anim: "spark", Btn: fxBtnAt(2)},
+			{ID: "chroma-burst", Label: "Chroma burst", Anim: "chroma-burst", Btn: fxBtnAt(3)},
+			{ID: "glitch", Label: "Glitch", Anim: "glitch", Btn: fxBtnAt(4)},
 		},
 	}
 }
