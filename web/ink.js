@@ -248,6 +248,260 @@ function poseAt(recipe, design, u) {
   return { t: u, width, glow, opacity, offset, x, y, rot, hue, color };
 }
 
+// Closed ribbon: centerline + mitered normal. Width is a uniform, so this stays put while the stroke breathes.
+// The first point is repeated at uv.x = 1 so the closing edge does not wrap the dash backwards.
+function buildRibbon(poly) {
+  const pts = poly && poly.pts;
+  const n = pts ? pts.length : 0;
+  const L = poly && poly.length;
+  if (n < 2 || !L) return null;
+  const seg = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    let dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+    seg.push({ x: -dy, y: dx });
+  }
+  const miter = [];
+  for (let i = 0; i < n; i++) {
+    const prev = seg[(i + n - 1) % n], next = seg[i];
+    let mx = prev.x + next.x, my = prev.y + next.y;
+    const ml = Math.hypot(mx, my);
+    let nx = next.x, ny = next.y, scale = 1;
+    if (ml > 1e-4) {
+      nx = mx / ml; ny = my / ml;
+      const denom = nx * next.x + ny * next.y;
+      // ponytail: bevel past a miter of 3. A round join would need extra verts.
+      if (denom > 1 / 3) scale = Math.min(3, 1 / denom);
+      else { nx = next.x; ny = next.y; scale = 1; }
+    }
+    miter.push({ x: nx * scale, y: ny * scale, u: pts[i].s / L });
+  }
+  const v = n + 1;
+  const positions = new Float32Array(v * 4);
+  const normals = new Float32Array(v * 4);
+  const uvs = new Float32Array(v * 4);
+  const indices = new Uint32Array(n * 6);
+  for (let i = 0; i < v; i++) {
+    const src = i === n ? miter[0] : miter[i];
+    const u = i === n ? 1 : src.u;
+    const p = i === n ? pts[0] : pts[i];
+    for (let side = 0; side < 2; side++) {
+      const sgn = side ? 1 : -1;
+      const o = (i * 2 + side) * 2;
+      positions[o] = p.x;
+      positions[o + 1] = p.y;
+      normals[o] = src.x * sgn;
+      normals[o + 1] = src.y * sgn;
+      uvs[o] = u;
+      uvs[o + 1] = sgn;
+    }
+  }
+  for (let i = 0; i < n; i++) {
+    const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+    const k = i * 6;
+    indices[k] = a; indices[k + 1] = b; indices[k + 2] = c;
+    indices[k + 3] = b; indices[k + 4] = d; indices[k + 5] = c;
+  }
+  return { positions, normals, uvs, indices };
+}
+
+// dash "2000 2000" is a reveal, not a dash. Direction comes from the keys so a saved preset still wipes.
+function revealSpan(recipe, offset) {
+  const d0 = parseFloat(recipe && recipe.dash);
+  if (!(d0 >= 1000)) return null;
+  const keys = (recipe && recipe.keys) || [];
+  const a = (keys[0] && keys[0].offset) || 0;
+  const b = (keys[keys.length - 1] && keys[keys.length - 1].offset) || 0;
+  const reverse = b > a;
+  const frac = Math.max(0, Math.min(1, reverse ? (offset || 0) / 2000 : 1 - (offset || 0) / 2000));
+  return reverse ? [1 - frac, 1] : [0, frac];
+}
+
+function chromaGhost(recipe) {
+  const f = recipe && fxOf(recipe, "chroma");
+  return !!(f && f.n >= 1);
+}
+
+function fxScale(recipe) {
+  const s = recipe && recipe.strength;
+  return s == null || s !== s ? 1 : s;
+}
+
+// ponytail: first on-span plus the full period. A preset with two on-spans needs the spans packed into the shader.
+function dashParts(dash) {
+  const pat = String(dash || "").trim().split(/[\s,]+/).map(Number).filter(v => v > 0);
+  if (pat.length < 2) return null;
+  let period = pat.reduce((a, b) => a + b, 0);
+  if (pat.length % 2) period *= 2;
+  if (!(period > 0) || pat[0] >= 1000) return null;
+  return { period, on: pat[0] };
+}
+
+function travelSign(recipe) {
+  const keys = (recipe && recipe.keys) || [];
+  const a = keys[0] && keys[0].offset;
+  const b = keys[keys.length - 1] && keys[keys.length - 1].offset;
+  if (a == null || b == null || a === b) return -1;
+  return b < a ? -1 : 1;
+}
+
+function alongStroke(recipe) {
+  const keys = (recipe && recipe.keys) || [];
+  return keys.some(k => k.hue != null && k.hue !== "");
+}
+
+function designKey(d) {
+  if (!d) return "";
+  const pts = d.points || [];
+  let s = (d.kind || "polygon") + "|" + d.x + "|" + d.y + "|" + d.w + "|" + d.h + "|" + d.r + "|" + d.width + "|" + d.height;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    s += ";" + p.x + "," + p.y + "," + (p.smooth ? 1 : 0) + "," + p.ix + "," + p.iy + "," + p.ox + "," + p.oy;
+  }
+  return s;
+}
+
+function rgb01(hex) {
+  const c = hexRgb(hex);
+  return [c.r / 255, c.g / 255, c.b / 255];
+}
+
+const INK_GL = `
+uniform mediump vec4 uInk0;
+uniform mediump vec4 uInk1;
+uniform mediump vec4 uInk2;
+uniform mediump vec4 uInk3;
+uniform mediump vec4 uRgb;
+vec3 inkHue(vec3 color, float hue) {
+    const vec3 k = vec3(0.57735);
+    float c = cos(hue);
+    return color * c + cross(k, color) * sin(hue) + k * dot(k, color) * (1.0 - c);
+}
+float inkWrap(float a, float m) {
+    return mod(mod(a, m) + m, m);
+}
+`;
+
+const inkBitGl = {
+  name: "ink-ribbon-bit",
+  vertex: {
+    header: INK_GL + "in vec2 aNormal;",
+    main: `
+            float amp = uInk2.x;
+            float bands = uInk2.y;
+            if (amp > 0.5 && bands > 0.5) {
+                float h = max(8.0, uInk1.w / bands);
+                float n = fract(sin(floor(aPosition.y / h) * 12.9898 + uInk2.z) * 43758.5453);
+                position.x += (n - 0.5) * 2.0 * amp;
+            }
+            position += aNormal * (uInk0.x * 0.5);
+        `,
+  },
+  fragment: {
+    header: INK_GL,
+    main: `
+            float cover = 1.0;
+            float aa = 1.5 / max(uInk1.w, 1.0);
+            if (uInk0.z > 0.001) cover *= smoothstep(uInk0.z - aa, uInk0.z + aa, vUV.x);
+            if (uInk0.w < 0.999) cover *= 1.0 - smoothstep(uInk0.w - aa, uInk0.w + aa, vUV.x);
+            float period = uInk1.x;
+            float on = uInk1.y;
+            float alongS = vUV.x * uInk1.w;
+            vec3 col = uRgb.rgb;
+            if (period > 1.0 && on < period - 0.01) {
+                float u = inkWrap(alongS + uInk1.z, period);
+                float featherPx = max(uInk0.x * 0.35, 1.0);
+                cover *= 1.0 - smoothstep(on - featherPx, on + featherPx, u);
+                float edge = uInk3.z < 0.0 ? (on - u) : u;
+                float cap = uInk2.w;
+                if (cap > 0.5 && edge < cap) col += (1.0 - edge / cap) * 0.55;
+            }
+            float tail = uInk3.y;
+            if (tail > 1.0) {
+                float ds = inkWrap(uInk3.z < 0.0 ? alongS - uInk3.x : uInk3.x - alongS, max(uInk1.w, 1.0));
+                if (ds < tail) col += (1.0 - ds / tail) * 0.45;
+            }
+            if (cover < 0.02) discard;
+            if (uInk0.y > 0.5) col = inkHue(col, vUV.x * 6.2831853);
+            float a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
+            outColor = vec4(col * a, a);
+        `,
+  },
+};
+
+const INK_WGSL = `
+struct InkUniforms {
+    uInk0: vec4<f32>,
+    uInk1: vec4<f32>,
+    uInk2: vec4<f32>,
+    uInk3: vec4<f32>,
+    uRgb: vec4<f32>,
+};
+@group(2) @binding(0) var<uniform> inkUniforms: InkUniforms;
+
+fn inkHue(color: vec3<f32>, hue: f32) -> vec3<f32> {
+    let k = vec3<f32>(0.57735, 0.57735, 0.57735);
+    let c = cos(hue);
+    return color * c + cross(k, color) * sin(hue) + k * dot(k, color) * (1.0 - c);
+}
+fn inkWrap(a: f32, m: f32) -> f32 {
+    return ((a % m) + m) % m;
+}
+`;
+
+const inkBitGpu = {
+  name: "ink-ribbon-bit",
+  vertex: {
+    header: INK_WGSL + "@in aNormal: vec2<f32>;",
+    main: `
+            let amp = inkUniforms.uInk2.x;
+            let bands = inkUniforms.uInk2.y;
+            if (amp > 0.5 && bands > 0.5) {
+                let h = max(8.0, inkUniforms.uInk1.w / bands);
+                let n = fract(sin(floor(aPosition.y / h) * 12.9898 + inkUniforms.uInk2.z) * 43758.5453);
+                position.x = position.x + (n - 0.5) * 2.0 * amp;
+            }
+            position = position + aNormal * (inkUniforms.uInk0.x * 0.5);
+        `,
+  },
+  fragment: {
+    header: INK_WGSL,
+    main: `
+            var cover = 1.0;
+            let aa = 1.5 / max(inkUniforms.uInk1.w, 1.0);
+            if (inkUniforms.uInk0.z > 0.001) {
+                cover = cover * smoothstep(inkUniforms.uInk0.z - aa, inkUniforms.uInk0.z + aa, vUV.x);
+            }
+            if (inkUniforms.uInk0.w < 0.999) {
+                cover = cover * (1.0 - smoothstep(inkUniforms.uInk0.w - aa, inkUniforms.uInk0.w + aa, vUV.x));
+            }
+            let period = inkUniforms.uInk1.x;
+            let on = inkUniforms.uInk1.y;
+            let alongS = vUV.x * inkUniforms.uInk1.w;
+            var col = inkUniforms.uRgb.rgb;
+            if (period > 1.0 && on < period - 0.01) {
+                let u = inkWrap(alongS + inkUniforms.uInk1.z, period);
+                let featherPx = max(inkUniforms.uInk0.x * 0.35, 1.0);
+                cover = cover * (1.0 - smoothstep(on - featherPx, on + featherPx, u));
+                let edge = select(u, on - u, inkUniforms.uInk3.z < 0.0);
+                let cap = inkUniforms.uInk2.w;
+                if (cap > 0.5 && edge < cap) { col = col + vec3<f32>(1.0 - edge / cap) * 0.55; }
+            }
+            let tail = inkUniforms.uInk3.y;
+            if (tail > 1.0) {
+                let ds = inkWrap(select(inkUniforms.uInk3.x - alongS, alongS - inkUniforms.uInk3.x, inkUniforms.uInk3.z < 0.0), max(inkUniforms.uInk1.w, 1.0));
+                if (ds < tail) { col = col + vec3<f32>(1.0 - ds / tail) * 0.45; }
+            }
+            if (cover < 0.02) { discard; }
+            if (inkUniforms.uInk0.y > 0.5) { col = inkHue(col, vUV.x * 6.2831853); }
+            let a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
+            outColor = vec4<f32>(col * a, a);
+        `,
+  },
+};
+
 async function mountInk(host) {
   if (!host || !window.PIXI || !PIXI.Application) {
     console.error("pixi missing");
@@ -282,21 +536,119 @@ async function mountInk(host) {
   const world = new PIXI.Container();
   const pad = new PIXI.Container();
   const inkRoot = new PIXI.Container();
-  const halo = new PIXI.Graphics();
-  const core = new PIXI.Graphics();
-  const extras = new PIXI.Graphics();
-  const fx = new PIXI.Graphics();
-  halo.blendMode = "add";
-  extras.blendMode = "add";
-  fx.blendMode = "screen";
-  inkRoot.addChild(halo, core, extras);
-  pad.addChild(fx, inkRoot);
+  const canvasRoot = new PIXI.Container();
+  const haloG = new PIXI.Graphics();
+  const coreG = new PIXI.Graphics();
+  const fxG = new PIXI.Graphics();
+  const boltG = new PIXI.Graphics();
+  haloG.blendMode = "add";
+  fxG.blendMode = "add";
+  boltG.blendMode = "add";
+  canvasRoot.addChild(haloG, coreG, fxG, boltG);
+  pad.addChild(inkRoot);
+  inkRoot.addChild(canvasRoot);
   world.addChild(pad);
   app.stage.addChild(world);
 
   const useGL = app.renderer.type !== 4;
   const Blur = PIXI.BlurFilter;
   const blur = useGL && Blur ? new Blur({ strength: 0, quality: 2 }) : null;
+
+  function blankGeom() {
+    const g = new PIXI.Geometry();
+    const z = new Float32Array(6);
+    g.addAttribute("aPosition", { buffer: z.slice(), format: "float32x2", stride: 8, offset: 0 });
+    g.addAttribute("aUV", { buffer: z.slice(), format: "float32x2", stride: 8, offset: 0 });
+    g.addAttribute("aNormal", { buffer: z.slice(), format: "float32x2", stride: 8, offset: 0 });
+    g.addIndex(new Uint32Array([0, 1, 2]));
+    return g;
+  }
+
+  function inkGroup() {
+    return new PIXI.UniformGroup({
+      uInk0: { value: new Float32Array(4), type: "vec4<f32>" },
+      uInk1: { value: new Float32Array(4), type: "vec4<f32>" },
+      uInk2: { value: new Float32Array(4), type: "vec4<f32>" },
+      uInk3: { value: new Float32Array(4), type: "vec4<f32>" },
+      uRgb: { value: new Float32Array([1, 1, 1, 1]), type: "vec4<f32>" },
+    }, { ubo: false });
+  }
+
+  let geom = null;
+  let passes = null;
+  let ribbon = false;
+  const dot = PIXI.Texture.from((function () {
+    const c = document.createElement("canvas");
+    c.width = c.height = 32;
+    const g = c.getContext("2d");
+    const rad = g.createRadialGradient(16, 16, 1, 16, 16, 16);
+    rad.addColorStop(0, "#fff");
+    rad.addColorStop(0.45, "rgba(255,255,255,0.75)");
+    rad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = rad;
+    g.fillRect(0, 0, 32, 32);
+    return c;
+  })());
+  const heads = [];
+  const sparkPool = [];
+  for (let i = 0; i < 8; i++) {
+    const s = new PIXI.Sprite(dot);
+    s.anchor.set(0.5);
+    s.blendMode = "add";
+    s.visible = false;
+    heads.push(s);
+    inkRoot.addChild(s);
+  }
+  for (let i = 0; i < 16; i++) {
+    const s = new PIXI.Sprite(dot);
+    s.anchor.set(0.5);
+    s.blendMode = "add";
+    s.visible = false;
+    sparkPool.push({ sprite: s, life: 0, s: 0, r: 2 });
+    inkRoot.addChild(s);
+  }
+  inkRoot.addChild(boltG);
+  const ribbonRoot = new PIXI.Container();
+  inkRoot.addChildAt(ribbonRoot, 0);
+
+  if (useGL && PIXI.compileHighShaderGlProgram && PIXI.Shader) {
+    try {
+      geom = blankGeom();
+      const glProgram = PIXI.compileHighShaderGlProgram({
+        name: "ink-ribbon",
+        bits: [PIXI.localUniformBitGl, PIXI.roundPixelsBitGl, inkBitGl],
+      });
+      let gpuProgram = null;
+      try {
+        gpuProgram = PIXI.compileHighShaderGpuProgram({
+          name: "ink-ribbon",
+          bits: [PIXI.localUniformBit, PIXI.roundPixelsBit, inkBitGpu],
+        });
+      } catch (e) { gpuProgram = null; }
+      function makePass(blend) {
+        const shader = new PIXI.Shader({ glProgram, gpuProgram, resources: { inkUniforms: inkGroup() } });
+        const mesh = new PIXI.Mesh({ geometry: geom, shader });
+        mesh.blendMode = blend;
+        mesh.visible = false;
+        ribbonRoot.addChild(mesh);
+        return { mesh, shader };
+      }
+      passes = {
+        halo: makePass("add"),
+        core: makePass("normal"),
+        hot: makePass("add"),
+        ring: makePass("add"),
+        cr: makePass("add"),
+        cg: makePass("add"),
+        cb: makePass("add"),
+      };
+      ribbon = true;
+      canvasRoot.visible = false;
+    } catch (e) {
+      console.error("ink shader", e);
+      ribbon = false;
+    }
+  }
 
   const ink = {
     design: null,
@@ -306,7 +658,9 @@ async function mountInk(host) {
     tMs: 0,
     token: 0,
     poly: { pts: [], length: 0, cx: 0, cy: 0, maxDim: 1 },
-    sparks: [],
+    key: "",
+    sparkI: 0,
+    sparkTick: 0,
   };
 
   function fit() {
@@ -340,53 +694,37 @@ async function mountInk(host) {
     }
   }
 
-  function drawPath(g, poly, dash, offset, s0, s1) {
-    if (dash && parseFloat(dash) < 1000) {
-      dashWalk(poly, dash, offset, (a, b) => {
-        const from = Math.max(a, s0), to = Math.min(b, s1);
-        if (to > from) traceSpan(g, poly, from, to);
-      });
-      return;
-    }
-    traceSpan(g, poly, s0, s1);
+  function strokeStyle(width, color, alpha) {
+    return { width: Math.max(0.5, width), color: colorNum(color), alpha, cap: "round", join: "round" };
   }
 
-  function spanFor(recipe, pose, poly) {
-    const L = poly.length;
-    const d0 = parseFloat(recipe && recipe.dash);
-    if (d0 >= 1000) {
-      const frac = Math.max(0, Math.min(1, recipe.id === "reverse-wipe" ? (pose.offset || 0) / 2000 : 1 - (pose.offset || 0) / 2000));
-      if (recipe.id === "reverse-wipe") return { s0: L * (1 - frac), s1: L };
-      return { s0: 0, s1: L * frac };
-    }
-    return { s0: 0, s1: L };
+  function uploadRibbon(rib) {
+    if (!geom || !rib) return;
+    const put = (name, data) => {
+      const buf = geom.getBuffer(name);
+      buf.data = data;
+      buf.update();
+    };
+    put("aPosition", rib.positions);
+    put("aUV", rib.uvs);
+    put("aNormal", rib.normals);
+    geom.indexBuffer.data = rib.indices;
+    geom.indexBuffer.update();
   }
 
-  function strokeStyle(width, color, alpha, join) {
-    return { width: Math.max(0.5, width), color: colorNum(color), alpha, cap: "round", join: join || "round" };
-  }
-
-  function alongHue(id) {
-    return id === "hue" || id === "rainbow" || id === "aurora" || id === "rainbow-burst";
-  }
-
-  function drawAlong(g, poly, s0, s1, width, alpha, colorAt) {
-    const L = poly.length;
-    let s = s0;
-    const step = Math.max(8, L / 180);
-    while (s < s1) {
-      const n = Math.min(s1, s + step);
-      const mid = (s + n) / 2;
-      g.moveTo(atLen(poly, s).x, atLen(poly, s).y);
-      g.lineTo(atLen(poly, n).x, atLen(poly, n).y);
-      g.stroke(strokeStyle(width, colorAt(mid / L), alpha));
-      s = n;
-    }
-  }
-
-  function bead(g, p, r, color, alpha) {
-    g.circle(p.x, p.y, r);
-    g.fill({ color: colorNum(color), alpha });
+  function pushPass(pass, o) {
+    const g = pass.shader.resources.inkUniforms;
+    const u = g.uniforms;
+    const a = u.uInk0, b = u.uInk1, c = u.uInk2, d = u.uInk3, r = u.uRgb;
+    a[0] = o.width; a[1] = o.along; a[2] = o.r0; a[3] = o.r1;
+    b[0] = o.period; b[1] = o.dashOn; b[2] = o.off; b[3] = o.len;
+    c[0] = o.sliceA; c[1] = o.sliceN; c[2] = o.sliceT; c[3] = o.cap;
+    d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = 0;
+    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = 1;
+    g.update();
+    pass.mesh.visible = o.on;
+    pass.mesh.alpha = o.alpha;
+    pass.mesh.position.set(o.x || 0, o.y || 0);
   }
 
   function draw(u) {
@@ -396,157 +734,173 @@ async function mountInk(host) {
   function drawInk(u) {
     const d = ink.design;
     const poly = ink.poly;
-    halo.clear(); core.clear(); extras.clear(); fx.clear();
-    if (!d || !poly.pts.length) return;
+    if (!d || !poly.pts.length) {
+      if (passes) Object.keys(passes).forEach(k => { passes[k].mesh.visible = false; });
+      return;
+    }
     const recipe = ink.recipe;
-    const pose = recipe ? poseAt(recipe, d, u) : { t: 0, width: 1, glow: 0, opacity: 1, offset: 0, x: 0, y: 0, rot: 0, hue: 0, color: d.stroke || "#e6f350" };
-    const id = (recipe && recipe.id) || "none";
+    const pose = recipe ? poseAt(recipe, d, u) : { t: u, width: 1, glow: 0, opacity: 1, offset: 0, x: 0, y: 0, rot: 0, hue: 0, color: d.stroke || "#e6f350" };
     const sw = (d.strokeWidth || 12) * pose.width;
-    const baseGlow = (d.glow || 0) + pose.glow;
+    const glowPx = Math.max(0, (d.glow || 0) + pose.glow);
     const blurPx = d.blur || 0;
-    let alpha = Math.max(0, Math.min(1, pose.opacity));
+    const alpha = Math.max(0, Math.min(1, pose.opacity));
     const color = pose.color;
+    const rgb = rgb01(color);
     inkRoot.position.set(poly.cx + pose.x, poly.cy + pose.y);
     inkRoot.pivot.set(poly.cx, poly.cy);
-    inkRoot.rotation = pose.rot * Math.PI / 180;
-    inkRoot.alpha = 1;
-
-    const chroma = recipe && fxOf(recipe, "chroma");
-    const ghost = !!(chroma && (id === "chroma" || id === "chroma-burst"));
-    const split0 = chroma && chroma.px ? (ghost ? chroma.px * (poly.maxDim / 192) : chroma.px) : 0;
-    const split = split0 ? split0 * (ghost ? 1 + 0.5 * Math.sin(u * Math.PI * 2) : 1) : 0;
-
-    if (id === "neon") extras.blendMode = "add";
-    const fireFlick = id === "fire" ? 0.88 + 0.08 * Math.sin(ink.tMs * 0.05) + 0.06 * Math.sin(ink.tMs * 0.13) : 1;
-    const glowPx = Math.max(0, baseGlow * fireFlick);
+    inkRoot.rotation = (pose.rot || 0) * Math.PI / 180;
 
     if (blur) {
       const b = Math.max(0, blurPx);
       blur.blur = b;
       if ("strength" in blur) blur.strength = b;
+      blur.padding = Math.ceil(b + sw + glowPx + 8);
       inkRoot.filters = b > 0 ? [blur] : null;
     }
-    halo.visible = glowPx > 0;
-    if (halo.visible && !ghost) {
-      const span = spanFor(recipe, pose, poly);
-      drawPath(halo, poly, recipe && recipe.dash, pose.offset, span.s0, span.s1);
-      halo.stroke(strokeStyle(sw + glowPx * 1.6, color, Math.min(0.85, alpha * 0.55)));
-    }
 
-    if (!ghost) {
-      const span = spanFor(recipe, pose, poly);
-      if (alongHue(id)) {
-        drawAlong(core, poly, span.s0, span.s1, sw, alpha, (tt) => hueShift(color, tt * 360));
-      } else if (id === "neon-swap") {
-        drawPath(core, poly, "", 0, span.s0, span.s1);
-        core.stroke(strokeStyle(sw, color, alpha));
-        extras.clear();
-        const other = color.toLowerCase() === "#00ffff" ? "#FF00FF" : "#00FFFF";
-        drawPath(extras, poly, "", 0, span.s0, span.s1);
-        extras.stroke(strokeStyle(sw * 0.85, other, 0.35 * alpha));
-      } else if (recipe && recipe.dash && parseFloat(recipe.dash) < 1000) {
-        drawPath(core, poly, recipe.dash, pose.offset, span.s0, span.s1);
-        core.stroke(strokeStyle(sw, color, alpha));
-      } else {
-        core.poly(poly.pts, true);
-        core.stroke(strokeStyle(sw, color, alpha));
-      }
+    const scale = fxScale(recipe);
+    const ghost = chromaGhost(recipe);
+    const chroma = recipe && fxOf(recipe, "chroma");
+    let sx = 0, sy = 0;
+    if (chroma && chroma.px) {
+      let px = chroma.px * scale;
+      if (ghost) px *= poly.maxDim / 192;
+      const env = recipe.loop ? (0.65 + 0.35 * Math.sin(u * Math.PI * 2)) : Math.sin(Math.min(1, Math.max(0, u)) * Math.PI);
+      sx = px * env;
     }
+    const mv = Math.hypot(pose.x || 0, pose.y || 0);
+    if (mv > 0.5) { sx += pose.x * 0.35; sy += pose.y * 0.35; }
 
-    // Traveling dash heads
-    if (recipe && recipe.dash && parseFloat(recipe.dash) < 1000 && !ghost) {
-      dashWalk(poly, recipe.dash, pose.offset, (a, b) => {
-        const head = atLen(poly, id.indexOf("rev") >= 0 ? a : b);
-        const r = Math.max(2, sw * (id === "comet" ? 1.1 : 0.45));
-        bead(extras, head, r, id === "spark" || id === "comet" ? "#fff" : color, alpha);
-        if (id === "scan" || id === "comet") {
-          for (let k = 1; k <= 5; k++) {
-            const p = atLen(poly, (id.indexOf("rev") >= 0 ? a : b) - k * 14);
-            bead(extras, p, r * (1 - k / 6), color, alpha * (1 - k / 6) * 0.5);
-          }
-        }
-      });
-    }
-
-    if (id === "comet") {
-      const headS = -pose.offset;
-      if (ink.sparks.length < 28) {
-        ink.sparks.push({ s: headS, life: 1, r: 2 + (ink.tMs % 7) * 0.3 });
-      }
-      ink.sparks = ink.sparks.filter(p => {
-        p.life -= 0.035;
-        p.s -= 8;
-        if (p.life <= 0) return false;
-        bead(extras, atLen(poly, p.s), p.r * p.life, "#fff", p.life * 0.7);
-        return true;
-      });
-    } else if (ink.sparks.length) ink.sparks = [];
-
-    if (id === "orbit") {
-      const s = -pose.offset;
-      bead(extras, atLen(poly, s), sw * 0.7, pose.color, alpha);
-      bead(extras, atLen(poly, s + poly.length / 2), sw * 0.7, pose.color === "#F20D0D" ? "#E5F20D" : "#F20D0D", alpha);
-    }
-
-    if (id === "shimmer") {
-      bead(extras, atLen(poly, (u * poly.length)), sw * 0.6, "#fff", 0.45 * alpha);
-    }
-
-    if (id === "spark") {
-      bead(extras, atLen(poly, -pose.offset), sw * 0.8, "#fff", alpha);
-      bead(extras, atLen(poly, -pose.offset + 40), sw * 0.45, color, alpha * 0.6);
-    }
-
-    const pulse = /pulse|heartbeat|swell|snap|boom|whiteout|shockwave/.test(id);
-    if (pulse && pose.width > 1.05) {
-      const boom = pose.width - 1;
-      drawPath(extras, poly, "", 0, 0, poly.length);
-      extras.stroke(strokeStyle(sw * (1 + boom), "#fff", Math.min(0.5, (pose.width - 1) * 0.35) * alpha));
-    }
-    if (id === "shockwave") {
-      const boom = Math.min(1, u / 0.45);
-      drawPath(extras, poly, "", 0, 0, poly.length);
-      extras.stroke(strokeStyle(sw * (1 + boom * 5), "#fff", 0.55 * (1 - boom) * alpha));
-    }
-
-    if (/^flash|lightning|success|warn|alert/.test(id) && pose.glow > 2) {
-      drawPath(extras, poly, "", 0, 0, poly.length);
-      extras.stroke(strokeStyle(sw * 1.2, color, Math.min(0.7, pose.glow / 40) * alpha));
-    }
-    if (id === "lightning" && pose.glow > 10) {
-      const seed = Math.floor(u * 40);
-      for (let i = 0; i < 4; i++) {
-        const p = atLen(poly, (seed * 97 + i * 211) % poly.length);
-        const nx = -p.ty, ny = p.tx;
-        const len = 18 + ((seed + i * 3) % 24);
-        extras.moveTo(p.x, p.y);
-        extras.lineTo(p.x + nx * len, p.y + ny * len);
-        extras.stroke(strokeStyle(2, "#fff", 0.8 * alpha));
-      }
-    }
-
-    if (split) {
-      [[-1, "#00FFFF"], [1, "#FF00FF"]].forEach(([dir, col]) => {
-        const op = { pts: poly.pts.map(p => ({ x: p.x + dir * split, y: p.y, s: p.s })), length: poly.length };
-        drawPath(fx, op, ghost ? "" : (recipe && recipe.dash), pose.offset, 0, poly.length);
-        fx.stroke(strokeStyle(ghost ? sw * 1.4 : sw, col, alpha * 0.85));
-      });
-    }
-
+    const reveal = recipe ? revealSpan(recipe, pose.offset) : null;
+    const dash = recipe && !reveal ? dashParts(recipe.dash) : null;
     const slices = recipe && fxOf(recipe, "slices");
-    if (slices && slices.n) {
-      const tick = Math.floor(ink.tMs / Math.max(40, (recipe.ms || 500) / 6));
-      const b = poly;
-      const w = (b.maxX - b.minX) || 1920, h = (b.maxY - b.minY) || 1080;
-      const cols = ["#ffffff", "#7ad7ff", "#ff4d2e", "#ff00ff"];
-      for (let i = 0; i < slices.n; i++) {
-        const r = ((tick * 13 + i * 47) % 1000) / 1000;
-        const r2 = ((tick * 29 + i * 91) % 1000) / 1000;
-        fx.rect(b.minX - w * 0.05 + (r - 0.5) * w * 0.08, b.minY + r2 * h, w * 1.1, h * (0.005 + r * 0.025));
-        fx.fill({ color: colorNum(cols[i % cols.length]), alpha: 0.5 + r * 0.4 });
+    const head = recipe && fxOf(recipe, "head");
+    const sign = travelSign(recipe);
+    const hasOff = !!((recipe && recipe.keys) || []).some(k => k.offset != null && k.offset !== "");
+    const headS = head ? (hasOff ? -pose.offset : u * poly.length) : 0;
+    const tail = head ? (head.px || 0) * scale : 0;
+    const shared = {
+      along: alongStroke(recipe) ? 1 : 0,
+      r0: reveal ? reveal[0] : 0,
+      r1: reveal ? reveal[1] : 1,
+      period: dash ? dash.period : 0,
+      dashOn: dash ? dash.on : 0,
+      off: pose.offset || 0,
+      len: poly.length,
+      sliceA: slices ? 8 * scale : 0,
+      sliceN: slices ? slices.n : 0,
+      sliceT: Math.floor(ink.tMs / 80),
+      cap: dash ? Math.max(3, sw * 0.45) : 0,
+      headS: headS,
+      tail: tail,
+      sign: sign,
+    };
+
+    if (ribbon) {
+      const show = alpha > 0.004;
+      pushPass(passes.halo, Object.assign({ on: show && !ghost && glowPx > 0, alpha: Math.min(0.55, alpha * 0.5), width: sw + glowPx * 1.6, rgb }, shared));
+      pushPass(passes.core, Object.assign({ on: show && !ghost, alpha, width: sw, rgb }, shared));
+      const hot = show && !ghost && pose.width > 1.05;
+      pushPass(passes.hot, Object.assign({ on: hot, alpha: Math.min(0.5, (pose.width - 1) * 0.35) * alpha, width: sw * 0.45, rgb: [1, 1, 1] }, shared));
+      const ring = recipe && fxOf(recipe, "ring");
+      const boom = Math.min(1, u / 0.45);
+      pushPass(passes.ring, Object.assign({
+        on: !!(ring && show),
+        alpha: ring ? 0.55 * (1 - boom) * alpha : 0,
+        width: sw * (1 + boom * 5),
+        rgb: [1, 1, 1],
+      }, shared));
+      const split = Math.hypot(sx, sy) > 0.2;
+      const ca = ghost ? Math.min(1, alpha) : alpha * 0.55;
+      pushPass(passes.cr, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [rgb[0], 0, 0], x: sx, y: sy }, shared));
+      pushPass(passes.cg, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [0, rgb[1], 0] }, shared));
+      pushPass(passes.cb, Object.assign({ on: split && show, alpha: ca, width: sw, rgb: [0, 0, rgb[2]], x: -sx, y: -sy }, shared));
+    } else {
+      drawCanvas(poly, recipe, pose, sw, glowPx, alpha, color, ghost, sx, sy, reveal);
+    }
+
+    const headN = head ? Math.max(1, Math.min(8, head.n || 1)) : 0;
+    const headWhite = head && !(recipe && recipe.dash);
+    for (let i = 0; i < heads.length; i++) {
+      const s = heads[i];
+      if (i >= headN || alpha < 0.004) { s.visible = false; continue; }
+      const p = atLen(poly, headS + (i * poly.length) / headN);
+      s.visible = true;
+      s.position.set(p.x, p.y);
+      const rad = Math.max(2, sw * (i ? 0.55 : 0.75));
+      s.scale.set(rad / 16);
+      s.alpha = alpha;
+      s.tint = headWhite ? 0xffffff : colorNum(color);
+    }
+
+    const wantSparks = !!(head && (head.px || 0) * scale >= 64);
+    if (wantSparks) {
+      ink.sparkTick = (ink.sparkTick + 1) % 3;
+      if (ink.sparkTick === 0) {
+        const sp = sparkPool[ink.sparkI];
+        ink.sparkI = (ink.sparkI + 1) % sparkPool.length;
+        sp.life = 1;
+        sp.s = headS;
+        sp.r = Math.max(2, sw * 0.28);
+      }
+    }
+    sparkPool.forEach(sp => {
+      if (!wantSparks || sp.life <= 0) { sp.sprite.visible = false; sp.life = wantSparks ? sp.life : 0; return; }
+      sp.life -= 0.035;
+      sp.s -= 8;
+      if (sp.life <= 0) { sp.sprite.visible = false; return; }
+      const p = atLen(poly, sp.s);
+      sp.sprite.visible = true;
+      sp.sprite.position.set(p.x, p.y);
+      sp.sprite.scale.set((sp.r * sp.life) / 16);
+      sp.sprite.alpha = sp.life * 0.75;
+      sp.sprite.tint = 0xffffff;
+    });
+
+    const bolts = recipe && fxOf(recipe, "bolts");
+    boltG.clear();
+    if (bolts && bolts.n && pose.glow > 10 && alpha > 0.05) {
+      const seed = Math.floor(u * 40);
+      const n = Math.min(12, bolts.n);
+      for (let i = 0; i < n; i++) {
+        const p = atLen(poly, (seed * 97 + i * 211) % poly.length);
+        const len = 18 + ((seed + i * 3) % 24);
+        boltG.moveTo(p.x, p.y);
+        boltG.lineTo(p.x - p.ty * len, p.y + p.tx * len);
+        boltG.stroke(strokeStyle(2, "#fff", 0.8 * alpha));
       }
     }
   }
+
+  function drawCanvas(poly, recipe, pose, sw, glowPx, alpha, color, ghost, sx, sy, reveal) {
+    haloG.clear(); coreG.clear(); fxG.clear();
+    const span = reveal ? { s0: poly.length * reveal[0], s1: poly.length * reveal[1] } : { s0: 0, s1: poly.length };
+    const dash = recipe && !reveal ? recipe.dash : "";
+    function stroke(g, dx, dy, width, col, a) {
+      if (a < 0.004) return;
+      const op = dx || dy ? { pts: poly.pts.map(p => ({ x: p.x + dx, y: p.y + dy, s: p.s })), length: poly.length } : poly;
+      if (dash && parseFloat(dash) < 1000) {
+        dashWalk(op, dash, pose.offset, (a0, b0) => {
+          const from = Math.max(a0, span.s0), to = Math.min(b0, span.s1);
+          if (to > from) traceSpan(g, op, from, to);
+        });
+      } else traceSpan(g, op, span.s0, span.s1);
+      g.stroke(strokeStyle(width, col, a));
+    }
+    if (!ghost && glowPx > 0) stroke(haloG, 0, 0, sw + glowPx * 1.6, color, Math.min(0.55, alpha * 0.5));
+    if (!ghost) stroke(coreG, 0, 0, sw, color, alpha);
+    if (Math.hypot(sx, sy) > 0.2) {
+      const rgb = rgb01(color);
+      const ca = ghost ? alpha : alpha * 0.55;
+      const cols = [
+        [sx, sy, rgbHex(rgb[0] * 255, 0, 0)],
+        [0, 0, rgbHex(0, rgb[1] * 255, 0)],
+        [-sx, -sy, rgbHex(0, 0, rgb[2] * 255)],
+      ];
+      cols.forEach(([dx, dy, col]) => stroke(fxG, dx, dy, sw, col, ca));
+    }
+  }
+
 
   app.ticker.add((tk) => {
     if (!ink.recipe) return;
@@ -574,7 +928,7 @@ async function mountInk(host) {
     ink.once = !!once && !!recipe;
     ink.tMs = 0;
     ink.token++;
-    ink.sparks = [];
+    sparkPool.forEach(sp => { sp.life = 0; sp.sprite.visible = false; });
     if (!ink.recipe) { present(); app.ticker.stop(); return; }
     if (needTick()) { app.ticker.start(); draw(0); }
     else { present(); app.ticker.stop(); }
@@ -582,11 +936,17 @@ async function mountInk(host) {
   ink.playIdle = function (d) {
     ink.design = d;
     liveDesign = d;
-    ink.poly = sampleDesign(d);
+    const key = designKey(d);
+    if (key !== ink.key) {
+      ink.key = key;
+      ink.poly = d ? sampleDesign(d) : { pts: [], length: 0, cx: 0, cy: 0, maxDim: 1 };
+      if (ribbon) uploadRibbon(buildRibbon(ink.poly));
+    }
     fit();
     ink.play(d ? recipeForMotion(d) : null, false);
   };
   ink.destroy = function () {
+    try { if (geom) geom.destroy(true); } catch (e) {}
     try { app.destroy(true); } catch (e) {}
   };
 
@@ -600,4 +960,21 @@ async function mountInk(host) {
   if (Math.abs(easeUnit("linear", 0.5) - 0.5) > 1e-9) throw new Error("ink ease linear");
   if (easeUnit("steps(1, end)", 0.4) !== 0) throw new Error("ink steps");
   if (lerpHex("#000000", "#ffffff", 0.5) !== "#808080") throw new Error("ink lerp");
+  const poly = sampleDesign({ kind: "roundrect", x: 0, y: 0, w: 200, h: 100, r: 12 });
+  const rib = buildRibbon(poly);
+  const n = poly.pts.length;
+  if (!rib || rib.positions.length !== (n + 1) * 4) throw new Error("ink ribbon verts");
+  const last = n * 4;
+  if (rib.positions[0] !== rib.positions[last] || rib.positions[1] !== rib.positions[last + 1]) throw new Error("ink ribbon close");
+  if (rib.uvs[last] < 0.99) throw new Error("ink ribbon uv");
+  for (let i = 0; i < rib.normals.length; i++) if (rib.normals[i] !== rib.normals[i]) throw new Error("ink ribbon normal");
+  const wipe = { dash: "2000 2000", keys: [{ t: 0, offset: 2000 }, { t: 1, offset: 0 }] };
+  const rev = { dash: "2000 2000", keys: [{ t: 0, offset: 0 }, { t: 1, offset: 2000 }] };
+  const open = revealSpan(wipe, 0), shut = revealSpan(wipe, 2000);
+  if (!open || Math.abs(open[1] - 1) > 1e-6 || !shut || Math.abs(shut[1]) > 1e-6) throw new Error("ink reveal");
+  const rShut = revealSpan(rev, 0), rOpen = revealSpan(rev, 2000);
+  if (!rShut || Math.abs(rShut[0] - 1) > 1e-6) throw new Error("ink reveal rev shut");
+  if (!rOpen || Math.abs(rOpen[0]) > 1e-6 || Math.abs(rOpen[1] - 1) > 1e-6) throw new Error("ink reveal rev open");
+  if (!chromaGhost({ fx: [{ id: "chroma", px: 2, n: 1 }] })) throw new Error("ink chroma ghost");
+  if (chromaGhost({ fx: [{ id: "chroma", px: 6 }] })) throw new Error("ink chroma solid");
 })();
