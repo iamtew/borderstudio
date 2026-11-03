@@ -112,6 +112,7 @@
           <button type="button" id="tab-effects" role="tab" aria-selected="false"><span class="ti ti-sparkles" aria-hidden="true"></span> Effects</button>
         </div>
         <div class="win-body pane-mask">
+          <div class="sect">
           <div class="win-title">Shape</div>
           <label>Kind
             <select id="in-kind">
@@ -138,6 +139,8 @@
             </span>
           </label>
           <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset all</button>
+          </div>
+          <div class="sect">
           <div class="win-title">Size</div>
           <div id="size-presets" role="radiogroup" aria-label="Size">
             <button type="button" id="size-720" role="radio" aria-checked="false">720p</button>
@@ -148,8 +151,11 @@
             <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
             <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
           </div>
+          </div>
+          <div class="sect">
           <div class="win-title">Preview</div>
           <img id="mask-prev" alt="Mask preview">
+          </div>
         </div>
         <div class="win-body pane-border" id="inspector">
           <details class="fold" open>
@@ -239,8 +245,11 @@
             <button type="button" id="btn-ev-add"><span class="ti ti-plus" aria-hidden="true"></span> Add effect</button>
           </div>
           <div id="ctrl-tune" hidden>
+            <div class="sect">
             <button type="button" id="fx-back"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Back</button>
             <button type="button" id="fx-play"><span class="ti ti-player-play" aria-hidden="true"></span> Play</button>
+            </div>
+            <div class="sect">
             <div class="win-title">Effect</div>
             <label>Name <input id="fx-label" type="text" autocomplete="off" spellcheck="false"></label>
             <label>Animation <select id="fx-anim"></select></label>
@@ -283,6 +292,7 @@
             <button type="button" id="ctrl-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save as preset</button>
             <button type="button" id="ctrl-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete preset</button>
             <button type="button" id="fx-del-ev"><span class="ti ti-trash" aria-hidden="true"></span> Delete effect</button>
+            </div>
           </div>
         </div>
       </aside>

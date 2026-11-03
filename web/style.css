@@ -94,6 +94,11 @@ body.tab-mask .pane-border, body.tab-mask .pane-effects,
 body.tab-border .pane-mask, body.tab-border .pane-effects,
 body.tab-effects .pane-mask, body.tab-effects .pane-border { display: none !important; }
 body.admin .win-body .win-title { padding: 12px 0 4px; }
+#sidebar .sect, #sidebar .fold {
+  margin: 0 -12px; padding: 0 12px 10px;
+  border-bottom: 1px solid #111;
+}
+#sidebar .sect:last-child, #sidebar .fold:last-child { border-bottom: 0; padding-bottom: 0; }
 body.admin .fold > summary {
   cursor: pointer; list-style: none;
   display: flex; align-items: center; gap: 6px;
