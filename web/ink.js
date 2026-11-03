@@ -655,14 +655,11 @@ async function mountInk(host) {
   fxG.blendMode = "add";
   boltG.blendMode = "add";
   const innerRoot = new PIXI.Container();
-  const innerG = new PIXI.Graphics();
-  const innerFade = [];
-  for (let i = 0; i < 12; i++) {
-    const g = new PIXI.Graphics();
-    innerRoot.addChild(g);
-    innerFade.push(g);
-  }
-  innerRoot.addChild(innerG);
+  const innerCanvas = document.createElement("canvas");
+  const innerSprite = new PIXI.Sprite();
+  innerRoot.addChild(innerSprite);
+  let innerTex = null;
+  let innerKey = "";
   canvasRoot.addChild(haloG, coreG, fxG, boltG);
   pad.addChild(innerRoot, inkRoot);
   inkRoot.addChild(canvasRoot);
@@ -858,7 +855,8 @@ async function mountInk(host) {
     const poly = ink.poly;
     if (!d || !poly.pts.length) {
       if (passes) Object.keys(passes).forEach(k => { passes[k].mesh.visible = false; });
-      innerG.clear();
+      innerSprite.visible = false;
+      innerKey = "";
       return;
     }
     const recipe = ink.recipe;
@@ -1023,31 +1021,51 @@ async function mountInk(host) {
   }
 
   function drawInner(poly, d) {
-    innerG.clear();
-    innerFade.forEach(g => g.clear());
     const band = innerBand(d);
-    if (!band || poly.pts.length < 3) return;
-    const color = colorNum(d.innerStroke || "#333333");
-    const xy = p => ({ x: p.x, y: p.y });
-    function bandFill(g, outer, inner, alpha) {
-      if (alpha < 0.02 || !inner || inner.pts.length < 3) return;
-      g.poly(outer.pts.map(xy), true);
-      g.fill({ color, alpha });
-      g.poly(inner.pts.map(xy), true);
-      g.cut();
+    if (!band || poly.pts.length < 3) {
+      innerSprite.visible = false;
+      innerKey = "";
+      return;
     }
-    bandFill(innerG, poly, insetPoly(poly, band.solid), 1);
-    if (band.blur <= 0) return;
-    // one Graphics per ring: another fill+cut on the same mesh paints the hole
-    const steps = Math.max(4, Math.min(innerFade.length, Math.round(band.blur / 3) || 4));
-    const step = band.blur / steps;
-    for (let i = 1; i <= steps; i++) {
-      bandFill(
-        innerFade[i - 1],
-        insetPoly(poly, band.solid + (i - 1) * step),
-        insetPoly(poly, band.solid + i * step),
-        1 - i / (steps + 1)
-      );
+    const w = Math.max(1, d.width || 1920);
+    const h = Math.max(1, d.height || 1080);
+    const key = designKey(d) + "|" + (d.innerStroke || "") + "|" + band.solid + "|" + band.blur + "|" + w + "x" + h;
+    if (key === innerKey && innerSprite.visible) return;
+    innerKey = key;
+    innerSprite.visible = true;
+    if (innerCanvas.width !== w || innerCanvas.height !== h) {
+      innerCanvas.width = w;
+      innerCanvas.height = h;
+      innerTex = null;
+    }
+    const ctx = innerCanvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = "none";
+    ctx.clearRect(0, 0, w, h);
+    function tracePts(pts) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.closePath();
+    }
+    ctx.fillStyle = d.innerStroke || "#333333";
+    tracePts(poly.pts);
+    ctx.fill();
+    const punch = insetPoly(poly, band.solid + (band.blur || 0));
+    if (punch.pts.length >= 3) {
+      if (band.blur > 0) ctx.filter = "blur(" + band.blur + "px)";
+      ctx.globalCompositeOperation = "destination-out";
+      tracePts(punch.pts);
+      ctx.fill();
+      ctx.filter = "none";
+      ctx.globalCompositeOperation = "source-over";
+    }
+    if (!innerTex) {
+      innerTex = PIXI.Texture.from(innerCanvas);
+      innerSprite.texture = innerTex;
+    } else {
+      innerTex.source.update();
     }
   }
 
