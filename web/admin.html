@@ -80,7 +80,13 @@
             <span class="bar-brand">Border Studio</span>
           </button>
           <div id="file-menu" hidden>
+            <div id="design-list" class="lib-list"></div>
+            <label>Name <input id="design-name" type="text" autocomplete="off" spellcheck="false" placeholder="My design"></label>
             <button type="button" id="file-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
+            <button type="button" id="file-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete</button>
+            <button type="button" id="file-export"><span class="ti ti-download" aria-hidden="true"></span> Export</button>
+            <button type="button" id="file-import"><span class="ti ti-download ti-flip" aria-hidden="true"></span> Import</button>
+            <input id="file-import-in" type="file" accept="application/json,.json" hidden>
             <button type="button" id="file-reset" class="design-only"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset</button>
             <button type="button" id="btn-mask"><span class="ti ti-download" aria-hidden="true"></span> Download mask</button>
             <div class="file-sep">

@@ -904,6 +904,8 @@ document.getElementById("btn-add").onclick = () => {
 };
 document.getElementById("btn-del").onclick = delPoint;
 
+let clearDesignPick = async () => {};
+
 async function resetDesign() {
   pushHist();
   const res = await fetch("/api/design/reset", { method: "POST" });
@@ -914,6 +916,7 @@ async function resetDesign() {
   sizeCustom = false;
   pushHist();
   paint();
+  await clearDesignPick();
 }
 
 document.getElementById("btn-reset").onclick = resetDesign;
@@ -1293,7 +1296,178 @@ document.getElementById("tab-border").onclick = () => setSideTab("border");
 document.getElementById("tab-effects").onclick = () => setSideTab("effects");
 
 document.getElementById("btn-file").onclick = () => { closeCtx(); menu.hidden = !menu.hidden; };
-document.getElementById("file-save").onclick = () => { menu.hidden = true; save(); };
+
+const pullLibs = [];
+
+function visualOf(src) {
+  const v = JSON.parse(JSON.stringify(src));
+  delete v.events;
+  return v;
+}
+
+function applyVisual(body) {
+  const events = d.events;
+  d = body;
+  d.events = events || [];
+}
+
+// Named snapshots. capture/apply decide which slice of the live design moves.
+function bindLib(opts) {
+  let doc = { selected: "", items: [] };
+  let gen = 0;
+  let hold = 0;
+  let missed = false;
+  const listEl = document.getElementById(opts.listId);
+  const nameEl = document.getElementById(opts.nameId);
+  function paintLib() {
+    listEl.replaceChildren();
+    doc.items.forEach((it) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = it.name;
+      b.classList.toggle("sel", it.id === doc.selected);
+      b.onclick = () => pick(it.id);
+      listEl.appendChild(b);
+    });
+    if (document.activeElement !== nameEl) nameEl.value = (doc.items.find((it) => it.id === doc.selected) || {}).name || "";
+    const del = document.getElementById(opts.delId);
+    if (del) del.hidden = !doc.selected;
+  }
+  async function load() {
+    const n = ++gen;
+    try {
+      const res = await fetch("/api/" + opts.key);
+      if (!res.ok || n !== gen || hold) { if (hold) missed = true; return; }
+      doc = await res.json();
+    } catch (e) { return; }
+    if (n !== gen || hold) { if (hold) missed = true; return; }
+    doc.items = doc.items || [];
+    doc.selected = doc.selected || "";
+    paintLib();
+  }
+  async function persist() {
+    const n = ++gen;
+    try {
+      const res = await fetch("/api/" + opts.key, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(doc),
+      });
+      if (n !== gen) return res.ok;
+      if (!res.ok) { await load(); return false; }
+      doc = await res.json();
+    } catch (e) {
+      if (n === gen) await load();
+      return false;
+    }
+    if (n !== gen) return true;
+    doc.items = doc.items || [];
+    paintLib();
+    return true;
+  }
+  async function pick(id) {
+    const it = doc.items.find((x) => x.id === id);
+    if (!it) return;
+    hold++;
+    try {
+      pushHist();
+      opts.apply(JSON.parse(JSON.stringify(it.body)));
+      if (opts.touchSize) {
+        sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
+        sizeCustom = namedSize() === "custom";
+      }
+      paint();
+      doc.selected = id;
+      paintLib();
+      await save();
+      await persist();
+    } finally {
+      hold--;
+      if (!hold && missed) { missed = false; await load(); }
+    }
+  }
+  document.getElementById(opts.saveId).onclick = async () => {
+    const name = nameEl.value.trim();
+    if (!name) return;
+    const items = doc.items.map((it) => ({ id: it.id, name: it.name, body: it.body }));
+    const clash = items.find((it) => it.name.toLowerCase() === name.toLowerCase());
+    let selected = doc.selected;
+    if (clash) {
+      clash.name = name;
+      clash.body = opts.capture();
+      selected = clash.id;
+    } else {
+      items.push({ id: "i" + Date.now(), name, body: opts.capture() });
+      selected = items[items.length - 1].id;
+    }
+    doc = { selected, items };
+    await persist();
+  };
+  document.getElementById(opts.delId).onclick = async () => {
+    if (!doc.selected) return;
+    doc = { selected: "", items: doc.items.filter((it) => it.id !== doc.selected) };
+    await persist();
+  };
+  pullLibs.push(load);
+  load();
+  return {
+    doc: () => doc,
+    clearSelected: async () => {
+      if (!doc.selected) return;
+      doc = { selected: "", items: doc.items };
+      await persist();
+    },
+    setDoc: async (next) => { doc = next; return persist(); },
+  };
+}
+
+const designs = bindLib({
+  key: "designs",
+  listId: "design-list",
+  nameId: "design-name",
+  saveId: "file-save",
+  delId: "file-del",
+  touchSize: true,
+  capture: () => visualOf(d),
+  apply: applyVisual,
+});
+clearDesignPick = designs.clearSelected;
+
+function designFileOk(parsed) {
+  if (!parsed || parsed.borderstudio !== "designs" || parsed.version !== 1 || !Array.isArray(parsed.items)) return false;
+  return parsed.items.every((it) => it && typeof it.name === "string" && it.body && typeof it.body === "object" && !Array.isArray(it.body));
+}
+
+document.getElementById("file-export").onclick = () => {
+  const doc = designs.doc();
+  const payload = { borderstudio: "designs", version: 1, selected: doc.selected, items: doc.items };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+  a.download = "borderstudio-designs.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+document.getElementById("file-import").onclick = () => {
+  const inp = document.getElementById("file-import-in");
+  inp.value = "";
+  inp.click();
+};
+document.getElementById("file-import-in").onchange = async () => {
+  const f = document.getElementById("file-import-in").files[0];
+  if (!f) return;
+  let parsed;
+  try { parsed = JSON.parse(await f.text()); } catch (e) { return; }
+  if (!designFileOk(parsed)) return;
+  const items = designs.doc().items.map((it) => ({ id: it.id, name: it.name, body: it.body }));
+  parsed.items.forEach((it) => {
+    const name = it.name.trim();
+    if (!name) return;
+    const clash = items.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (clash) { clash.name = name; clash.body = it.body; return; }
+    const id = it.id && !items.some((x) => x.id === it.id) ? String(it.id) : "";
+    items.push({ id, name, body: it.body });
+  });
+  await designs.setDoc({ selected: designs.doc().selected, items });
+};
 document.getElementById("file-settings").onclick = () => {
   menu.hidden = true;
   openSettings();
@@ -1647,7 +1821,7 @@ async function boot() {
   };
   es.onmessage = (ev) => {
     const msg = (ev.data || "").trim();
-    if (msg === "update" || msg === "hello") { pullDesign(); pullAnims(); }
+    if (msg === "update" || msg === "hello") { pullDesign(); pullAnims(); pullLibs.forEach((fn) => fn()); }
   };
 }
 boot();
