@@ -76,7 +76,14 @@ If the local server dies, a banner says `Error: Border Studio application not ru
 
 ## Motion
 
-**Border → Motion** is the idle loop on the border. Fold **Stroke** to get the panel out of the way. **None** is a solid stroke. Pick a loop, then **Duration (ms)** (100–10000), **Easing**, **Tint** (empty = use the stroke color), and **Strength** (0–3). **Save as preset** stores that setup under **Mine**. Motion reset returns to None.
+**Border → Motion** is the idle loop on the border. Fold **Stroke** to get the panel out of the way. **None** is a solid stroke. Every loop has **Duration (ms)** (100–10000), **Easing**, and **Strength** (0–3). Extra rows depend on the loop:
+
+- **Dash** — **Mark** and **Gap** (px) for the dash pattern.
+- **Comet** — **Mark**, **Gap**, and **Head** (px, the blob on the leading edge).
+- **Chroma** — **Split** (px between the cyan and magenta copies).
+- **Breathe**, **Heartbeat**, **Neon** — Strength is the pulse or flicker.
+
+**Tint** (empty = stroke color) shows on Dash, Comet, and the Glow loops. It is hidden on Hue, Aurora, Fire, and Chroma, where a tint would flatten the palette or fail to recolor the copies. **Save as preset** stores that setup under **Mine**. Motion reset returns to None.
 
 ![Designer Motion fold](../assets/screens/designer-motion.png)
 
