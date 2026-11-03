@@ -414,9 +414,7 @@ body.pad {
   border-radius: var(--r); cursor: pointer; font: inherit; font-weight: 700;
   display: flex; align-items: center; justify-content: center; text-align: center;
 }
-body.pad.show-urls #pad-grid .fx-btn {
-  min-height: 108px; align-items: flex-start; padding-bottom: 44px;
-}
+body.pad.show-urls #pad-grid .fx-btn { align-items: flex-start; }
 #pad-grid .fx-btn:disabled { cursor: default; filter: none; opacity: 0.85; }
 .pad-url-row { display: none; gap: 6px; align-items: stretch; }
 body.pad.show-urls .pad-url-row {
@@ -424,11 +422,11 @@ body.pad.show-urls .pad-url-row {
 }
 .pad-url-row input {
   flex: 1; min-width: 0; background: #1a1a1a; color: var(--text);
-  border: 1px solid var(--line); border-radius: var(--r); padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: var(--r); padding: 4px 6px;
   font-family: consolas, monospace; font-size: 10px;
 }
 .pad-url-row button {
   flex: none; background: #2a2a2a; color: var(--text); border: 1px solid var(--line);
-  border-radius: var(--r); padding: 6px 8px; cursor: pointer;
+  border-radius: var(--r); padding: 4px 6px; cursor: pointer;
 }
 #pad-empty { padding: 32px 16px; color: var(--muted); text-align: center; }
