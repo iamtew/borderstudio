@@ -307,8 +307,6 @@ function buildRibbon(poly) {
   return { positions, normals, uvs, indices };
 }
 
-const INNER_BIT = 8;
-
 function innerBand(d) {
   const solid = Math.max(0, (d && d.innerStrokeWidth) || 0);
   const blur = Math.max(0, (d && d.innerBlur) || 0);
@@ -316,30 +314,11 @@ function innerBand(d) {
   return { solid, blur, width: solid + blur };
 }
 
-function inkSmooth(e0, e1, x) {
-  const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0 || 1)));
-  return t * t * (3 - 2 * t);
-}
-
-// Signed-normal expand ±width/2 plus inward bias width/2. Outer (vUV.y=-1) stays on the path.
-function innerAlong(vUVy, width) {
-  const half = width * 0.5;
-  return vUVy * half + half;
-}
-
-// vUV.y -1 = mask edge, +1 = inner. Opaque through solid, fade over blur. Outer stays 1.
-function innerEdgeCover(vUVy, solid, width) {
-  const t = (vUVy + 1) * 0.5;
-  if (!(width > 0)) return 0;
-  const tSolid = Math.min(1, solid / width);
-  if (tSolid >= 0.999) return 1 - inkSmooth(0.8, 1, t);
-  return 1 - inkSmooth(tSolid, 1, t);
-}
-
 function insetPoly(poly, px) {
   const rib = buildRibbon(poly);
   const n = poly.pts.length;
   if (!rib || !n) return poly;
+  px = Math.max(0, px);
   const pts = [];
   for (let i = 0; i < n; i++) {
     const o = (i * 2 + 1) * 2;
@@ -469,7 +448,6 @@ const inkBitGl = {
             }
             if (uInk3.w > 2.0) position += aNormal * vUV.y * uInk3.w;
             position += aNormal * (uInk0.x * 0.5 * wScale);
-            position += aNormal * vUV.y * uRgb.a;
         `,
   },
   fragment: {
@@ -515,13 +493,7 @@ const inkBitGl = {
             if (inkBit(uInk0.y, 4.0) > 0.5) {
                 col *= 0.65 + 0.55 * sin(alongS * 0.04 + uInk3.w * 6.2831853);
             }
-            float edge = 1.0 - smoothstep(0.8, 1.0, abs(vUV.y));
-            if (inkBit(uInk0.y, 8.0) > 0.5) {
-                float t = (vUV.y + 1.0) * 0.5;
-                float tSolid = clamp(uInk2.w / max(uInk0.x, 1.0), 0.0, 1.0);
-                edge = tSolid >= 0.999 ? (1.0 - smoothstep(0.8, 1.0, t)) : (1.0 - smoothstep(tSolid, 1.0, t));
-            }
-            float a = clamp(cover, 0.0, 1.0) * edge;
+            float a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
             outColor = vec4(col * a, a);
         `,
   },
@@ -585,7 +557,6 @@ const inkBitGpu = {
                 position = position + aNormal * vUV.y * inkUniforms.uInk3.w;
             }
             position = position + aNormal * (inkUniforms.uInk0.x * 0.5 * wScale);
-            position = position + aNormal * vUV.y * inkUniforms.uRgb.a;
         `,
   },
   fragment: {
@@ -635,13 +606,7 @@ const inkBitGpu = {
             if (inkBit(inkUniforms.uInk0.y, 4.0) > 0.5) {
                 col = col * (0.65 + 0.55 * sin(alongS * 0.04 + inkUniforms.uInk3.w * 6.2831853));
             }
-            var edge = 1.0 - smoothstep(0.8, 1.0, abs(vUV.y));
-            if (inkBit(inkUniforms.uInk0.y, 8.0) > 0.5) {
-                let t = (vUV.y + 1.0) * 0.5;
-                let tSolid = clamp(inkUniforms.uInk2.w / max(inkUniforms.uInk0.x, 1.0), 0.0, 1.0);
-                edge = select(1.0 - smoothstep(tSolid, 1.0, t), 1.0 - smoothstep(0.8, 1.0, t), tSolid >= 0.999);
-            }
-            let a = clamp(cover, 0.0, 1.0) * edge;
+            let a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
             outColor = vec4<f32>(col * a, a);
         `,
   },
@@ -784,7 +749,6 @@ async function mountInk(host) {
         return { mesh, shader };
       }
       passes = {
-        inner: makePass("normal", innerRoot),
         halo: makePass("add"),
         core: makePass("normal"),
         hot: makePass("add"),
@@ -872,7 +836,7 @@ async function mountInk(host) {
     b[0] = o.period; b[1] = o.dashOn; b[2] = o.off; b[3] = o.len;
     c[0] = o.sliceA; c[1] = o.sliceN; c[2] = o.sliceT; c[3] = o.cap;
     d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = o.extra || 0;
-    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = o.bias || 0;
+    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = 1;
     g.update();
     pass.mesh.visible = o.on;
     pass.mesh.alpha = o.alpha;
@@ -952,26 +916,8 @@ async function mountInk(host) {
       extra: (fire || wave) ? u : 0,
     };
 
-    const band = innerBand(d);
     if (ribbon) {
       const show = alpha > 0.004;
-      const innerRgb = rgb01(d.innerStroke || "#333333");
-      pushPass(passes.inner, Object.assign({}, shared, {
-        on: !!band,
-        alpha: 1,
-        width: band ? band.width : 0,
-        rgb: innerRgb,
-        along: INNER_BIT,
-        r0: 0,
-        r1: 1,
-        period: 0,
-        dashOn: 0,
-        cap: band ? band.solid : 0,
-        extra: 0,
-        sliceA: 0,
-        sliceN: 0,
-        bias: band ? band.width * 0.5 : 0,
-      }));
       pushPass(passes.halo, Object.assign({ on: show && !ghost && glowPx > 0, alpha: Math.min(0.55, alpha * 0.5), width: sw + glowPx * 1.6, rgb }, shared));
       pushPass(passes.core, Object.assign({ on: show && !ghost, alpha, width: sw, rgb }, shared));
       const hot = show && !ghost && pose.width > 1.05;
@@ -1009,10 +955,9 @@ async function mountInk(host) {
         }
       }
     } else {
-      innerG.clear();
       drawCanvas(poly, recipe, pose, sw, glowPx, alpha, color, ghost, sx, sy, reveal);
-      drawInnerCanvas(poly, d);
     }
+    drawInner(poly, d);
 
     const headN = head ? Math.max(1, Math.min(8, head.n || 1)) : 0;
     const headWhite = head && !(recipe && recipe.dash);
@@ -1071,22 +1016,27 @@ async function mountInk(host) {
     }
   }
 
-  function drawInnerCanvas(poly, d) {
+  function drawInner(poly, d) {
     innerG.clear();
     const band = innerBand(d);
-    if (!band) return;
-    const color = d.innerStroke || "#333333";
-    const core = insetPoly(poly, band.solid * 0.5);
-    traceSpan(innerG, core, 0, poly.length);
-    innerG.stroke(strokeStyle(band.solid, color, 1));
+    if (!band || poly.pts.length < 3) return;
+    const color = colorNum(d.innerStroke || "#333333");
+    function ring(outer, inner, alpha) {
+      if (alpha < 0.02 || !inner || inner.pts.length < 3) return;
+      innerG.poly(outer.pts.map(p => ({ x: p.x, y: p.y })), true);
+      innerG.fill({ color, alpha });
+      innerG.poly(inner.pts.map(p => ({ x: p.x, y: p.y })), true);
+      innerG.cut();
+    }
+    ring(poly, insetPoly(poly, band.solid), 1);
     if (band.blur <= 0) return;
-    // ponytail: a few concentric rings stand in for a one-sided blur on canvas
-    const steps = 3;
+    const steps = Math.max(4, Math.min(12, Math.round(band.blur / 3) || 4));
     for (let i = 1; i <= steps; i++) {
-      const dist = band.solid + (band.blur * i) / steps;
-      const ring = insetPoly(poly, dist);
-      traceSpan(innerG, ring, 0, poly.length);
-      innerG.stroke(strokeStyle(Math.max(1, band.blur / steps), color, 1 - i / (steps + 1)));
+      ring(
+        insetPoly(poly, band.solid + band.blur * (i - 1) / steps),
+        insetPoly(poly, band.solid + band.blur * i / steps),
+        1 - i / (steps + 0.5)
+      );
     }
   }
 
@@ -1207,10 +1157,6 @@ async function mountInk(host) {
   if (innerBand({ innerStrokeWidth: 0, innerBlur: 8 })) throw new Error("ink inner off");
   const band = innerBand({ innerStrokeWidth: 12, innerBlur: 12 });
   if (!band || band.width !== 24) throw new Error("ink inner band");
-  if (Math.abs(innerAlong(-1, 24)) > 1e-9) throw new Error("ink inner centered");
-  if (Math.abs(innerAlong(1, 24) - 24) > 1e-9) throw new Error("ink inner width");
-  if (Math.abs(innerEdgeCover(-1, 12, 24) - 1) > 1e-6) throw new Error("ink inner outer");
-  if (innerEdgeCover(1, 12, 24) > 0.01) throw new Error("ink inner fade");
   const box = sampleDesign({ kind: "roundrect", x: 0, y: 0, w: 200, h: 100, r: 0 });
   const inn = insetPoly(box, 10);
   const left = box.pts.find(p => p.x < 1);
