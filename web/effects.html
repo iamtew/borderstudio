@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Effects</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="pad">
+  <div class="pad-bar">
+    <h1>Effects</h1>
+    <button type="button" id="pad-urls">Show URLs</button>
+  </div>
+  <div id="pad-grid"></div>
+  <p id="pad-empty" hidden>No effects. Add them in the Designer.</p>
+  <script src="/shared.js"></script>
+  <script>
+    let showUrls = false;
+    const grid = document.getElementById("pad-grid");
+    const empty = document.getElementById("pad-empty");
+    const tog = document.getElementById("pad-urls");
+    tog.onclick = () => {
+      showUrls = !showUrls;
+      document.body.classList.toggle("show-urls", showUrls);
+      tog.classList.toggle("on", showUrls);
+      tog.textContent = showUrls ? "Hide URLs" : "Show URLs";
+    };
+    function paint(events) {
+      grid.replaceChildren();
+      empty.hidden = !!(events && events.length);
+      (events || []).forEach((ev) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "fx-btn";
+        paintFxBtn(b, ev.btn);
+        const lab = document.createElement("span");
+        lab.textContent = ev.label || ev.id;
+        const url = fxFireUrl(ev.id);
+        const overlay = document.createElement("span");
+        overlay.className = "fx-url";
+        overlay.textContent = url;
+        b.append(lab, overlay);
+        b.onclick = () => {
+          if (showUrls) {
+            navigator.clipboard.writeText(url).catch(() => {});
+            return;
+          }
+          fetch(url);
+        };
+        grid.append(b);
+      });
+    }
+    async function load() {
+      try {
+        const res = await fetch("/api/design");
+        if (!res.ok) return;
+        const d = await res.json();
+        paint(d.events);
+      } catch (e) {}
+    }
+    load();
+    const es = new EventSource("/api/events");
+    es.onmessage = (ev) => {
+      const msg = (ev.data || "").trim();
+      if (msg === "update" || msg === "hello") load();
+    };
+  </script>
+</body>
+</html>

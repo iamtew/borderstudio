@@ -530,3 +530,34 @@ func TestDashJSONStillLoads(t *testing.T) {
 		t.Fatalf("dash compat %+v", d)
 	}
 }
+
+func TestClampFxBtn(t *testing.T) {
+	if clampFxBtn("") != fxBtnColors[0] {
+		t.Fatal("empty")
+	}
+	if clampFxBtn("#ff00ff") != fxBtnColors[0] {
+		t.Fatal("neon")
+	}
+	want := fxBtnColors[3]
+	if clampFxBtn(strings.ToUpper(want)) != want {
+		t.Fatal("case")
+	}
+}
+
+func TestFireGET(t *testing.T) {
+	h := newHub()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /fx/{id}", func(w http.ResponseWriter, r *http.Request) {
+		writeFire(h, w, r.PathValue("id"))
+	})
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest("GET", "/fx/pulse", nil))
+	if w.Code != 204 {
+		t.Fatalf("got %d", w.Code)
+	}
+	w = httptest.NewRecorder()
+	writeFire(h, w, "  ")
+	if w.Code != 400 {
+		t.Fatalf("empty got %d", w.Code)
+	}
+}

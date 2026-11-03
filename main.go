@@ -103,6 +103,16 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+func writeFire(h *hub, w http.ResponseWriter, name string) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		http.Error(w, "name required", 400)
+		return
+	}
+	h.broadcast([]byte("event " + name))
+	w.WriteHeader(204)
+}
+
 // localOnly rejects requests that did not come from our own pages or OBS.
 // Host must be our loopback address, which blocks DNS rebinding (evil.com
 // resolving to 127.0.0.1 and reading /api/obs, password included). Writes
@@ -354,6 +364,7 @@ func main() {
 	mux.HandleFunc("GET /overlay", html("overlay.html"))
 	mux.HandleFunc("GET /mask", html("mask.html"))
 	mux.HandleFunc("GET /about", html("about.html"))
+	mux.HandleFunc("GET /effects", html("effects.html"))
 	mux.HandleFunc("GET /api/version", handleVersion)
 	mux.HandleFunc("POST /api/designer/close", func(w http.ResponseWriter, r *http.Request) {
 		closeDesignerWindow()
@@ -393,11 +404,7 @@ func main() {
 		}
 		next.Feather = clamp(next.Feather, 0, 64)
 		next.MotionTune = normalizeMotionTune(next.MotionTune)
-		for i := range next.Events {
-			next.Events[i].ID = clipText(next.Events[i].ID, 42)
-			next.Events[i].Label = clipText(next.Events[i].Label, 60)
-			next.Events[i].Tune = normalizeMotionTune(next.Events[i].Tune)
-		}
+		normalizeEvents(next.Events)
 		mu.Lock()
 		prev := d
 		d = next
@@ -639,13 +646,10 @@ func main() {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		name := strings.TrimSpace(body.Name)
-		if name == "" {
-			http.Error(w, "name required", 400)
-			return
-		}
-		h.broadcast([]byte("event " + name))
-		w.WriteHeader(204)
+		writeFire(h, w, body.Name)
+	})
+	mux.HandleFunc("GET /fx/{id}", func(w http.ResponseWriter, r *http.Request) {
+		writeFire(h, w, r.PathValue("id"))
 	})
 	mux.HandleFunc("GET /api/events", func(w http.ResponseWriter, r *http.Request) {
 		fl, ok := w.(http.Flusher)
