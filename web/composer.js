@@ -1145,6 +1145,8 @@ function paintSize() {
     b.setAttribute("aria-checked", String(kind === k));
   });
   document.getElementById("size-custom-fields").hidden = kind !== "custom";
+  const label = kind === "720" ? "720p" : kind === "1080" ? "1080p" : d.width + "×" + d.height;
+  document.getElementById("size-label").textContent = label;
   frame.style.aspectRatio = d.width + " / " + d.height;
   frame.style.width = "min(100%, calc((100vh - 80px) * " + d.width + " / " + d.height + "))";
 }
@@ -1156,8 +1158,8 @@ function setSize(w, h, custom) {
   paint();
   scheduleSave();
 }
-document.getElementById("size-720").onclick = () => setSize(1280, 720, false);
-document.getElementById("size-1080").onclick = () => setSize(1920, 1080, false);
+document.getElementById("size-720").onclick = () => { setSize(1280, 720, false); closeSize(); };
+document.getElementById("size-1080").onclick = () => { setSize(1920, 1080, false); closeSize(); };
 document.getElementById("size-custom").onclick = () => setSize(d.width, d.height, true);
 lookInput(document.getElementById("in-mw"), () => { sizeCustom = true; d.width = Math.max(16, Number(document.getElementById("in-mw").value) || 1920); });
 lookInput(document.getElementById("in-mh"), () => { sizeCustom = true; d.height = Math.max(16, Number(document.getElementById("in-mh").value) || 1080); });
@@ -1320,7 +1322,18 @@ document.getElementById("tab-mask").onclick = () => setSideTab("mask");
 document.getElementById("tab-border").onclick = () => setSideTab("border");
 document.getElementById("tab-effects").onclick = () => setSideTab("effects");
 
-document.getElementById("btn-file").onclick = () => { closeCtx(); menu.hidden = !menu.hidden; };
+const sizeMenu = document.getElementById("size-menu");
+function closeSize() {
+  sizeMenu.hidden = true;
+  document.getElementById("btn-size").setAttribute("aria-expanded", "false");
+}
+document.getElementById("btn-size").onclick = () => {
+  closeCtx();
+  menu.hidden = true;
+  sizeMenu.hidden = !sizeMenu.hidden;
+  document.getElementById("btn-size").setAttribute("aria-expanded", String(!sizeMenu.hidden));
+};
+document.getElementById("btn-file").onclick = () => { closeCtx(); closeSize(); menu.hidden = !menu.hidden; };
 
 const pullLibs = [];
 
@@ -1798,6 +1811,7 @@ addEventListener("contextmenu", ev => {
   ev.preventDefault();
   if (ev.target.closest("#ctx-menu")) return;
   menu.hidden = true;
+  closeSize();
   ctx.replaceChildren();
   const extra = [];
   const onStage = ev.target.closest("#stage, #hits, #ink");
@@ -1832,6 +1846,7 @@ addEventListener("contextmenu", ev => {
   ctx.style.top = Math.max(4, Math.min(ev.clientY, innerHeight - r.height - 4)) + "px";
 });
 addEventListener("pointerdown", ev => {
+  if (!sizeMenu.hidden && !ev.target.closest("#size-wrap")) closeSize();
   if (ctx.hidden || ev.target.closest("#ctx-menu")) return;
   closeCtx();
 });

@@ -100,6 +100,23 @@
             <div id="file-version"></div>
           </div>
         </div>
+        <div id="size-wrap">
+          <button type="button" id="btn-size" aria-haspopup="true" aria-expanded="false" aria-controls="size-menu">
+            <span class="ti ti-layout-grid" aria-hidden="true"></span>
+            <span id="size-label">1080p</span>
+          </button>
+          <div id="size-menu" hidden>
+            <div id="size-presets" role="radiogroup" aria-label="Size">
+              <button type="button" id="size-720" role="radio" aria-checked="false">720p</button>
+              <button type="button" id="size-1080" role="radio" aria-checked="true" class="sel">1080p</button>
+              <button type="button" id="size-custom" role="radio" aria-checked="false">Custom</button>
+            </div>
+            <div id="size-custom-fields" hidden>
+              <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
+              <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
+            </div>
+          </div>
+        </div>
         <div id="grid-toggles"><span>Grid:</span></div>
       </div>
       <div class="bar-overlay">
@@ -152,18 +169,6 @@
             </span>
           </label>
           <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset all</button>
-          </details>
-          <details class="fold" open>
-          <summary class="win-title"><span class="ti ti-layout-grid" aria-hidden="true"></span> Size</summary>
-          <div id="size-presets" role="radiogroup" aria-label="Size">
-            <button type="button" id="size-720" role="radio" aria-checked="false">720p</button>
-            <button type="button" id="size-1080" role="radio" aria-checked="true" class="sel">1080p</button>
-            <button type="button" id="size-custom" role="radio" aria-checked="false">Custom</button>
-          </div>
-          <div id="size-custom-fields" hidden>
-            <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
-            <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
-          </div>
           </details>
           <details class="fold" open>
           <summary class="win-title"><span class="ti ti-video" aria-hidden="true"></span> Preview</summary>
