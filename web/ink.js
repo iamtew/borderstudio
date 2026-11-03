@@ -493,7 +493,15 @@ const inkBitGl = {
             if (inkBit(uInk0.y, 4.0) > 0.5) {
                 col *= 0.65 + 0.55 * sin(alongS * 0.04 + uInk3.w * 6.2831853);
             }
-            float a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
+            float edge = abs(vUV.y);
+            float glow = uRgb.a;
+            float profile = 1.0 - smoothstep(0.8, 1.0, edge);
+            if (glow > 0.5) {
+                float dist = edge * uInk0.x * 0.5;
+                float sigma = max(glow * 0.55, 0.5);
+                profile = exp(-(dist * dist) / (2.0 * sigma * sigma));
+            }
+            float a = clamp(cover, 0.0, 1.0) * profile;
             outColor = vec4(col * a, a);
         `,
   },
@@ -606,7 +614,15 @@ const inkBitGpu = {
             if (inkBit(inkUniforms.uInk0.y, 4.0) > 0.5) {
                 col = col * (0.65 + 0.55 * sin(alongS * 0.04 + inkUniforms.uInk3.w * 6.2831853));
             }
-            let a = clamp(cover, 0.0, 1.0) * (1.0 - smoothstep(0.8, 1.0, abs(vUV.y)));
+            let edge = abs(vUV.y);
+            let glow = inkUniforms.uRgb.a;
+            var profile = 1.0 - smoothstep(0.8, 1.0, edge);
+            if (glow > 0.5) {
+                let dist = edge * inkUniforms.uInk0.x * 0.5;
+                let sigma = max(glow * 0.55, 0.5);
+                profile = exp(-(dist * dist) / (2.0 * sigma * sigma));
+            }
+            let a = clamp(cover, 0.0, 1.0) * profile;
             outColor = vec4<f32>(col * a, a);
         `,
   },
@@ -839,7 +855,7 @@ async function mountInk(host) {
     b[0] = o.period; b[1] = o.dashOn; b[2] = o.off; b[3] = o.len;
     c[0] = o.sliceA; c[1] = o.sliceN; c[2] = o.sliceT; c[3] = o.cap;
     d[0] = o.headS; d[1] = o.tail; d[2] = o.sign; d[3] = o.extra || 0;
-    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = 1;
+    r[0] = o.rgb[0]; r[1] = o.rgb[1]; r[2] = o.rgb[2]; r[3] = o.glow || 0;
     g.update();
     pass.mesh.visible = o.on;
     pass.mesh.alpha = o.alpha;
@@ -922,7 +938,7 @@ async function mountInk(host) {
 
     if (ribbon) {
       const show = alpha > 0.004;
-      pushPass(passes.halo, Object.assign({ on: show && !ghost && glowPx > 0, alpha: Math.min(0.55, alpha * 0.5), width: sw + glowPx * 1.6, rgb }, shared));
+      pushPass(passes.halo, Object.assign({ on: show && !ghost && glowPx > 0, alpha: Math.min(0.85, alpha * 0.75), width: sw + glowPx * 2, rgb, glow: glowPx }, shared));
       pushPass(passes.core, Object.assign({ on: show && !ghost, alpha, width: sw, rgb }, shared));
       const hot = show && !ghost && pose.width > 1.05;
       pushPass(passes.hot, Object.assign({ on: hot, alpha: Math.min(0.5, (pose.width - 1) * 0.35) * alpha, width: sw * 0.45, rgb: [1, 1, 1] }, shared));
@@ -1084,7 +1100,12 @@ async function mountInk(host) {
       } else traceSpan(g, op, span.s0, span.s1);
       g.stroke(strokeStyle(width, col, a));
     }
-    if (!ghost && glowPx > 0) stroke(haloG, 0, 0, sw + glowPx * 1.6, color, Math.min(0.55, alpha * 0.5));
+    if (!ghost && glowPx > 0) {
+      const ha = Math.min(0.85, alpha * 0.75);
+      stroke(haloG, 0, 0, sw + glowPx * 2, color, ha * 0.18);
+      stroke(haloG, 0, 0, sw + glowPx, color, ha * 0.32);
+      stroke(haloG, 0, 0, sw + glowPx * 0.4, color, ha * 0.5);
+    }
     if (!ghost) stroke(coreG, 0, 0, sw, color, alpha);
     if (Math.hypot(sx, sy) > 0.2) {
       const ca = ghost ? alpha : alpha * 0.55;
@@ -1191,4 +1212,7 @@ async function mountInk(host) {
   const left = box.pts.find(p => p.x < 1);
   const left2 = inn.pts[box.pts.indexOf(left)];
   if (!left || !left2 || left2.x < 9) throw new Error("ink inner inset");
+  const glowW = 5 + 40 * 2, sigma = Math.max(40 * 0.55, 0.5);
+  const fall = Math.exp(-((glowW * 0.5) * (glowW * 0.5)) / (2 * sigma * sigma));
+  if (!(fall > 0.01 && fall < 0.2)) throw new Error("ink glow falloff");
 })();
