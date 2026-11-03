@@ -206,6 +206,48 @@ function fxOf(recipe, id) {
   return (recipe.fx || []).find(f => f.id === id) || null;
 }
 
+function dashMarks(dash) {
+  const n = String(dash || "").trim().split(/[\s,]+/).map(Number).filter(v => v > 0);
+  return { on: n[0] || 0, off: n[1] || 0 };
+}
+
+function recipeExtras(src) {
+  const m = dashMarks(src && src.dash);
+  const head = fxOf(src, "head");
+  const chroma = fxOf(src, "chroma");
+  const out = {};
+  if (m.on && m.off) {
+    out.dashOn = m.on;
+    out.dashOff = m.off;
+  }
+  if (head) out.head = head.px != null ? head.px : 0;
+  if (chroma) out.split = chroma.px != null ? chroma.px : 0;
+  return out;
+}
+
+function tintOk(src) {
+  if (!src) return false;
+  const keys = (src.base && src.base.length ? src.base : src.keys) || [];
+  if (keys.some(k => k.hue != null && k.hue !== "")) return false;
+  return !fxOf(src, "fire") && !fxOf(src, "chroma");
+}
+
+function applyTuneExtras(base, tune) {
+  const on = Number(tune.dashOn);
+  const off = Number(tune.dashOff);
+  if (on > 0 && off > 0 && base.dash) base.dash = on + " " + off;
+  if (tune.head != null && tune.head !== "") {
+    const px = Number(tune.head);
+    const f = fxOf(base, "head");
+    if (f && px === px) f.px = px;
+  }
+  if (tune.split != null && tune.split !== "") {
+    const px = Number(tune.split);
+    const f = fxOf(base, "chroma");
+    if (f && px === px) f.px = px;
+  }
+}
+
 function recipeBase(recipe) {
   const keys = recipe.base && recipe.base.length ? recipe.base : (recipe.keys || []);
   return {
@@ -215,7 +257,7 @@ function recipeBase(recipe) {
     dash: recipe.dash || "",
     ms: recipe.ms,
     ease: recipe.ease || "ease",
-    fx: recipe.fx || [],
+    fx: (recipe.fx || []).map(f => Object.assign({}, f)),
     keys: keys.map(k => Object.assign({}, k)),
   };
 }
@@ -223,11 +265,13 @@ function recipeBase(recipe) {
 function recipeTuned(src, tune, loop) {
   if (!src) return null;
   if (!tune) return src;
-  const baked = bakeRecipe(recipeBase(src), {
+  const base = recipeBase(src);
+  applyTuneExtras(base, tune);
+  const baked = bakeRecipe(base, {
     label: src.label,
     ms: tune.ms,
     ease: tune.ease,
-    color: tune.color || "",
+    color: tintOk(src) ? (tune.color || "") : "",
     strength: tune.strength != null ? tune.strength : 1,
   });
   baked.id = src.id;
@@ -476,6 +520,15 @@ function maskCanvas(d) {
   }
   return c;
 }
+
+(function recipeTuneCheck() {
+  const dash = recipeTuned(recipeById("dash", true), { ms: 1200, ease: "linear", strength: 1, dashOn: 24, dashOff: 8 }, true);
+  if (!dash || dash.dash !== "24 8") throw new Error("tune dash");
+  const chroma = recipeTuned(recipeById("chroma", true), { ms: 2400, ease: "ease-in-out", strength: 1, split: 7, color: "#ff00ff" }, true);
+  const fx = fxOf(chroma, "chroma");
+  if (!fx || fx.px !== 7) throw new Error("tune split");
+  if ((chroma.keys || []).some(k => k.color === "#ff00ff")) throw new Error("tune chroma tint");
+})();
 
 (function maskCheck() {
   const c = maskCanvas({ kind: "roundrect", width: 80, height: 80, x: 20, y: 20, w: 40, h: 40, r: 0, feather: 8 });
