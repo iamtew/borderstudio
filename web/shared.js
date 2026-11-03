@@ -513,8 +513,13 @@ function maskCanvas(d) {
 })();
 
 function fireOverlayAnim(kind, tune) {
-  const ink = window.overlayInk;
+  const ink = window.overlayInk || window.designInk;
   if (!ink) return;
   const hit = recipeById(kind, false) || recipeById("pulse", false);
   ink.play(recipeTuned(hit, tune, false), true);
+}
+
+function fireNamedEvent(d, id) {
+  const evn = ((d && d.events) || []).find((e) => e.id === id);
+  fireOverlayAnim(evn ? evn.anim : id, evn && evn.tune);
 }

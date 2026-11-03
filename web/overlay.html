@@ -50,9 +50,7 @@
       es.onmessage = (ev) => {
         const msg = (ev.data || "").trim();
         if (msg.startsWith("event ")) {
-          const id = msg.slice(6);
-          const evn = (d && d.events || []).find(e => e.id === id);
-          fireOverlayAnim(evn ? evn.anim : id, evn && evn.tune);
+          fireNamedEvent(d, msg.slice(6));
           return;
         }
         if (msg === "update" || msg === "hello") load();

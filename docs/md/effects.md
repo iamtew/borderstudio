@@ -46,4 +46,4 @@ Chroma burst hides the solid stroke and draws soft cyan and magenta copies that 
 
 Fire a button while OBS is on the `Border Studio` scene (or any scene that nests it) to see it on stream. The overlay URL must stay alive: leave **Shutdown source when not visible** off on the browser source.
 
-Each button also fires with a GET to `/fx/<id>` (same as **Play** / a pad click). `POST /api/event` with `{"name":"<id>"}` still works.
+Each button also fires with a GET to `/fx/<id>` (same as **Play** / a pad click). Overlay and the Designer stage both play it. `POST /api/event` with `{"name":"<id>"}` still works.

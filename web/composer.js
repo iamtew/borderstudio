@@ -211,10 +211,6 @@ function paintCtrl() {
 
 function fireFx(ev) {
   fetch("/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: ev.id }) });
-  const ink = window.designInk;
-  if (!ink || !d) return;
-  const src = recipeById(ev.anim, false) || recipeById("pulse", false);
-  ink.play(recipeTuned(src, ev.tune || tuneOfRecipe(src), false), true);
 }
 
 function openFx(i) {
@@ -2083,6 +2079,10 @@ async function boot() {
   };
   es.onmessage = (ev) => {
     const msg = (ev.data || "").trim();
+    if (msg.startsWith("event ")) {
+      fireNamedEvent(d, msg.slice(6));
+      return;
+    }
     if (msg === "update" || msg === "hello") { pullDesign(); pullAnims(); pullLibs.forEach((fn) => fn()); }
   };
 }
