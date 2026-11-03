@@ -119,6 +119,13 @@
         </div>
         <div class="win-body pane-mask">
           <div class="sect">
+          <div class="win-title">Shapes</div>
+          <div id="mask-list" class="lib-list"></div>
+          <label>Name <input id="mask-name" type="text" autocomplete="off" spellcheck="false" placeholder="My mask"></label>
+          <button type="button" id="mask-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
+          <button type="button" id="mask-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete</button>
+          </div>
+          <div class="sect">
           <div class="win-title">Shape</div>
           <label>Kind
             <select id="in-kind">
@@ -247,6 +254,14 @@
         </div>
         <div class="win-body pane-effects">
           <div id="fx-list">
+            <div class="sect">
+            <div class="win-title">Boards</div>
+            <div id="board-list" class="lib-list"></div>
+            <label>Name <input id="board-name" type="text" autocomplete="off" spellcheck="false" placeholder="My board"></label>
+            <button type="button" id="board-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
+            <button type="button" id="board-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete</button>
+            <button type="button" id="board-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset</button>
+            </div>
             <div id="ctrl-grid"></div>
             <button type="button" id="btn-ev-add"><span class="ti ti-plus" aria-hidden="true"></span> Add effect</button>
           </div>

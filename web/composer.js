@@ -905,13 +905,29 @@ document.getElementById("btn-add").onclick = () => {
 document.getElementById("btn-del").onclick = delPoint;
 
 let clearDesignPick = async () => {};
+let clearMaskPick = async () => {};
+let clearBoardPick = async () => {};
 
-async function resetDesign() {
+async function postLive(path) {
   pushHist();
-  const res = await fetch("/api/design/reset", { method: "POST" });
-  if (!res.ok) { banner.hidden = false; return; }
+  const res = await fetch(path, { method: "POST" });
+  if (!res.ok) { banner.hidden = false; return false; }
   d = await res.json();
   lastSeen = JSON.stringify(d);
+  return true;
+}
+
+async function resetHole() {
+  if (!await postLive("/api/design/reset-mask")) return;
+  sel = 0;
+  sizeCustom = false;
+  pushHist();
+  paint();
+  await clearMaskPick();
+}
+
+async function resetDesign() {
+  if (!await postLive("/api/design/reset")) return;
   sel = 0;
   sizeCustom = false;
   pushHist();
@@ -919,7 +935,16 @@ async function resetDesign() {
   await clearDesignPick();
 }
 
-document.getElementById("btn-reset").onclick = resetDesign;
+async function resetBoard() {
+  if (!await postLive("/api/design/reset-events")) return;
+  if (ctrlSel >= (d.events || []).length) ctrlSel = Math.max(0, (d.events || []).length - 1);
+  if (fxEdit && !(d.events || [])[ctrlSel]) fxEdit = false;
+  pushHist();
+  paint();
+  await clearBoardPick();
+}
+
+document.getElementById("btn-reset").onclick = resetHole;
 document.getElementById("file-reset").onclick = () => { menu.hidden = true; resetDesign(); };
 
 function lookInput(el, fn) {
@@ -1311,6 +1336,33 @@ function applyVisual(body) {
   d.events = events || [];
 }
 
+function maskOf(src) {
+  return JSON.parse(JSON.stringify({
+    width: src.width, height: src.height, kind: src.kind || "",
+    points: src.points || [], x: src.x || 0, y: src.y || 0,
+    w: src.w || 0, h: src.h || 0, r: src.r || 0, feather: src.feather || 0,
+  }));
+}
+
+function applyMask(body) {
+  d.width = body.width;
+  d.height = body.height;
+  d.kind = body.kind || "";
+  d.points = body.points || [];
+  d.x = body.x || 0;
+  d.y = body.y || 0;
+  d.w = body.w || 0;
+  d.h = body.h || 0;
+  d.r = body.r || 0;
+  d.feather = body.feather || 0;
+}
+
+function applyBoard(body) {
+  d.events = Array.isArray(body) ? body : [];
+  if (ctrlSel >= d.events.length) ctrlSel = Math.max(0, d.events.length - 1);
+  if (fxEdit && !d.events[ctrlSel]) fxEdit = false;
+}
+
 // Named snapshots. capture/apply decide which slice of the live design moves.
 function bindLib(opts) {
   let doc = { selected: "", items: [] };
@@ -1430,6 +1482,30 @@ const designs = bindLib({
   apply: applyVisual,
 });
 clearDesignPick = designs.clearSelected;
+
+const masks = bindLib({
+  key: "masks",
+  listId: "mask-list",
+  nameId: "mask-name",
+  saveId: "mask-save",
+  delId: "mask-del",
+  touchSize: true,
+  capture: () => maskOf(d),
+  apply: applyMask,
+});
+clearMaskPick = masks.clearSelected;
+
+const boards = bindLib({
+  key: "boards",
+  listId: "board-list",
+  nameId: "board-name",
+  saveId: "board-save",
+  delId: "board-del",
+  capture: () => JSON.parse(JSON.stringify(d.events || [])),
+  apply: applyBoard,
+});
+clearBoardPick = boards.clearSelected;
+document.getElementById("board-reset").onclick = resetBoard;
 
 function designFileOk(parsed) {
   if (!parsed || parsed.borderstudio !== "designs" || parsed.version !== 1 || !Array.isArray(parsed.items)) return false;
