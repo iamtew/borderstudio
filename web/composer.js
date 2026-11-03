@@ -113,9 +113,12 @@ function paint() {
     if (!fxEdit) window.designInk.playIdle(d);
   }
   paintStrokeWell();
+  paintInnerWell();
   fillPair("in-width", "in-width-r", d.strokeWidth);
   fillPair("in-glow", "in-glow-r", d.glow);
   fillPair("in-blur", "in-blur-r", d.blur || 0);
+  fillPair("in-inner-width", "in-inner-width-r", d.innerStrokeWidth || 0);
+  fillPair("in-inner-blur", "in-inner-blur-r", d.innerBlur || 0);
   fillPair("in-feather", "in-feather-r", d.feather || 0);
   fillMotionSelect(document.getElementById("in-motion"), motionOf(d));
   paintTune();
@@ -278,8 +281,18 @@ function paintStrokeWell() {
   paintColor(document.getElementById("in-stroke"), document.getElementById("in-stroke-hex"), d.stroke || "#e6f350");
 }
 
+function paintInnerWell() {
+  paintColor(document.getElementById("in-inner"), document.getElementById("in-inner-hex"), d.innerStroke || "#333333");
+}
+
 function setStroke(hex) {
   d.stroke = hex;
+  paint();
+  scheduleSave();
+}
+
+function setInnerStroke(hex) {
+  d.innerStroke = hex;
   paint();
   scheduleSave();
 }
@@ -976,26 +989,32 @@ function bindPair(numId, rangeId, fn) {
 function onReset(id, fn) {
   document.getElementById(id).onclick = () => { pushHist(); fn(); paint(); scheduleSave(); };
 }
-const strokeBtn = document.getElementById("in-stroke");
-const strokeHex = document.getElementById("in-stroke-hex");
-strokeBtn.onclick = (ev) => {
-  ev.stopPropagation();
-  pushHist();
-  openIro(strokeBtn, strokeHex, (hex) => setStroke(hex));
-};
-strokeHex.addEventListener("focus", pushHist);
-strokeHex.oninput = () => {
-  const h = parseHex(strokeHex.value);
-  if (!h) return;
-  paintColor(strokeBtn, strokeHex, h);
-  if (iroPick && !document.getElementById("iro-pop").hidden) {
-    try { iroPick.color.set(h); } catch (e) {}
-  }
-  setStroke(h);
-};
+function bindSwatch(btnId, hexId, apply) {
+  const btn = document.getElementById(btnId);
+  const hexInp = document.getElementById(hexId);
+  btn.onclick = (ev) => {
+    ev.stopPropagation();
+    pushHist();
+    openIro(btn, hexInp, apply);
+  };
+  hexInp.addEventListener("focus", pushHist);
+  hexInp.oninput = () => {
+    const h = parseHex(hexInp.value);
+    if (!h) return;
+    paintColor(btn, hexInp, h);
+    if (iroPick && !document.getElementById("iro-pop").hidden) {
+      try { iroPick.color.set(h); } catch (e) {}
+    }
+    apply(h);
+  };
+}
+bindSwatch("in-stroke", "in-stroke-hex", (hex) => setStroke(hex));
+bindSwatch("in-inner", "in-inner-hex", (hex) => setInnerStroke(hex));
 bindPair("in-width", "in-width-r", () => { d.strokeWidth = Math.max(1, Number(document.getElementById("in-width").value) || 1); });
 bindPair("in-glow", "in-glow-r", () => { d.glow = Math.max(0, Number(document.getElementById("in-glow").value) || 0); });
 bindPair("in-blur", "in-blur-r", () => { d.blur = Math.max(0, Number(document.getElementById("in-blur").value) || 0); });
+bindPair("in-inner-width", "in-inner-width-r", () => { d.innerStrokeWidth = Math.max(0, Number(document.getElementById("in-inner-width").value) || 0); });
+bindPair("in-inner-blur", "in-inner-blur-r", () => { d.innerBlur = Math.max(0, Number(document.getElementById("in-inner-blur").value) || 0); });
 bindPair("in-feather", "in-feather-r", () => { d.feather = Math.max(0, Math.min(64, Number(document.getElementById("in-feather").value) || 0)); });
 lookInput(document.getElementById("in-motion"), () => {
   d.motion = document.getElementById("in-motion").value;
@@ -1009,6 +1028,9 @@ onReset("in-glow-reset", () => { d.glow = 8; });
 onReset("in-blur-reset", () => { d.blur = 0; });
 onReset("in-feather-reset", () => { d.feather = 0; });
 onReset("in-stroke-reset", () => { d.stroke = "#e6f350"; });
+onReset("in-inner-reset", () => { d.innerStroke = "#333333"; });
+onReset("in-inner-width-reset", () => { d.innerStrokeWidth = 0; });
+onReset("in-inner-blur-reset", () => { d.innerBlur = 0; });
 onReset("in-motion-reset", () => { d.motion = "none"; d.dash = false; d.motionTune = null; });
 onReset("in-radius-reset", () => { d.r = 0; });
 function readTune() {

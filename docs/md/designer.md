@@ -64,6 +64,8 @@ The header pill shows **OBS connected** or **OBS offline** (click it for OBS set
 
 **Stroke** fold (open by default): color via iro.js (box + hue + alpha) and a hex field. Thickness 1–80 (default 12), glow 0–80 (default 8), blur 0–64 (default 0). Stroke reset is `#e6f350`. Palette chips sit under the picker.
 
+**Inner Stroke** fold (under Stroke): a second band on the hole edge that thickens inward. Color (default `#333333`), thickness 0–80 (default 0, off), blur 0–64 (default 0) which only softens the inside edge. Motion does not move it off the mask.
+
 **Effects** is the one-shot board. See [Effects](effects.md).
 
 The stage is a dark checkerboard (transparent). Glow and blur read against it. Designer mode still shows the webcam in the hole, using the same feathered mask as OBS.

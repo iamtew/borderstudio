@@ -42,10 +42,13 @@ type design struct {
 	W           float64     `json:"w,omitempty"`
 	H           float64     `json:"h,omitempty"`
 	R           float64     `json:"r,omitempty"` // roundrect corner radius
-	Stroke      string      `json:"stroke"`
-	StrokeWidth float64     `json:"strokeWidth"`
-	Glow        float64     `json:"glow"`
-	Blur        float64     `json:"blur"`
+	Stroke           string      `json:"stroke"`
+	StrokeWidth      float64     `json:"strokeWidth"`
+	Glow             float64     `json:"glow"`
+	Blur             float64     `json:"blur"`
+	InnerStroke      string      `json:"innerStroke"`
+	InnerStrokeWidth float64     `json:"innerStrokeWidth"`
+	InnerBlur        float64     `json:"innerBlur"`
 	Feather     float64     `json:"feather"`
 	Dash        bool        `json:"dash"`
 	Motion      string      `json:"motion,omitempty"`
@@ -752,9 +755,12 @@ func defaultDesign() design {
 		Width:       1920,
 		Height:      1080,
 		Kind:        "polygon",
-		Stroke:      "#e6f350",
-		StrokeWidth: 12,
-		Glow:        8,
+		Stroke:           "#e6f350",
+		StrokeWidth:      12,
+		Glow:             8,
+		InnerStroke:      "#333333",
+		InnerStrokeWidth: 0,
+		InnerBlur:        0,
 		Dash:        false,
 		Points: []point{
 			{X: m + r, Y: m}, {X: w - m - r, Y: m}, {X: w - m, Y: m + r}, {X: w - m, Y: h - m - r},

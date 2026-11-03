@@ -58,6 +58,9 @@ func TestStoreRoundtrip(t *testing.T) {
 	}
 	defer st.close()
 	d.Stroke = "#FF00FF"
+	d.InnerStroke = "#333333"
+	d.InnerStrokeWidth = 18
+	d.InnerBlur = 6
 	if err := st.save(d); err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +68,7 @@ func TestStoreRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Stroke != "#FF00FF" || len(got.Points) != len(d.Points) {
+	if got.Stroke != "#FF00FF" || got.InnerStroke != "#333333" || got.InnerStrokeWidth != 18 || got.InnerBlur != 6 || len(got.Points) != len(d.Points) {
 		t.Fatalf("roundtrip %+v", got)
 	}
 	d.Motion = "rainbow"
