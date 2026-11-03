@@ -109,8 +109,7 @@ body.admin .win-body .win-title { padding: 12px 0 4px; }
 #sidebar .fold:last-child { margin-bottom: 0; }
 #sidebar .fold:not([open]) { padding-bottom: 0; }
 #sidebar .pane-mask > .fold:nth-child(1) { --rail: var(--accent); }
-#sidebar .pane-mask > .fold:nth-child(2) { --rail: var(--accent2); }
-#sidebar .pane-mask > .fold:nth-child(3) { --rail: #f3c14b; }
+#sidebar .pane-mask > .fold:nth-child(2) { --rail: #f3c14b; }
 #sidebar .pane-border > .fold:nth-child(1) { --rail: var(--accent); }
 #sidebar .pane-border > .fold:nth-child(2) { --rail: var(--accent2); }
 body.admin .fold > summary {
@@ -290,12 +289,27 @@ body.about { display: block; text-align: center; overflow: hidden; }
 #iro-pal-sel { font-family: inherit; }
 #iro-pal-chips { display: flex; flex-wrap: wrap; gap: 4px; width: 200px; margin-top: 8px; }
 .pal-chip { width: 40px !important; height: 32px; padding: 0 !important; flex: none; cursor: pointer; }
-#settings-overlay {
-  position: fixed; inset: 0; z-index: 45; padding: 96px;
+.blur-overlay {
+  position: fixed; inset: 0;
   background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
 }
-#settings-overlay[hidden] { display: none; }
+.blur-overlay[hidden] { display: none; }
+#settings-overlay { z-index: 45; padding: 96px; }
+#confirm-overlay { z-index: 46; }
+#confirm-panel {
+  width: min(420px, calc(100% - 48px));
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 12px 40px #000a; padding: 16px 18px 14px;
+}
+#confirm-title {
+  color: var(--accent); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+#confirm-panel p { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+#confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+#confirm-actions button { width: auto; margin: 0; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; }
+#confirm-save { color: var(--accent); border-color: var(--accent); }
 #settings-panel {
   width: 100%; height: 100%; display: flex; flex-direction: column; min-height: 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 40px #000a;

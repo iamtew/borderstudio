@@ -56,6 +56,7 @@ let saving = 0;       // PUTs in flight
 let dirty = false;    // last save failed; resent when the event stream reconnects
 let pullAgain = false; // an "update" arrived while we were busy
 let lastSeen = "";    // server copy we already hold (stringified)
+let maskSnap = "";    // last applied/saved hole; compare to maskOf(d) for unsaved edits
 
 function scheduleSave() {
   clearTimeout(saveT);
@@ -95,6 +96,7 @@ async function pullDesign() {
   d = JSON.parse(s);
   sel = Math.min(sel, (d.points && d.points.length) ? d.points.length - 1 : 0);
   sizeCustom = false;
+  maskSnap = JSON.stringify(maskOf(d));
   pushHist();
   paint();
 }
@@ -937,6 +939,7 @@ async function resetHole() {
   pushHist();
   paint();
   await clearMaskPick();
+  maskSnap = JSON.stringify(maskOf(d));
 }
 
 async function resetDesign() {
@@ -1416,16 +1419,31 @@ function bindLib(opts) {
   let missed = false;
   const listEl = document.getElementById(opts.listId);
   const nameEl = document.getElementById(opts.nameId);
+  const isSelect = listEl.tagName === "SELECT";
   function paintLib() {
     listEl.replaceChildren();
-    doc.items.forEach((it) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = it.name;
-      b.classList.toggle("sel", it.id === doc.selected);
-      b.onclick = () => pick(it.id);
-      listEl.appendChild(b);
-    });
+    if (isSelect) {
+      const blank = document.createElement("option");
+      blank.value = "";
+      blank.textContent = "Custom";
+      listEl.appendChild(blank);
+      doc.items.forEach((it) => {
+        const o = document.createElement("option");
+        o.value = it.id;
+        o.textContent = it.name;
+        listEl.appendChild(o);
+      });
+      listEl.value = doc.selected || "";
+    } else {
+      doc.items.forEach((it) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = it.name;
+        b.classList.toggle("sel", it.id === doc.selected);
+        b.onclick = () => pick(it.id);
+        listEl.appendChild(b);
+      });
+    }
     if (document.activeElement !== nameEl) nameEl.value = (doc.items.find((it) => it.id === doc.selected) || {}).name || "";
     const del = document.getElementById(opts.delId);
     if (del) del.hidden = !doc.selected;
@@ -1460,7 +1478,27 @@ function bindLib(opts) {
     paintLib();
     return true;
   }
-  async function pick(id) {
+  async function pick(id, force) {
+    id = id || "";
+    if (!force && id === (doc.selected || "")) return;
+    if (!force && id && opts.guard && opts.guard()) {
+      if (isSelect) listEl.value = doc.selected || "";
+      if (opts.onAsk) opts.onAsk(id);
+      return;
+    }
+    if (!id) {
+      if (!doc.selected) return;
+      hold++;
+      try {
+        doc = { selected: "", items: doc.items };
+        paintLib();
+        await persist();
+      } finally {
+        hold--;
+        if (!hold && missed) { missed = false; await load(); }
+      }
+      return;
+    }
     const it = doc.items.find((x) => x.id === id);
     if (!it) return;
     hold++;
@@ -1474,6 +1512,7 @@ function bindLib(opts) {
       paint();
       doc.selected = id;
       paintLib();
+      if (opts.onApplied) opts.onApplied();
       await save();
       await persist();
     } finally {
@@ -1481,9 +1520,13 @@ function bindLib(opts) {
       if (!hold && missed) { missed = false; await load(); }
     }
   }
-  document.getElementById(opts.saveId).onclick = async () => {
-    const name = nameEl.value.trim();
-    if (!name) return;
+  async function saveItem() {
+    let name = nameEl.value.trim();
+    if (!name && doc.selected) {
+      const cur = doc.items.find((it) => it.id === doc.selected);
+      name = cur ? cur.name : "";
+    }
+    if (!name) return false;
     const items = doc.items.map((it) => ({ id: it.id, name: it.name, body: it.body }));
     const clash = items.find((it) => it.name.toLowerCase() === name.toLowerCase());
     let selected = doc.selected;
@@ -1496,17 +1539,23 @@ function bindLib(opts) {
       selected = items[items.length - 1].id;
     }
     doc = { selected, items };
-    await persist();
-  };
+    const ok = await persist();
+    if (ok && opts.onSaved) opts.onSaved();
+    return ok;
+  }
+  document.getElementById(opts.saveId).onclick = () => saveItem();
   document.getElementById(opts.delId).onclick = async () => {
     if (!doc.selected) return;
     doc = { selected: "", items: doc.items.filter((it) => it.id !== doc.selected) };
     await persist();
   };
+  if (isSelect) listEl.onchange = () => pick(listEl.value);
   pullLibs.push(load);
   load();
   return {
     doc: () => doc,
+    pick,
+    saveItem,
     clearSelected: async () => {
       if (!doc.selected) return;
       doc = { selected: "", items: doc.items };
@@ -1528,6 +1577,14 @@ const designs = bindLib({
 });
 clearDesignPick = designs.clearSelected;
 
+let maskAsk = "";
+function snapMask() { maskSnap = JSON.stringify(maskOf(d)); }
+function maskDirty() { return JSON.stringify(maskOf(d)) !== maskSnap; }
+function confirmOpen() { return !document.getElementById("confirm-overlay").hidden; }
+function closeConfirm() {
+  maskAsk = "";
+  document.getElementById("confirm-overlay").hidden = true;
+}
 const masks = bindLib({
   key: "masks",
   listId: "mask-list",
@@ -1537,8 +1594,29 @@ const masks = bindLib({
   touchSize: true,
   capture: () => maskOf(d),
   apply: applyMask,
+  guard: maskDirty,
+  onAsk: (id) => {
+    maskAsk = id;
+    document.getElementById("confirm-overlay").hidden = false;
+  },
+  onApplied: snapMask,
+  onSaved: snapMask,
 });
 clearMaskPick = masks.clearSelected;
+document.getElementById("confirm-discard").onclick = async () => {
+  const id = maskAsk;
+  closeConfirm();
+  await masks.pick(id, true);
+};
+document.getElementById("confirm-save").onclick = async () => {
+  if (!await masks.saveItem()) return;
+  const id = maskAsk;
+  closeConfirm();
+  await masks.pick(id, true);
+};
+document.getElementById("confirm-overlay").onclick = (ev) => {
+  if (ev.target.id === "confirm-overlay") closeConfirm();
+};
 
 const boards = bindLib({
   key: "boards",
@@ -1903,6 +1981,11 @@ addEventListener("keydown", ev => {
     closeCtx();
     return;
   }
+  if (ev.key === "Escape" && confirmOpen()) {
+    ev.preventDefault();
+    closeConfirm();
+    return;
+  }
   if (ev.key === "Escape" && settingsOpen()) {
     ev.preventDefault();
     closeSettings();
@@ -1929,6 +2012,7 @@ async function boot() {
     await new Promise(r => setTimeout(r, 1000));
   }
   lastSeen = JSON.stringify(d);
+  snapMask();
   await loadPalettes();
   await loadAnims();
   pushHist();

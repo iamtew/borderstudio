@@ -48,13 +48,15 @@ The header pill shows **OBS connected** or **OBS offline** (click it for OBS set
 
 **Mask** is the camera hole.
 
+**Shape** fold: stored holes, then the live kind and geometry.
+
+**Stored** is a dropdown of saved holes. **Custom** means the live hole is not tied to a name. Pick a name to use that hole and canvas size. The border and the effect buttons stay. If the hole has changed since it was loaded or saved, switching asks **Save** or **Discard** (Escape or click outside cancels). **Save** stores the current hole under **Name** (same name overwrites). **Delete** removes the selected hole.
+
 **Kind:** polygon, rounded rect, circle, or oval.
 
 - **Polygon:** click empty stage to add a vertex. Click a corner vertex *without dragging* to smooth it into a bezier; drag the handles to tune it. Clicking an already-smooth vertex does not unsmooth it. Right-click a vertex for **Delete point** (minimum three points). Delete / Backspace also deletes the selected vertex. Buttons: **Add point**, **Delete point**.
 - **Rounded rect:** **Corner radius** 0–512, plus an on-stage radius handle.
 - **Circle / oval:** drag the hole; eight box handles resize it.
-
-**Shapes**, at the top of this tab, stores holes. Click a name to use that hole and canvas size. The border and the effect buttons stay. **Save** stores the current hole under **Name** (same name overwrites). **Delete** removes the selected hole.
 
 **Feather** (0–64) blurs the hole edge (soft mask). **Size** is the hole: 720p (1280×720), 1080p (1920×1080), or Custom (width/height, min 16). Stroke and glow can extend outside the hole; the OBS overlay pads for that. **Preview** shows the black/white mask PNG. **Reset all** puts back the default chamfer and 1920×1080. Stroke, motion, and effect buttons stay.
 
