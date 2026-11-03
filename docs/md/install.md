@@ -1,12 +1,14 @@
-# Install from source
+# For Developers
 
 Streamers: use the MSI (`borderstudio-*-win-x64.msi`) on [GitHub Releases](https://github.com/iamtew/borderstudio/releases/latest). This page is for building from a clone.
+
+Runtime still needs **OBS** and **[Advanced Masks](https://github.com/FiniteSingularity/obs-advanced-masks)** sitting next to the exe you just built. Without the plugin, **Create / Repair scene** cannot attach the mask filter. See [Home](home.md) and [OBS](obs.md).
 
 ```
 just run
 ```
 
-Listens on `http://127.0.0.1:8505`. Use the systray for Designer, Effects, Overlay, Copy URL, Clear browser data, About, and Quit. Windows 10/11 already have WebView2; Designer, Effects, and About use it instead of launching Edge.
+Listens on `http://127.0.0.1:8505`. Use the systray for Designer, Effects, Overlay, Copy URL, Clear browser data, About, and Quit. Windows 10/11 already have WebView2; Designer, Effects, and About use it instead of launching Edge. A second instance refuses to start. If the port is busy, the app dies with a dialog instead of picking another port.
 
 ```
 just build

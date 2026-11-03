@@ -309,6 +309,13 @@ a { color: var(--accent); }
 
 .muted { color: var(--muted); }
 
+.doc .req {
+  border: 1px solid var(--accent);
+  background: var(--field);
+  padding: 12px 14px;
+  margin: 1.2rem 0;
+}
+
 @media (max-width: 800px) {
   .shell { grid-template-columns: 1fr; }
   .nav {

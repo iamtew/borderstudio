@@ -2,6 +2,10 @@
 
 Border Studio is written by **Mikael 'tew'**. Licensed under the [MIT License](https://github.com/iamtew/borderstudio/blob/master/LICENSE).
 
+## Required to run
+
+OBS and the [Advanced Masks](https://github.com/FiniteSingularity/obs-advanced-masks) plugin. Advanced Masks is a **hard dependency**: Create / Repair cannot attach the camera mask without it. Not vendored here; install it in OBS.
+
 ## In the tree
 
 | Piece | License | Notes |
@@ -17,7 +21,3 @@ Full texts sit next to those files (`web/pixi.LICENSE.txt`, `docs/vendor/pixi.LI
 ## Go modules
 
 Direct: [coder/websocket](https://github.com/coder/websocket), [Wails v3](https://v3.wails.io/) (native windows + tray), [modernc.org/sqlite](https://gitlab.com/cznic/sqlite). See `go.mod` for the rest.
-
-## OBS
-
-Owned-scene setup needs [Advanced Masks](https://github.com/FiniteSingularity/obs-advanced-masks) in OBS. Not vendored here.

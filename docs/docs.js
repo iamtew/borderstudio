@@ -1,10 +1,11 @@
 (function () {
   var pages = [
+    { id: "home", title: "Home", icon: "book" },
     { id: "quick-start", title: "Quick Start", icon: "player-play" },
-    { id: "install", title: "Install from source", icon: "download", group: "Build" },
     { id: "designer", title: "Designer", icon: "pencil", group: "App" },
     { id: "effects", title: "Effects", icon: "sparkles", group: "App" },
     { id: "obs", title: "OBS", icon: "broadcast", group: "App" },
+    { id: "install", title: "For Developers", icon: "download", group: "Code" },
     { id: "credits", title: "Credits", icon: "info-circle", group: "About" },
   ];
 
@@ -42,8 +43,8 @@
   }
 
   function currentId() {
-    var id = (location.hash || "#quick-start").replace(/^#/, "");
-    return known(id) ? id : "quick-start";
+    var id = (location.hash || "#home").replace(/^#/, "");
+    return known(id) ? id : "home";
   }
 
   // Markdown links stay as sibling .md files so GitHub renders them.
@@ -62,7 +63,7 @@
 
   function show() {
     var id = currentId();
-    if ((location.hash || "#quick-start").replace(/^#/, "") !== id) {
+    if ((location.hash || "#home").replace(/^#/, "") !== id) {
       history.replaceState(null, "", "#" + id);
     }
     nav.querySelectorAll("a").forEach(function (link) {
