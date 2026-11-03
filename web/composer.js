@@ -1781,10 +1781,7 @@ document.getElementById("set-pal-save").onclick = () => {
   }
   persistPalettes();
 };
-document.getElementById("file-close").onclick = () => {
-  const api = location.pathname === "/control" ? "/api/controller/close" : "/api/designer/close";
-  fetch(api, { method: "POST" });
-};
+document.getElementById("file-close").onclick = () => fetch("/api/designer/close", { method: "POST" });
 document.getElementById("file-quit").onclick = () => fetch("/api/quit", { method: "POST" });
 
 // Designer mode: OBS lets go of the webcam and the stage shows it inside the hole.
@@ -2078,7 +2075,6 @@ async function boot() {
   paint();
   window.designInk = await mountInk(document.getElementById("ink"));
   paint();
-  if (location.pathname === "/control") setSideTab("effects");
   const es = new EventSource("/api/events?admin=1");
   es.onerror = () => { banner.hidden = false; };
   es.onopen = () => {

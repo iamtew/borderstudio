@@ -31,9 +31,9 @@ var runID = strconv.FormatInt(time.Now().UnixNano(), 10)
 var (
 	appMu       sync.Mutex
 	wailsApp    *application.App
-	designerW   *application.WebviewWindow
-	controllerW *application.WebviewWindow
-	aboutW      *application.WebviewWindow
+	designerW *application.WebviewWindow
+	effectsW  *application.WebviewWindow
+	aboutW    *application.WebviewWindow
 )
 
 //go:embed all:web
@@ -165,7 +165,7 @@ func copyText(s string) {
 	_ = cmd.Run()
 }
 
-func overlayURL() string { return "http://" + addr + "/overlay" }
+func effectsURL() string { return "http://" + addr + "/effects" }
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"version": version, "run": runID})
@@ -214,13 +214,12 @@ func openDesigner() {
 	})
 }
 
-func openController() {
-	showOrCreate(&controllerW, application.WebviewWindowOptions{
-		Title:       "Effects",
-		Width:       1280,
-		Height:      800,
-		URL:         "http://" + addr + "/control",
-		Permissions: camPerm(),
+func openEffects() {
+	showOrCreate(&effectsW, application.WebviewWindowOptions{
+		Title:  "Effects",
+		Width:  560,
+		Height: 720,
+		URL:    effectsURL(),
 	})
 }
 
@@ -243,12 +242,11 @@ func closeSlot(slot **application.WebviewWindow) {
 	}
 }
 
-func closeDesignerWindow()   { closeSlot(&designerW) }
-func closeControllerWindow() { closeSlot(&controllerW) }
+func closeDesignerWindow() { closeSlot(&designerW) }
 
 func closeAppWindows() {
 	closeDesignerWindow()
-	closeControllerWindow()
+	closeSlot(&effectsW)
 	closeSlot(&aboutW)
 }
 
@@ -360,7 +358,6 @@ func main() {
 		}
 	}
 	mux.HandleFunc("GET /admin", html("admin.html"))
-	mux.HandleFunc("GET /control", html("admin.html"))
 	mux.HandleFunc("GET /overlay", html("overlay.html"))
 	mux.HandleFunc("GET /mask", html("mask.html"))
 	mux.HandleFunc("GET /about", html("about.html"))
@@ -373,11 +370,6 @@ func main() {
 	})
 	mux.HandleFunc("POST /api/about/close", func(w http.ResponseWriter, r *http.Request) {
 		closeSlot(&aboutW)
-		trayToast("Border Studio", "Still running in the system tray.")
-		w.WriteHeader(204)
-	})
-	mux.HandleFunc("POST /api/controller/close", func(w http.ResponseWriter, r *http.Request) {
-		closeControllerWindow()
 		trayToast("Border Studio", "Still running in the system tray.")
 		w.WriteHeader(204)
 	})
@@ -721,9 +713,8 @@ func main() {
 	tray.SetTooltip("Border Studio")
 	menu := wailsApp.Menu.New()
 	menu.Add("Designer").SetBitmap(trayIcon("pencil")).OnClick(func(_ *application.Context) { openDesigner() })
-	menu.Add("Effects").SetBitmap(trayIcon("sparkles")).OnClick(func(_ *application.Context) { openController() })
-	menu.Add("Overlay").SetBitmap(trayIcon("border-corners")).OnClick(func(_ *application.Context) { openURL(overlayURL()) })
-	menu.Add("Copy URL").SetBitmap(trayIcon("copy")).OnClick(func(_ *application.Context) { copyText(overlayURL()) })
+	menu.Add("Effects").SetBitmap(trayIcon("sparkles")).OnClick(func(_ *application.Context) { openEffects() })
+	menu.Add("Copy effects URL").SetBitmap(trayIcon("copy")).OnClick(func(_ *application.Context) { copyText(effectsURL()) })
 	menu.AddSeparator()
 	menu.Add("Clear browser data").SetBitmap(trayIcon("browser-x")).OnClick(func(_ *application.Context) {
 		if !confirm("Border Studio", "Close Designer, Effects, and About and delete saved WebView data?") {
