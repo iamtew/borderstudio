@@ -118,15 +118,15 @@
           <button type="button" id="tab-effects" role="tab" aria-selected="false"><span class="ti ti-sparkles" aria-hidden="true"></span> Effects</button>
         </div>
         <div class="win-body pane-mask">
-          <div class="sect">
-          <div class="win-title">Shapes</div>
+          <details class="fold" open>
+          <summary class="win-title"><span class="ti ti-stack-2" aria-hidden="true"></span> Shapes</summary>
           <div id="mask-list" class="lib-list"></div>
           <label>Name <input id="mask-name" type="text" autocomplete="off" spellcheck="false" placeholder="My mask"></label>
           <button type="button" id="mask-save"><span class="ti ti-device-floppy" aria-hidden="true"></span> Save</button>
           <button type="button" id="mask-del" hidden><span class="ti ti-trash" aria-hidden="true"></span> Delete</button>
-          </div>
-          <div class="sect">
-          <div class="win-title">Shape</div>
+          </details>
+          <details class="fold" open>
+          <summary class="win-title"><span class="ti ti-pencil" aria-hidden="true"></span> Shape</summary>
           <label>Kind
             <select id="in-kind">
               <option value="polygon">Polygon</option>
@@ -152,9 +152,9 @@
             </span>
           </label>
           <button type="button" id="btn-reset"><span class="ti ti-arrow-back-up" aria-hidden="true"></span> Reset all</button>
-          </div>
-          <div class="sect">
-          <div class="win-title">Size</div>
+          </details>
+          <details class="fold" open>
+          <summary class="win-title"><span class="ti ti-layout-grid" aria-hidden="true"></span> Size</summary>
           <div id="size-presets" role="radiogroup" aria-label="Size">
             <button type="button" id="size-720" role="radio" aria-checked="false">720p</button>
             <button type="button" id="size-1080" role="radio" aria-checked="true" class="sel">1080p</button>
@@ -164,11 +164,11 @@
             <label>Width <input id="in-mw" type="number" min="16" step="1"></label>
             <label>Height <input id="in-mh" type="number" min="16" step="1"></label>
           </div>
-          </div>
-          <div class="sect">
-          <div class="win-title">Preview</div>
+          </details>
+          <details class="fold" open>
+          <summary class="win-title"><span class="ti ti-video" aria-hidden="true"></span> Preview</summary>
           <img id="mask-prev" alt="Mask preview">
-          </div>
+          </details>
         </div>
         <div class="win-body pane-border" id="inspector">
           <details class="fold" open>
