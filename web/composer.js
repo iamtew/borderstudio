@@ -146,11 +146,6 @@ function tuneOfRecipe(src) {
   return { ms: src.ms, ease: src.ease || "ease", color: src.color || "", strength: src.strength != null ? src.strength : 1 };
 }
 
-function nextFxBtn() {
-  const used = new Set((d.events || []).map((e) => fxBtnColor(e.btn)));
-  return FX_BTN_COLORS.find((c) => !used.has(c)) || FX_BTN_COLORS[(d.events || []).length % FX_BTN_COLORS.length];
-}
-
 function moveEvent(from, to) {
   if (from === to || from < 0 || to < 0) return;
   const events = d.events || [];
@@ -1393,7 +1388,7 @@ document.getElementById("btn-ev-add").onclick = () => {
   d.events = d.events || [];
   const used = new Set(d.events.map(e => e.anim));
   const a = eventCatalog().find(x => !used.has(x.id)) || EVENT_ANIMS[0];
-  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id, tune: tuneOfRecipe(a), btn: nextFxBtn() });
+  d.events.push({ id: uniqueEventId(slug(eventButtonName(a)) || a.id), label: eventButtonName(a), anim: a.id, tune: tuneOfRecipe(a), btn: nextFxBtn(d.events) });
   ctrlSel = d.events.length - 1;
   paintCtrl();
   scheduleSave();

@@ -175,6 +175,27 @@ const RECIPES = [
 
 const MOTION_KINDS = RECIPES.filter(r => r.loop).map(r => ({ id: r.id, label: r.label, group: r.group }));
 const EVENT_ANIMS = RECIPES.filter(r => !r.loop).map(r => ({ id: r.id, label: r.label, ms: r.ms, group: r.group }));
+// Same list as fxBtnColors in store.go. Unknown/empty → first chip.
+const FX_BTN_COLORS = ["#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e", "#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72"];
+
+function fxBtnColor(hex) {
+  const h = String(hex || "").toLowerCase();
+  return FX_BTN_COLORS.includes(h) ? h : FX_BTN_COLORS[0];
+}
+
+function fxFireUrl(id) {
+  return location.origin + "/fx/" + encodeURIComponent(id || "");
+}
+
+function paintFxBtn(el, hex) {
+  el.style.setProperty("--fx", fxBtnColor(hex));
+}
+
+function nextFxBtn(events) {
+  events = events || [];
+  const used = new Set(events.map((e) => fxBtnColor(e.btn)));
+  return FX_BTN_COLORS.find((c) => !used.has(c)) || FX_BTN_COLORS[events.length % FX_BTN_COLORS.length];
+}
 
 let customAnims = [];
 let liveDesign = null;
@@ -490,22 +511,6 @@ function maskCanvas(d) {
   if (ctx.getImageData(10, 40, 1, 1).data[0] > 2) throw new Error("mask feather spill");
   if (ctx.getImageData(40, 40, 1, 1).data[0] < 250) throw new Error("mask hole");
 })();
-
-// Same list as fxBtnColors in store.go. Unknown/empty → first chip.
-const FX_BTN_COLORS = ["#5c6570", "#6b7c8d", "#a33b3b", "#b45a2a", "#b0892e", "#4f7a4a", "#2f7a7a", "#4a5ea8", "#7a4a8a", "#a85a72"];
-
-function fxBtnColor(hex) {
-  const h = String(hex || "").toLowerCase();
-  return FX_BTN_COLORS.includes(h) ? h : FX_BTN_COLORS[0];
-}
-
-function fxFireUrl(id) {
-  return location.origin + "/fx/" + encodeURIComponent(id || "");
-}
-
-function paintFxBtn(el, hex) {
-  el.style.setProperty("--fx", fxBtnColor(hex));
-}
 
 function fireOverlayAnim(kind, tune) {
   const ink = window.overlayInk;
