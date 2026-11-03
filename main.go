@@ -412,9 +412,9 @@ func main() {
 		obs.schedule()
 		writeJSON(w, next)
 	})
-	mux.HandleFunc("POST /api/design/reset", func(w http.ResponseWriter, r *http.Request) {
-		next := defaultDesign()
+	writeLive := func(w http.ResponseWriter, edit func(design) design) {
 		mu.Lock()
+		next := edit(d)
 		prev := d
 		d = next
 		if err := st.save(d); err != nil {
@@ -427,7 +427,48 @@ func main() {
 		h.broadcast([]byte("update"))
 		obs.schedule()
 		writeJSON(w, next)
+	}
+	mux.HandleFunc("POST /api/design/reset", func(w http.ResponseWriter, r *http.Request) {
+		writeLive(w, resetLook)
 	})
+	mux.HandleFunc("POST /api/design/reset-mask", func(w http.ResponseWriter, r *http.Request) {
+		writeLive(w, resetMask)
+	})
+	mux.HandleFunc("POST /api/design/reset-events", func(w http.ResponseWriter, r *http.Request) {
+		writeLive(w, resetEvents)
+	})
+	handleLib := func(key string) {
+		mux.HandleFunc("GET /api/"+key, func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			defer mu.Unlock()
+			doc, err := st.lib(key)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			writeJSON(w, doc)
+		})
+		mux.HandleFunc("PUT /api/"+key, func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+			var doc libDoc
+			if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			mu.Lock()
+			saved, err := st.saveLib(key, doc)
+			mu.Unlock()
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			h.broadcast([]byte("update"))
+			writeJSON(w, saved)
+		})
+	}
+	handleLib("designs")
+	handleLib("masks")
+	handleLib("boards")
 	mux.HandleFunc("GET /api/palettes", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()

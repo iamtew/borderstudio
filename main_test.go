@@ -414,6 +414,104 @@ func TestRemoveWebviewData(t *testing.T) {
 	}
 }
 
+func TestLibsAndReset(t *testing.T) {
+	st, _, err := openStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.close()
+	for _, key := range []string{"designs", "masks", "boards"} {
+		doc, err := st.lib(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if doc.Selected != "" || len(doc.Items) != 0 {
+			t.Fatalf("empty %s %+v", key, doc)
+		}
+	}
+	look := defaultDesign()
+	look.Stroke = "#ffffff"
+	look.Events = []ctrlEvent{{ID: "nope", Label: "X", Anim: "pulse"}}
+	raw, err := json.Marshal(look)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := st.saveLib("designs", libDoc{
+		Selected: "missing",
+		Items: []libItem{
+			{Name: "  Mine  ", Body: raw},
+			{Name: "   ", Body: raw},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Selected != "" || len(saved.Items) != 1 || saved.Items[0].Name != "Mine" || saved.Items[0].ID == "" {
+		t.Fatalf("design lib %+v", saved)
+	}
+	if strings.Contains(string(saved.Items[0].Body), `"events"`) {
+		t.Fatalf("design body kept events: %s", saved.Items[0].Body)
+	}
+	if _, err := st.saveLib("designs", libDoc{Items: []libItem{{Name: "Bad", Body: []byte(`{"width":10,"height":10}`)}}}); err == nil {
+		t.Fatal("bad design accepted")
+	}
+	kept, err := st.lib("designs")
+	if err != nil || len(kept.Items) != 1 || kept.Items[0].Name != "Mine" {
+		t.Fatalf("bad save changed library: %+v %v", kept, err)
+	}
+	if _, err := st.saveLib("masks", libDoc{Items: []libItem{{Name: "Bad", Body: []byte(`{"width":10,"height":10,"kind":"polygon"}`)}}}); err == nil {
+		t.Fatal("bad mask accepted")
+	}
+	maskRaw, err := json.Marshal(defaultDesign())
+	if err != nil {
+		t.Fatal(err)
+	}
+	masks, err := st.saveLib("masks", libDoc{Items: []libItem{{ID: "hole", Name: "Hole", Body: maskRaw}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if masks.Items[0].ID != "hole" || strings.Contains(string(masks.Items[0].Body), "stroke") {
+		t.Fatalf("mask body %+v", string(masks.Items[0].Body))
+	}
+	longID := strings.Repeat("a", 80)
+	boardRaw, err := json.Marshal([]ctrlEvent{{ID: longID, Label: " Hi ", Anim: "pulse", Tune: &motionTune{Ms: 40, Ease: "linear", Color: "00ff00", Strength: 1}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	boards, err := st.saveLib("boards", libDoc{Items: []libItem{{Name: "Show", Body: boardRaw}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var evs []ctrlEvent
+	if err := json.Unmarshal(boards.Items[0].Body, &evs); err != nil {
+		t.Fatal(err)
+	}
+	if len(evs) != 1 || len(evs[0].ID) != 42 || evs[0].Label != "Hi" || evs[0].Tune == nil || evs[0].Tune.Ms != 100 {
+		t.Fatalf("board %+v", evs)
+	}
+	tooMany := make([]ctrlEvent, 65)
+	tooRaw, _ := json.Marshal(tooMany)
+	if _, err := st.saveLib("boards", libDoc{Items: []libItem{{Name: "Too", Body: tooRaw}}}); err == nil {
+		t.Fatal("65 events accepted")
+	}
+
+	cur := defaultDesign()
+	cur.Stroke = "#112233"
+	cur.Events = []ctrlEvent{{ID: "keep", Label: "Keep", Anim: "pulse"}}
+	lookOnly := resetLook(cur)
+	if lookOnly.Stroke != defaultDesign().Stroke || len(lookOnly.Events) != 1 || lookOnly.Events[0].ID != "keep" {
+		t.Fatalf("reset look %+v", lookOnly)
+	}
+	holeOnly := resetMask(cur)
+	if holeOnly.Stroke != "#112233" || holeOnly.Events[0].ID != "keep" || holeOnly.Width != 1920 {
+		t.Fatalf("reset mask %+v", holeOnly)
+	}
+	evOnly := resetEvents(cur)
+	if evOnly.Stroke != "#112233" || len(evOnly.Events) < 10 || evOnly.Events[0].ID == "keep" {
+		t.Fatalf("reset events %+v", evOnly.Events)
+	}
+}
+
 func TestDashJSONStillLoads(t *testing.T) {
 	raw := `{"width":10,"height":10,"points":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1}],"dash":true}`
 	var d design

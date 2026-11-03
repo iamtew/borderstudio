@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -236,6 +238,208 @@ func (st *store) savePalettes(d palettesDoc) (palettesDoc, error) {
 		return d, err
 	}
 	return d, st.setKV("palettes", string(b))
+}
+
+// Named snapshots beside the live design. designs = look + hole, masks = hole, boards = events.
+type libItem struct {
+	ID   string          `json:"id"`
+	Name string          `json:"name"`
+	Body json.RawMessage `json:"body"`
+}
+
+type libDoc struct {
+	Selected string    `json:"selected"`
+	Items    []libItem `json:"items"`
+}
+
+func mintLibID(used map[string]bool) string {
+	var b [4]byte
+	for {
+		_, _ = rand.Read(b[:])
+		id := hex.EncodeToString(b[:])
+		if !used[id] {
+			return id
+		}
+	}
+}
+
+func normalizeLib(key string, doc libDoc) (libDoc, error) {
+	out := libDoc{Items: []libItem{}}
+	used := map[string]bool{}
+	for _, it := range doc.Items {
+		name := clipText(it.Name, 60)
+		if name == "" {
+			continue
+		}
+		body, err := normalizeLibBody(key, it.Body)
+		if err != nil {
+			return libDoc{}, err
+		}
+		id := clipText(it.ID, 42)
+		if id == "" || used[id] {
+			id = mintLibID(used)
+		}
+		used[id] = true
+		if len(out.Items) >= 64 {
+			return libDoc{}, fmt.Errorf("too many items")
+		}
+		out.Items = append(out.Items, libItem{ID: id, Name: name, Body: body})
+	}
+	sel := strings.TrimSpace(doc.Selected)
+	for _, it := range out.Items {
+		if it.ID == sel {
+			out.Selected = sel
+			break
+		}
+	}
+	return out, nil
+}
+
+func normalizeLibBody(key string, raw json.RawMessage) (json.RawMessage, error) {
+	switch key {
+	case "designs":
+		return normalizeDesignBody(raw)
+	case "masks":
+		return normalizeMaskBody(raw)
+	case "boards":
+		return normalizeBoardBody(raw)
+	default:
+		return nil, fmt.Errorf("bad library")
+	}
+}
+
+func normalizeDesignBody(raw json.RawMessage) (json.RawMessage, error) {
+	var d design
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return nil, fmt.Errorf("bad design")
+	}
+	d.Events = nil
+	d.Feather = clamp(d.Feather, 0, 64)
+	d.MotionTune = normalizeMotionTune(d.MotionTune)
+	if err := validateDesign(d); err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(d)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+	delete(m, "events")
+	return json.Marshal(m)
+}
+
+func normalizeMaskBody(raw json.RawMessage) (json.RawMessage, error) {
+	var d design
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return nil, fmt.Errorf("bad mask")
+	}
+	d.Stroke = "#000000"
+	d.StrokeWidth = 1
+	d.Events = nil
+	d.MotionTune = nil
+	d.Feather = clamp(d.Feather, 0, 64)
+	if err := validateDesign(d); err != nil {
+		return nil, err
+	}
+	type maskBody struct {
+		Width   int     `json:"width"`
+		Height  int     `json:"height"`
+		Kind    string  `json:"kind,omitempty"`
+		Points  []point `json:"points,omitempty"`
+		X       float64 `json:"x,omitempty"`
+		Y       float64 `json:"y,omitempty"`
+		W       float64 `json:"w,omitempty"`
+		H       float64 `json:"h,omitempty"`
+		R       float64 `json:"r,omitempty"`
+		Feather float64 `json:"feather"`
+	}
+	return json.Marshal(maskBody{
+		Width: d.Width, Height: d.Height, Kind: d.Kind, Points: d.Points,
+		X: d.X, Y: d.Y, W: d.W, H: d.H, R: d.R, Feather: d.Feather,
+	})
+}
+
+func normalizeBoardBody(raw json.RawMessage) (json.RawMessage, error) {
+	var evs []ctrlEvent
+	if err := json.Unmarshal(raw, &evs); err != nil {
+		return nil, fmt.Errorf("bad board")
+	}
+	if len(evs) > 64 {
+		return nil, fmt.Errorf("too many events")
+	}
+	for i := range evs {
+		evs[i].ID = clipText(evs[i].ID, 42)
+		evs[i].Label = clipText(evs[i].Label, 60)
+		evs[i].Anim = clipText(evs[i].Anim, 42)
+		evs[i].Tune = normalizeMotionTune(evs[i].Tune)
+	}
+	if evs == nil {
+		evs = []ctrlEvent{}
+	}
+	return json.Marshal(evs)
+}
+
+func (st *store) lib(key string) (libDoc, error) {
+	raw, err := st.getKV(key)
+	if err != nil {
+		return libDoc{}, err
+	}
+	if raw == "" {
+		return libDoc{Items: []libItem{}}, nil
+	}
+	var doc libDoc
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		return libDoc{Items: []libItem{}}, nil
+	}
+	out, err := normalizeLib(key, doc)
+	if err != nil {
+		log.Printf("stored %s unusable (%v); ignoring", key, err)
+		return libDoc{Items: []libItem{}}, nil
+	}
+	return out, nil
+}
+
+func (st *store) saveLib(key string, doc libDoc) (libDoc, error) {
+	doc, err := normalizeLib(key, doc)
+	if err != nil {
+		return libDoc{}, err
+	}
+	b, err := json.Marshal(doc)
+	if err != nil {
+		return libDoc{}, err
+	}
+	return doc, st.setKV(key, string(b))
+}
+
+// resetLook puts the default hole and border back and leaves the effect buttons.
+func resetLook(cur design) design {
+	next := defaultDesign()
+	if cur.Events != nil {
+		next.Events = append([]ctrlEvent(nil), cur.Events...)
+	} else {
+		next.Events = nil
+	}
+	return next
+}
+
+// resetMask puts the default hole and canvas size back. Stroke, motion, and events stay.
+func resetMask(cur design) design {
+	src := defaultDesign()
+	cur.Width, cur.Height = src.Width, src.Height
+	cur.Kind = src.Kind
+	cur.Points = src.Points
+	cur.X, cur.Y, cur.W, cur.H, cur.R = src.X, src.Y, src.W, src.H, src.R
+	cur.Feather = src.Feather
+	return cur
+}
+
+// resetEvents puts the stock effect buttons back. The look stays.
+func resetEvents(cur design) design {
+	cur.Events = defaultDesign().Events
+	return cur
 }
 
 // Ids reserved by RECIPES in web/shared.js. A custom preset cannot take one.
