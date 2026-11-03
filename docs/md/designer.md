@@ -83,7 +83,7 @@ Easing applies per keyframe segment, so **Steps** holds each key and dash loops 
 | Glow | Breathe, Glow pulse, Heartbeat, Shimmer, Neon |
 | Color | Hue, Rainbow, Aurora, Neon swap, Fire, Chroma |
 
-Chroma (idle or burst) hides the solid stroke and draws cyan/magenta stroke copies offset 2→5px, scaled to the shape so the editor and overlay match. Glitch keeps the stroke and adds the same split plus slice bars. Designer tint does not recolor the C/M copies.
+Chroma (idle or burst) hides the solid stroke and splits it into red, green, and blue copies. Where they overlap you get the stroke color back; the fringes are the split. The offset breathes, and it scales with the shape so the editor and the overlay match. Glitch keeps the stroke, adds the same split, and tears the ribbon into horizontal bands. Designer tint does not recolor the channel copies.
 
 Heartbeat exists twice: idle **Glow → Heartbeat** here, and a one-shot **Pulse → Heartbeat** on Effects. Same name, different job (`loop` vs fire-once).
 
