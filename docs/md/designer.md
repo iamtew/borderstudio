@@ -66,7 +66,13 @@ If the local server dies, a banner says `Error: Border Studio application not ru
 
 ## Motion
 
-**Border → Motion** is the idle loop on the border. **None** is a solid stroke. Pick a loop, then **Duration (ms)** (100–10000), **Easing**, **Tint** (empty = use the stroke color), and **Strength** (0–3). **Save as preset** stores that setup under **Mine**. Motion reset returns to None.
+**Border → Motion** is the idle loop on the border. Fold **Stroke** to get the panel out of the way. **None** is a solid stroke. Pick a loop, then **Duration (ms)** (100–10000), **Easing**, **Tint** (empty = use the stroke color), and **Strength** (0–3). **Save as preset** stores that setup under **Mine**. Motion reset returns to None.
+
+![Designer Motion fold](../assets/screens/designer-motion.png)
+
+Aurora (Color group) walks a hue along the stroke:
+
+![Designer Motion Aurora](../assets/screens/designer-motion-aurora.png)
 
 Easing applies per keyframe segment, so **Steps** holds each key and dash loops wrap seamlessly. Labels: Ease, Ease in, Ease out, Ease in-out, Linear, Steps, Steps 2.
 
